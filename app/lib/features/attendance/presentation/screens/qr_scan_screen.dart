@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../domain/entities/attendance_status.dart';
@@ -18,6 +19,7 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen> {
   String? _lastToken;
   String? _feedback;
   Color? _feedbackColor;
+  String? _unrecognisedToken;
 
   @override
   void dispose() {
@@ -33,12 +35,14 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen> {
     setState(() {
       _processing = true;
       _lastToken = token;
+      _unrecognisedToken = null;
     });
 
     final repository = ref.read(attendanceRepositoryProvider);
     try {
       final student = await repository.resolveQrToken(token);
       if (student == null) {
+        setState(() => _unrecognisedToken = token);
         _showFeedback('Unrecognised QR code.', Colors.red);
         return;
       }
@@ -87,10 +91,24 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
                 color: (_feedbackColor ?? Colors.black).withValues(alpha: 0.9),
-                child: Text(
-                  _feedback!,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _feedback!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    if (_unrecognisedToken != null) ...[
+                      const SizedBox(height: 12),
+                      FilledButton.icon(
+                        style: FilledButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black),
+                        icon: const Icon(Icons.badge),
+                        label: const Text('Register this card'),
+                        onPressed: () => context.push('/attendance/register-qr', extra: _unrecognisedToken),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ),

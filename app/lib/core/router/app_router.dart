@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/attendance/presentation/screens/attendance_status_screen.dart';
 import '../../features/attendance/presentation/screens/qr_scan_screen.dart';
+import '../../features/attendance/presentation/screens/register_qr_screen.dart';
 import '../../features/auth/presentation/screens/sign_in_screen.dart';
 import '../../features/class_management/presentation/screens/class_list_screen.dart';
 import '../../features/dashboard/presentation/screens/home_screen.dart';
@@ -31,6 +32,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/students', builder: (context, state) => const StudentListScreen()),
       GoRoute(path: '/attendance', builder: (context, state) => const AttendanceStatusScreen()),
       GoRoute(path: '/attendance/scan', builder: (context, state) => const QrScanScreen()),
+      GoRoute(
+        path: '/attendance/register-qr',
+        builder: (context, state) => RegisterQrScreen(initialToken: state.extra as String?),
+      ),
     ],
   );
 });
