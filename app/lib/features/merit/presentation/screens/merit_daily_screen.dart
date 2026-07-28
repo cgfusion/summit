@@ -1,0 +1,279 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
+
+import '../../../attendance/domain/entities/attendance_status.dart';
+import '../../../class_management/presentation/providers/class_providers.dart';
+import '../../domain/entities/merit_day.dart';
+import '../providers/merit_providers.dart';
+
+class MeritDailyScreen extends ConsumerWidget {
+  const MeritDailyScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final meritAsync = ref.watch(dailyMeritProvider);
+    final classesAsync = ref.watch(classesProvider);
+    final selectedDate = ref.watch(meritDateFilterProvider);
+    final selectedClassId = ref.watch(meritClassFilterProvider);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Merit Harian'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.emoji_events_outlined),
+            tooltip: 'Rewards',
+            onPressed: () => context.push('/merit/rewards'),
+          ),
+          IconButton(
+            icon: const Icon(Icons.leaderboard_outlined),
+            tooltip: 'Class summary',
+            onPressed: () => context.push('/merit/class-summary'),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.calendar_today, size: 18),
+                  label: Text(DateFormat('d MMM yyyy').format(selectedDate)),
+                  onPressed: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: selectedDate,
+                      firstDate: DateTime(2025),
+                      lastDate: DateTime(2030),
+                    );
+                    if (picked != null) {
+                      ref.read(meritDateFilterProvider.notifier).state = picked;
+                    }
+                  },
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: classesAsync.when(
+                    data: (classes) => DropdownMenu<String?>(
+                      label: const Text('Class'),
+                      initialSelection: selectedClassId,
+                      dropdownMenuEntries: [
+                        const DropdownMenuEntry(value: null, label: 'All classes'),
+                        ...classes.map((c) => DropdownMenuEntry(value: c.id, label: c.name)),
+                      ],
+                      onSelected: (value) => ref.read(meritClassFilterProvider.notifier).state = value,
+                    ),
+                    loading: () => const LinearProgressIndicator(),
+                    error: (_, _) => const SizedBox.shrink(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: meritAsync.when(
+              data: (days) {
+                if (days.isEmpty) {
+                  return const Center(child: Text('No merit records for this day yet.'));
+                }
+                return ListView.separated(
+                  itemCount: days.length,
+                  separatorBuilder: (_, _) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final day = days[index];
+                    return _MeritDayTile(day: day);
+                  },
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, stackTrace) => Center(child: Text('Failed to load merit records: $error')),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MeritDayTile extends ConsumerWidget {
+  const _MeritDayTile({required this.day});
+
+  final MeritDay day;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final present = day.attendanceStatus == AttendanceStatus.hadir || day.attendanceStatus == AttendanceStatus.lewat;
+
+    return ListTile(
+      title: Text(day.studentName),
+      subtitle: Row(
+        children: [
+          _PointDot(label: 'H', earned: day.pointHadir == 1),
+          _PointDot(label: 'T', earned: day.pointTepatMasa == 1),
+          _PointDot(label: 'R', earned: day.pointKembaliRehat == 1),
+          _PointDot(label: 'S', earned: day.pointKekalSesi == 1),
+          if (day.bonus > 0) ...[
+            const SizedBox(width: 8),
+            Chip(
+              label: Text('+${day.bonus}'),
+              visualDensity: VisualDensity.compact,
+              backgroundColor: Colors.amber.shade100,
+            ),
+          ],
+        ],
+      ),
+      trailing: CircleAvatar(
+        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+        child: Text('${day.totalPoints}'),
+      ),
+      onTap: present ? () => _openEditSheet(context, ref, day) : null,
+      enabled: present,
+    );
+  }
+
+  Future<void> _openEditSheet(BuildContext context, WidgetRef ref, MeritDay day) {
+    return showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => _MeritEditSheet(day: day),
+    );
+  }
+}
+
+class _PointDot extends StatelessWidget {
+  const _PointDot({required this.label, required this.earned});
+
+  final String label;
+  final bool earned;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 4),
+      child: CircleAvatar(
+        radius: 12,
+        backgroundColor: earned ? Colors.green : Colors.grey.shade300,
+        child: Text(label, style: TextStyle(fontSize: 11, color: earned ? Colors.white : Colors.black54)),
+      ),
+    );
+  }
+}
+
+class _MeritEditSheet extends ConsumerStatefulWidget {
+  const _MeritEditSheet({required this.day});
+
+  final MeritDay day;
+
+  @override
+  ConsumerState<_MeritEditSheet> createState() => _MeritEditSheetState();
+}
+
+class _MeritEditSheetState extends ConsumerState<_MeritEditSheet> {
+  late bool _returnedAfterRecess = widget.day.pointKembaliRehat == 1;
+  late bool _stayedUntilEnd = widget.day.pointKekalSesi == 1;
+  final _bonusController = TextEditingController();
+  final _reasonController = TextEditingController();
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _bonusController.dispose();
+    _reasonController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    setState(() => _saving = true);
+    final repository = ref.read(meritRepositoryProvider);
+    try {
+      await repository.setException(
+        studentId: widget.day.studentId,
+        date: widget.day.schoolDate,
+        missedRecessReturn: !_returnedAfterRecess,
+        leftEarly: !_stayedUntilEnd,
+      );
+
+      final bonusPoints = int.tryParse(_bonusController.text.trim());
+      if (bonusPoints != null && bonusPoints > 0) {
+        await repository.addBonus(
+          studentId: widget.day.studentId,
+          date: widget.day.schoolDate,
+          points: bonusPoints,
+          reason: _reasonController.text.trim().isEmpty ? null : _reasonController.text.trim(),
+        );
+      }
+
+      ref.invalidate(dailyMeritProvider);
+      if (mounted) Navigator.pop(context);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 20,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(widget.day.studentName, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 12),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Kembali selepas rehat'),
+            subtitle: const Text('Returned to class after recess'),
+            value: _returnedAfterRecess,
+            onChanged: (value) => setState(() => _returnedAfterRecess = value),
+          ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Kekal hingga tamat sesi'),
+            subtitle: const Text('Stayed until session ended'),
+            value: _stayedUntilEnd,
+            onChanged: (value) => setState(() => _stayedUntilEnd = value),
+          ),
+          const Divider(),
+          Text('Add bonus (optional)', style: Theme.of(context).textTheme.titleSmall),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              SizedBox(
+                width: 80,
+                child: TextField(
+                  controller: _bonusController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'Points', border: OutlineInputBorder()),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  controller: _reasonController,
+                  decoration: const InputDecoration(labelText: 'Reason', border: OutlineInputBorder()),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          FilledButton(
+            onPressed: _saving ? null : _save,
+            child: _saving
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+}

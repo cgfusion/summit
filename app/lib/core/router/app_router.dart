@@ -10,6 +10,9 @@ import '../../features/attendance/presentation/screens/register_qr_screen.dart';
 import '../../features/auth/presentation/screens/sign_in_screen.dart';
 import '../../features/class_management/presentation/screens/class_list_screen.dart';
 import '../../features/dashboard/presentation/screens/home_screen.dart';
+import '../../features/merit/presentation/screens/merit_class_summary_screen.dart';
+import '../../features/merit/presentation/screens/merit_daily_screen.dart';
+import '../../features/merit/presentation/screens/rewards_screen.dart';
 import '../../features/student/presentation/screens/student_list_screen.dart';
 import '../providers/supabase_provider.dart';
 
@@ -36,6 +39,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/attendance/register-qr',
         builder: (context, state) => RegisterQrScreen(initialToken: state.extra as String?),
       ),
+      GoRoute(path: '/merit', builder: (context, state) => const MeritDailyScreen()),
+      GoRoute(path: '/merit/class-summary', builder: (context, state) => const MeritClassSummaryScreen()),
+      GoRoute(path: '/merit/rewards', builder: (context, state) => const RewardsScreen()),
     ],
   );
 });

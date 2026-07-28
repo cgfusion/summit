@@ -31,6 +31,8 @@ class HomeScreen extends ConsumerWidget {
           _DashboardTile(icon: Icons.fact_check, label: 'Attendance', onTap: () => context.push('/attendance')),
           _DashboardTile(icon: Icons.qr_code_scanner, label: 'Scan QR', onTap: () => context.push('/attendance/scan')),
           _DashboardTile(icon: Icons.badge, label: 'Register QR Card', onTap: () => context.push('/attendance/register-qr')),
+          _DashboardTile(icon: Icons.military_tech, label: 'Merit', onTap: () => context.push('/merit')),
+          _DashboardTile(icon: Icons.emoji_events, label: 'Rewards', onTap: () => context.push('/merit/rewards')),
         ],
       ),
     );
