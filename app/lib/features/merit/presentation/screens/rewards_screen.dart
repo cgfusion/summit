@@ -122,7 +122,7 @@ Future<void> _logAward(
   required DateRange range,
 }) async {
   final repository = ref.read(meritRepositoryProvider);
-  await repository.logAward(
+  final logged = await repository.logAward(
     category: category,
     scopeType: scopeType,
     studentId: studentId,
@@ -131,7 +131,9 @@ Future<void> _logAward(
     periodEnd: range.to,
   );
   if (context.mounted) {
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Award logged.')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(logged ? 'Award logged.' : 'Already logged for this period.')),
+    );
   }
 }
 

@@ -102,7 +102,7 @@ class MeritRepositoryImpl implements MeritRepository {
   }
 
   @override
-  Future<void> logAward({
+  Future<bool> logAward({
     required MeritAwardCategory category,
     required String scopeType,
     String? studentId,
@@ -112,16 +112,22 @@ class MeritRepositoryImpl implements MeritRepository {
     String? note,
   }) async {
     final userId = _client.auth.currentUser?.id;
-    await _client.from('merit_awards').insert({
-      'category': category.dbValue,
-      'scope_type': scopeType,
-      'student_id': ?studentId,
-      'class_id': ?classId,
-      'period_start': _dateOnly(periodStart),
-      'period_end': _dateOnly(periodEnd),
-      'awarded_by': ?userId,
-      'note': ?note,
-    });
+    try {
+      await _client.from('merit_awards').insert({
+        'category': category.dbValue,
+        'scope_type': scopeType,
+        'student_id': ?studentId,
+        'class_id': ?classId,
+        'period_start': _dateOnly(periodStart),
+        'period_end': _dateOnly(periodEnd),
+        'awarded_by': ?userId,
+        'note': ?note,
+      });
+      return true;
+    } on PostgrestException catch (error) {
+      if (error.code == '23505') return false;
+      rethrow;
+    }
   }
 
   @override

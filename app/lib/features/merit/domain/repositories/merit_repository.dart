@@ -33,7 +33,10 @@ abstract interface class MeritRepository {
 
   Future<List<ClassPeriodSummary>> getClassSummary({required DateTime from, required DateTime to});
 
-  Future<void> logAward({
+  /// Logs an award. Returns false (no row written) if this exact
+  /// category/scope/period was already logged -- enforced by a DB unique
+  /// index, not just a client-side check, so it holds even under races.
+  Future<bool> logAward({
     required MeritAwardCategory category,
     required String scopeType,
     String? studentId,
