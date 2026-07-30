@@ -11,7 +11,7 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('School Merit System'),
+        title: const Text('DARE TO CHANGE (D2C)'),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),

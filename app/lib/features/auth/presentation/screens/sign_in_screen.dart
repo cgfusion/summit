@@ -58,7 +58,16 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('School Merit System', style: Theme.of(context).textTheme.headlineSmall),
+                  Text(
+                    'DARE TO CHANGE (D2C)',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  Text(
+                    'SMK Sungai Damit',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                   const SizedBox(height: 24),
                   TextFormField(
                     controller: _emailController,
