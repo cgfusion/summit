@@ -1,11 +1,11 @@
 {
-    "name": "app",
-    "short_name": "app",
+    "name": "Dare to Change (D2C) — SMK Sungai Damit",
+    "short_name": "D2C",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Attendance and merit system for SMK Sungai Damit's Dare to Change (D2C) programme.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
