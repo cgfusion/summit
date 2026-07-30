@@ -9,11 +9,12 @@ abstract interface class MeritRepository {
 
   Future<List<MeritDay>> getDailyMerit({required DateTime date, String? classId});
 
-  /// Upserts an exception row. If both flags are false, the row is removed
-  /// instead (no row = both points earned, the default).
+  /// Upserts an exception row. If all three flags are false, the row is
+  /// removed instead (no row = all three points earned, the default).
   Future<void> setException({
     required String studentId,
     required DateTime date,
+    required bool lateToClass,
     required bool missedRecessReturn,
     required bool leftEarly,
   });

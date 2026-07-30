@@ -41,11 +41,12 @@ class MeritRepositoryImpl implements MeritRepository {
   Future<void> setException({
     required String studentId,
     required DateTime date,
+    required bool lateToClass,
     required bool missedRecessReturn,
     required bool leftEarly,
   }) async {
     final schoolDate = _dateOnly(date);
-    if (!missedRecessReturn && !leftEarly) {
+    if (!lateToClass && !missedRecessReturn && !leftEarly) {
       await _client.from('attendance_day_exceptions').delete().eq('student_id', studentId).eq('school_date', schoolDate);
       return;
     }
@@ -54,6 +55,7 @@ class MeritRepositoryImpl implements MeritRepository {
     await _client.from('attendance_day_exceptions').upsert({
       'student_id': studentId,
       'school_date': schoolDate,
+      'late_to_class': lateToClass,
       'missed_recess_return': missedRecessReturn,
       'left_early': leftEarly,
       'noted_by': ?userId,

@@ -173,6 +173,7 @@ class _MeritEditSheet extends ConsumerStatefulWidget {
 }
 
 class _MeritEditSheetState extends ConsumerState<_MeritEditSheet> {
+  late bool _onTimeToClass = widget.day.pointTepatMasa == 1;
   late bool _returnedAfterRecess = widget.day.pointKembaliRehat == 1;
   late bool _stayedUntilEnd = widget.day.pointKekalSesi == 1;
   final _bonusController = TextEditingController();
@@ -193,6 +194,7 @@ class _MeritEditSheetState extends ConsumerState<_MeritEditSheet> {
       await repository.setException(
         studentId: widget.day.studentId,
         date: widget.day.schoolDate,
+        lateToClass: !_onTimeToClass,
         missedRecessReturn: !_returnedAfterRecess,
         leftEarly: !_stayedUntilEnd,
       );
@@ -229,6 +231,13 @@ class _MeritEditSheetState extends ConsumerState<_MeritEditSheet> {
         children: [
           Text(widget.day.studentName, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 12),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Masuk kelas tepat masa'),
+            subtitle: const Text('On time to every subject period today'),
+            value: _onTimeToClass,
+            onChanged: (value) => setState(() => _onTimeToClass = value),
+          ),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
             title: const Text('Kembali selepas rehat'),
