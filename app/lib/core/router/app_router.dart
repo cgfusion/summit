@@ -15,11 +15,16 @@ import '../../features/merit/presentation/screens/merit_daily_screen.dart';
 import '../../features/merit/presentation/screens/rewards_screen.dart';
 import '../../features/student/presentation/screens/student_list_screen.dart';
 import '../providers/supabase_provider.dart';
+import 'hash_change_listenable.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
-  return GoRouter(
+  final authRefresh = GoRouterRefreshStream(ref.watch(supabaseClientProvider).auth.onAuthStateChange);
+  ref.onDispose(authRefresh.dispose);
+
+  late final GoRouter router;
+  router = GoRouter(
     initialLocation: '/',
-    refreshListenable: GoRouterRefreshStream(ref.watch(supabaseClientProvider).auth.onAuthStateChange),
+    refreshListenable: authRefresh,
     redirect: (context, state) {
       final isSignedIn = ref.read(supabaseClientProvider).auth.currentSession != null;
       final isSigningIn = state.matchedLocation == '/sign-in';
@@ -44,6 +49,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/merit/rewards', builder: (context, state) => const RewardsScreen()),
     ],
   );
+  syncRouterWithExternalHashChanges(router);
+  return router;
 });
 
 /// Bridges a [Stream] (Supabase's auth-state stream) into a [Listenable] so
