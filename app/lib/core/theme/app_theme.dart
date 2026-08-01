@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 class AppTheme {
   AppTheme._();
 
-  static const seedColor = Color(0xFF4F46E5);
-  static const gradientEndColor = Color(0xFF7C3AED);
+  static const seedColor = Color(0xFF228B22);
+  static const gradientEndColor = Color(0xFF0F5C3A);
 
   static const heroGradient = LinearGradient(
     begin: Alignment.topLeft,
