@@ -89,6 +89,7 @@ class _Sidebar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final mode = ref.watch(layoutModeProvider);
+    final themeMode = ref.watch(themeModeProvider);
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
@@ -112,11 +113,21 @@ class _Sidebar extends ConsumerWidget {
                 const Expanded(
                   child: Text(
                     'DARE TO CHANGE (D2C)',
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                 ),
                 IconButton(
-                  icon: Icon(AppShell.iconFor(mode), color: Colors.white),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                  icon: Icon(AppTheme.iconFor(themeMode), color: Colors.white, size: 20),
+                  tooltip: 'Theme: ${AppTheme.labelFor(themeMode)}',
+                  onPressed: () => ref.read(themeModeProvider.notifier).state = AppTheme.nextThemeMode(themeMode),
+                ),
+                IconButton(
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                  icon: Icon(AppShell.iconFor(mode), color: Colors.white, size: 20),
                   tooltip: 'Layout: ${mode.name}',
                   onPressed: () => ref.read(layoutModeProvider.notifier).state = AppShell.next(mode),
                 ),

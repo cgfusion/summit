@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/layout/app_shell.dart';
 import '../../../../core/providers/supabase_provider.dart';
+import '../../../../core/theme/app_theme.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -11,6 +12,7 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final layoutMode = ref.watch(layoutModeProvider);
+    final themeMode = ref.watch(themeModeProvider);
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -24,6 +26,11 @@ class HomeScreen extends ConsumerWidget {
           ],
         ),
         actions: [
+          IconButton(
+            icon: Icon(AppTheme.iconFor(themeMode)),
+            tooltip: 'Theme: ${AppTheme.labelFor(themeMode)}',
+            onPressed: () => ref.read(themeModeProvider.notifier).state = AppTheme.nextThemeMode(themeMode),
+          ),
           IconButton(
             icon: Icon(AppShell.iconFor(layoutMode)),
             tooltip: 'Layout: ${layoutMode.name}',

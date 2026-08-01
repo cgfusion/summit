@@ -10,11 +10,13 @@ class App extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
+    final themeMode = ref.watch(themeModeProvider);
     return MaterialApp.router(
       title: 'Dare to Change (D2C) — SMK Sungai Damit',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
+      themeMode: themeMode,
       routerConfig: router,
     );
   }
