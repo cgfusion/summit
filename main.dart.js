@@ -52846,7 +52846,7 @@ if(o>=1000)s=4
 else s=o>=700?3:2
 r=t.p
 q=A.YZ(A.b([new A.k4(B.t0,"Classes","Manage class list & assignments",0,new A.all(a),p),new A.k4(B.t3,"Students","Browse and manage student records",1,new A.alm(a),p),new A.k4(B.t_,"Attendance","View daily attendance records",2,new A.aln(a),p),new A.k4(B.n8,"Scan QR","Scan student cards to mark attendance",3,new A.alo(a),p),new A.k4(B.rW,"Register QR Card","Assign QR cards to students",4,new A.alp(a),p),new A.k4(B.t2,"Merit","Track daily merit points",5,new A.alq(a),p),new A.k4(B.NE,"Class Summary","Compare merit across classes",6,new A.alr(a),p),new A.k4(B.rZ,"Rewards","Log and view award leaderboards",7,new A.als(a),p),new A.k4(B.ND,"Reports","KPI dashboard & trends",8,new A.alt(a),p),new A.k4(B.NN,"Settings","Schedules & staff accounts",9,new A.alu(a),p)],r),!0,!0,!0)
-return A.YN(A.bE(A.b([new A.a9R(this.a,p),B.i2,new A.yY(new A.azb(s,16,16,1.05,p),q,p,B.a4,!1,p,p,B.zg,p,!0,p,0,p,p,10,B.eg,B.a_,p,p,B.I,B.aD,p),B.i2,new A.a5V(this.b,p)],r),B.bb,B.l,B.r,0,B.t),p,B.eL,p,B.a4)},
+return A.YN(A.bE(A.b([new A.a9R(this.a,p),B.i2,new A.a5V(this.b,p),B.i2,new A.yY(new A.azb(s,16,16,1.05,p),q,p,B.a4,!1,p,p,B.zg,p,!0,p,0,p,p,10,B.eg,B.a_,p,p,B.I,B.aD,p)],r),B.bb,B.l,B.r,0,B.t),p,B.eL,p,B.a4)},
 $S:296}
 A.all.prototype={
 $0(){return A.h8(this.a).hG("/classes",null,t.X)},
