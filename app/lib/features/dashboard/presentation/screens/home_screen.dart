@@ -13,7 +13,16 @@ class HomeScreen extends ConsumerWidget {
     final layoutMode = ref.watch(layoutModeProvider);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('DARE TO CHANGE (D2C)'),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ClipOval(
+              child: Image.asset('assets/images/crest.png', width: 28, height: 28, fit: BoxFit.cover),
+            ),
+            const SizedBox(width: 10),
+            const Text('DARE TO CHANGE (D2C)'),
+          ],
+        ),
         actions: [
           IconButton(
             icon: Icon(AppShell.iconFor(layoutMode)),

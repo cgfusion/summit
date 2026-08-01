@@ -105,6 +105,10 @@ class _Sidebar extends ConsumerWidget {
             decoration: const BoxDecoration(gradient: AppTheme.heroGradient),
             child: Row(
               children: [
+                ClipOval(
+                  child: Image.asset('assets/images/crest.png', width: 36, height: 36, fit: BoxFit.cover),
+                ),
+                const SizedBox(width: 12),
                 const Expanded(
                   child: Text(
                     'DARE TO CHANGE (D2C)',

@@ -68,11 +68,8 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Container(
-                          width: 64,
-                          height: 64,
-                          decoration: const BoxDecoration(gradient: AppTheme.heroGradient, shape: BoxShape.circle),
-                          child: const Icon(Icons.emoji_events, color: Colors.white, size: 32),
+                        ClipOval(
+                          child: Image.asset('assets/images/crest.png', width: 72, height: 72, fit: BoxFit.cover),
                         ),
                         const SizedBox(height: 16),
                         Text(
