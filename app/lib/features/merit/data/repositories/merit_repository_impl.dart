@@ -143,6 +143,12 @@ class MeritRepositoryImpl implements MeritRepository {
     return rows.map((row) => MeritAward.fromMap(row)).toList();
   }
 
+  @override
+  Future<int> getTotalAwardsCount() async {
+    final rows = await _client.from('merit_awards').select('id');
+    return rows.length;
+  }
+
   String _dateOnly(DateTime date) {
     final d = DateTime(date.year, date.month, date.day);
     return d.toIso8601String().split('T').first;

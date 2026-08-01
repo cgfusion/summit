@@ -48,4 +48,8 @@ abstract interface class MeritRepository {
   });
 
   Future<List<MeritAward>> getAwards({required DateTime periodStart, required DateTime periodEnd});
+
+  /// All-time count of logged awards, regardless of period -- used for the
+  /// dashboard's "Total Rewards Given" stat.
+  Future<int> getTotalAwardsCount();
 }

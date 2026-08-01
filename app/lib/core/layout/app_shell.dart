@@ -111,10 +111,21 @@ class _Sidebar extends ConsumerWidget {
                 ),
                 const SizedBox(width: 12),
                 const Expanded(
-                  child: Text(
-                    'DARE TO CHANGE (D2C)',
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'DARE TO CHANGE (D2C)',
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                      ),
+                      Text(
+                        'School Management System',
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: Colors.white70, fontSize: 11),
+                      ),
+                    ],
                   ),
                 ),
                 IconButton(
