@@ -65,6 +65,8 @@ class HomeScreen extends ConsumerWidget {
               children: [
                 _WelcomeHeader(name: firstName),
                 const SizedBox(height: 20),
+                _QuickOverview(statsAsync: statsAsync),
+                const SizedBox(height: 20),
                 GridView.count(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
@@ -145,8 +147,6 @@ class HomeScreen extends ConsumerWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
-                _QuickOverview(statsAsync: statsAsync),
               ],
             ),
           );
