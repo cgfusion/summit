@@ -367,7 +367,13 @@ class _StatItem extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(value, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-                Text(label, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54)),
+                Text(
+                  label,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                ),
               ],
             ),
           ),
