@@ -23,15 +23,22 @@ class HomeScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Row(
-          mainAxisSize: MainAxisSize.min,
           children: [
             ClipOval(
               child: Image.asset('assets/images/crest.png', width: 28, height: 28, fit: BoxFit.cover),
             ),
             const SizedBox(width: 10),
-            const Text('DARE TO CHANGE (D2C)'),
+            Flexible(
+              child: Text(
+                'DARE TO CHANGE (D2C)',
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+            ),
           ],
         ),
+        titleSpacing: 16,
         actions: [
           IconButton(
             icon: Icon(AppTheme.iconFor(themeMode)),
@@ -58,6 +65,11 @@ class HomeScreen extends ConsumerWidget {
               : width >= 700
                   ? 3
                   : 2;
+          final childAspectRatio = width >= 1000
+              ? 1.15
+              : width >= 700
+                  ? 1.05
+                  : 0.82;
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -73,7 +85,7 @@ class HomeScreen extends ConsumerWidget {
                   crossAxisCount: crossAxisCount,
                   mainAxisSpacing: 16,
                   crossAxisSpacing: 16,
-                  childAspectRatio: 1.05,
+                  childAspectRatio: childAspectRatio,
                   children: [
                     _DashboardCard(
                       icon: Icons.groups,
