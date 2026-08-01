@@ -16,6 +16,7 @@ import '../../features/merit/presentation/screens/rewards_screen.dart';
 import '../../features/reports/presentation/screens/reports_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/student/presentation/screens/student_list_screen.dart';
+import '../layout/app_shell.dart';
 import '../providers/supabase_provider.dart';
 import 'hash_change_listenable.dart';
 
@@ -37,20 +38,25 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       GoRoute(path: '/sign-in', builder: (context, state) => const SignInScreen()),
-      GoRoute(path: '/', builder: (context, state) => const HomeScreen()),
-      GoRoute(path: '/classes', builder: (context, state) => const ClassListScreen()),
-      GoRoute(path: '/students', builder: (context, state) => const StudentListScreen()),
-      GoRoute(path: '/attendance', builder: (context, state) => const AttendanceStatusScreen()),
-      GoRoute(path: '/attendance/scan', builder: (context, state) => const QrScanScreen()),
-      GoRoute(
-        path: '/attendance/register-qr',
-        builder: (context, state) => RegisterQrScreen(initialToken: state.extra as String?),
+      ShellRoute(
+        builder: (context, state, child) => AppShell(currentPath: state.matchedLocation, child: child),
+        routes: [
+          GoRoute(path: '/', builder: (context, state) => const HomeScreen()),
+          GoRoute(path: '/classes', builder: (context, state) => const ClassListScreen()),
+          GoRoute(path: '/students', builder: (context, state) => const StudentListScreen()),
+          GoRoute(path: '/attendance', builder: (context, state) => const AttendanceStatusScreen()),
+          GoRoute(path: '/attendance/scan', builder: (context, state) => const QrScanScreen()),
+          GoRoute(
+            path: '/attendance/register-qr',
+            builder: (context, state) => RegisterQrScreen(initialToken: state.extra as String?),
+          ),
+          GoRoute(path: '/merit', builder: (context, state) => const MeritDailyScreen()),
+          GoRoute(path: '/merit/class-summary', builder: (context, state) => const MeritClassSummaryScreen()),
+          GoRoute(path: '/merit/rewards', builder: (context, state) => const RewardsScreen()),
+          GoRoute(path: '/reports', builder: (context, state) => const ReportsScreen()),
+          GoRoute(path: '/settings', builder: (context, state) => const SettingsScreen()),
+        ],
       ),
-      GoRoute(path: '/merit', builder: (context, state) => const MeritDailyScreen()),
-      GoRoute(path: '/merit/class-summary', builder: (context, state) => const MeritClassSummaryScreen()),
-      GoRoute(path: '/merit/rewards', builder: (context, state) => const RewardsScreen()),
-      GoRoute(path: '/reports', builder: (context, state) => const ReportsScreen()),
-      GoRoute(path: '/settings', builder: (context, state) => const SettingsScreen()),
     ],
   );
   syncRouterWithExternalHashChanges(router);
