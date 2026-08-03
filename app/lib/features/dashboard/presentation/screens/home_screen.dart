@@ -116,6 +116,13 @@ class HomeScreen extends ConsumerWidget {
                       onTap: () => context.push('/attendance/scan'),
                     ),
                     _DashboardCard(
+                      icon: Icons.edit_calendar,
+                      label: 'Manual Attendance',
+                      description: 'Key in attendance by hand or backfill',
+                      paletteIndex: 10,
+                      onTap: () => context.push('/attendance/manual'),
+                    ),
+                    _DashboardCard(
                       icon: Icons.badge,
                       label: 'Register QR Card',
                       description: 'Assign QR cards to students',

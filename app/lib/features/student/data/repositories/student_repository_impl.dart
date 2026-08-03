@@ -19,7 +19,8 @@ class StudentRepositoryImpl implements StudentRepository {
       query = query.eq('class_id', classId);
     }
     if (searchQuery != null && searchQuery.trim().isNotEmpty) {
-      query = query.ilike('full_name', '%${searchQuery.trim()}%');
+      final q = searchQuery.trim();
+      query = query.or('full_name.ilike.%$q%,ic_number.ilike.%$q%');
     }
 
     final rows = await query.order('full_name');

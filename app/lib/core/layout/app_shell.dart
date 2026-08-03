@@ -28,6 +28,7 @@ const _navItems = [
   _NavItem(Icons.people_outline, 'Students', '/students'),
   _NavItem(Icons.fact_check_outlined, 'Attendance', '/attendance'),
   _NavItem(Icons.qr_code_scanner, 'Scan QR', '/attendance/scan'),
+  _NavItem(Icons.edit_calendar_outlined, 'Manual Attendance', '/attendance/manual'),
   _NavItem(Icons.badge_outlined, 'Register QR Card', '/attendance/register-qr'),
   _NavItem(Icons.military_tech_outlined, 'Merit', '/merit'),
   _NavItem(Icons.leaderboard_outlined, 'Class Summary', '/merit/class-summary'),

@@ -1,6 +1,7 @@
 import '../../../student/domain/entities/student.dart';
 import '../entities/attendance_day.dart';
 import '../entities/attendance_log.dart';
+import '../entities/attendance_status.dart';
 import '../entities/register_qr_result.dart';
 
 abstract interface class AttendanceRepository {
@@ -32,5 +33,19 @@ abstract interface class AttendanceRepository {
     required String studentId,
     required String token,
     String? printedClassSnapshot,
+  });
+
+  /// Manually sets a student's attendance status for [schoolDate], for
+  /// students who didn't scan (or for backfilling attendance recorded on
+  /// paper before this system). Only the hour/minute of [time] are used
+  /// (and only for hadir/lewat) -- when omitted, the DB defaults it to that
+  /// class's on-time cutoff for the day, so a bare "hadir" reads as on-time
+  /// rather than an arbitrary clock value.
+  Future<void> setManualAttendance({
+    required String studentId,
+    required DateTime schoolDate,
+    required AttendanceStatus status,
+    DateTime? time,
+    String? note,
   });
 }

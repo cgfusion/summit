@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../student/domain/entities/student.dart';
 import '../../domain/entities/attendance_day.dart';
 import '../../domain/entities/attendance_log.dart';
+import '../../domain/entities/attendance_status.dart';
 import '../../domain/entities/register_qr_result.dart';
 import '../../domain/repositories/attendance_repository.dart';
 
@@ -127,6 +128,23 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
     return const RegisterQrSuccess();
   }
 
+  @override
+  Future<void> setManualAttendance({
+    required String studentId,
+    required DateTime schoolDate,
+    required AttendanceStatus status,
+    DateTime? time,
+    String? note,
+  }) async {
+    await _client.rpc('fn_manual_attendance_set', params: {
+      'p_student_id': studentId,
+      'p_school_date': _dateOnly(schoolDate),
+      'p_status': status.dbValue,
+      'p_time': time == null ? null : _timeOnly(time),
+      'p_note': ?note,
+    });
+  }
+
   Future<Map<String, dynamic>?> _findActiveTokenOwner(String token) async {
     final row = await _client
         .from('qr_tokens')
@@ -144,5 +162,11 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
   String _dateOnly(DateTime date) {
     final d = DateTime(date.year, date.month, date.day);
     return d.toIso8601String().split('T').first;
+  }
+
+  String _timeOnly(DateTime time) {
+    final hh = time.hour.toString().padLeft(2, '0');
+    final mm = time.minute.toString().padLeft(2, '0');
+    return '$hh:$mm:00';
   }
 }

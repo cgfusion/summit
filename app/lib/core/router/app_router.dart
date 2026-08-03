@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/attendance/presentation/screens/attendance_status_screen.dart';
+import '../../features/attendance/presentation/screens/manual_attendance_screen.dart';
 import '../../features/attendance/presentation/screens/qr_scan_screen.dart';
 import '../../features/attendance/presentation/screens/register_qr_screen.dart';
 import '../../features/auth/presentation/screens/sign_in_screen.dart';
@@ -46,6 +47,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/students', builder: (context, state) => const StudentListScreen()),
           GoRoute(path: '/attendance', builder: (context, state) => const AttendanceStatusScreen()),
           GoRoute(path: '/attendance/scan', builder: (context, state) => const QrScanScreen()),
+          GoRoute(path: '/attendance/manual', builder: (context, state) => const ManualAttendanceScreen()),
           GoRoute(
             path: '/attendance/register-qr',
             builder: (context, state) => RegisterQrScreen(initialToken: state.extra as String?),

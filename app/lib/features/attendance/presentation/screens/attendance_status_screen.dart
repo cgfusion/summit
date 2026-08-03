@@ -22,6 +22,11 @@ class AttendanceStatusScreen extends ConsumerWidget {
         title: const Text('Attendance Status'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.edit_calendar_outlined),
+            tooltip: 'Manual attendance entry',
+            onPressed: () => context.push('/attendance/manual'),
+          ),
+          IconButton(
             icon: const Icon(Icons.qr_code_scanner),
             tooltip: 'Scan attendance QR',
             onPressed: () => context.push('/attendance/scan'),

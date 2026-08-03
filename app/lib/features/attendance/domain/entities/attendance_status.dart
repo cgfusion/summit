@@ -22,6 +22,21 @@ enum AttendanceStatus {
     }
   }
 
+  String get dbValue {
+    switch (this) {
+      case AttendanceStatus.hadir:
+        return 'hadir';
+      case AttendanceStatus.lewat:
+        return 'lewat';
+      case AttendanceStatus.tidakHadir:
+        return 'tidak_hadir';
+      case AttendanceStatus.cutiSakit:
+        return 'cuti_sakit';
+      case AttendanceStatus.urusanRasmi:
+        return 'urusan_rasmi';
+    }
+  }
+
   String get label {
     switch (this) {
       case AttendanceStatus.hadir:
