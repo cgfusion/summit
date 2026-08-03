@@ -6,6 +6,7 @@ import '../../../class_management/presentation/providers/class_providers.dart';
 import '../../../dashboard/presentation/providers/dashboard_providers.dart';
 import '../../../student/domain/entities/student.dart';
 import '../../../student/presentation/providers/student_providers.dart';
+import '../../domain/entities/attendance_day.dart';
 import '../../domain/entities/attendance_status.dart';
 import '../providers/attendance_providers.dart';
 
@@ -279,12 +280,18 @@ class _BulkMigrateTabState extends ConsumerState<_BulkMigrateTab> {
       _statusByStudent.clear();
       _feedback = null;
     });
-    final students = await ref.read(studentRepositoryProvider).getStudents(classId: classId);
+    final results = await Future.wait([
+      ref.read(studentRepositoryProvider).getStudents(classId: classId),
+      ref.read(attendanceRepositoryProvider).getAttendanceForDate(date: _date, classId: classId),
+    ]);
     if (!mounted) return;
+    final students = results[0] as List<Student>;
+    final existing = results[1] as List<AttendanceDay>;
+    final existingByStudent = {for (final day in existing) day.studentId: day.status};
     setState(() {
       _roster = students;
       for (final s in students) {
-        _statusByStudent[s.id] = AttendanceStatus.hadir;
+        _statusByStudent[s.id] = existingByStudent[s.id] ?? AttendanceStatus.hadir;
       }
       _loadingRoster = false;
     });
