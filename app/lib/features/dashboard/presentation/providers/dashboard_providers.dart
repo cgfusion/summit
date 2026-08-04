@@ -12,6 +12,11 @@ final dashboardRepositoryProvider = Provider<DashboardRepository>((ref) {
   return DashboardRepositoryImpl(client: ref.watch(supabaseClientProvider));
 });
 
+/// Whether the Dashboard's separate "Worst 5 Classes" card is shown, on top
+/// of the always-visible full class ranking. Off by default; local UI
+/// preference only, not persisted.
+final showWorstClassesProvider = StateProvider<bool>((ref) => false);
+
 /// All attendance_days rows for one date, school-wide -- deliberately
 /// bypasses attendanceClassFilterProvider (the Attendance Status screen's
 /// own filter state), same reasoning as the rest of this file.

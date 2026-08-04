@@ -39,6 +39,7 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final layoutMode = ref.watch(layoutModeProvider);
     final themeMode = ref.watch(themeModeProvider);
+    final showWorstClasses = ref.watch(showWorstClassesProvider);
     final today = _dateOnly(DateTime.now());
     final weekStart = today.subtract(Duration(days: today.weekday - 1));
     final weekEnd = weekStart.add(const Duration(days: 4));
@@ -112,13 +113,24 @@ class DashboardScreen extends ConsumerWidget {
                   columns: columns,
                   children: [
                     _ChartCard(
-                      title: 'Top 5 Classes (Attendance)',
-                      child: _ClassLeaderboard(from: monthStart, to: monthEnd, best: true),
+                      title: 'Class Ranking (Attendance)',
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('Worst 5', style: Theme.of(context).textTheme.bodySmall),
+                          Switch(
+                            value: showWorstClasses,
+                            onChanged: (v) => ref.read(showWorstClassesProvider.notifier).state = v,
+                          ),
+                        ],
+                      ),
+                      child: _ClassLeaderboard(from: monthStart, to: monthEnd, best: true, limit: null),
                     ),
-                    _ChartCard(
-                      title: 'Worst 5 Classes (Attendance)',
-                      child: _ClassLeaderboard(from: monthStart, to: monthEnd, best: false),
-                    ),
+                    if (showWorstClasses)
+                      _ChartCard(
+                        title: 'Worst 5 Classes (Attendance)',
+                        child: _ClassLeaderboard(from: monthStart, to: monthEnd, best: false, limit: 5),
+                      ),
                     _ChartCard(title: 'Merit Points (This Week)', child: _MeritTrendChart(from: weekStart, to: weekEnd)),
                     _ChartCard(
                       title: 'Merit Distribution (This Month)',
@@ -165,10 +177,11 @@ class _DashboardGrid extends StatelessWidget {
 }
 
 class _ChartCard extends StatelessWidget {
-  const _ChartCard({required this.title, required this.child});
+  const _ChartCard({required this.title, required this.child, this.trailing});
 
   final String title;
   final Widget child;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -178,7 +191,14 @@ class _ChartCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+                ),
+                ?trailing,
+              ],
+            ),
             const SizedBox(height: 12),
             Expanded(child: child),
           ],
@@ -654,11 +674,14 @@ class _LeaderboardRow extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _ClassLeaderboard extends ConsumerWidget {
-  const _ClassLeaderboard({required this.from, required this.to, required this.best});
+  const _ClassLeaderboard({required this.from, required this.to, required this.best, required this.limit});
 
   final DateTime from;
   final DateTime to;
   final bool best;
+
+  /// Caps the list to this many rows; null shows every class with data.
+  final int? limit;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -667,7 +690,7 @@ class _ClassLeaderboard extends ConsumerWidget {
       data: (rows) {
         final withData = rows.where((r) => r.recordedCount > 0).toList()
           ..sort((a, b) => best ? b.attendanceRate.compareTo(a.attendanceRate) : a.attendanceRate.compareTo(b.attendanceRate));
-        final top = withData.take(5).toList();
+        final top = limit == null ? withData : withData.take(limit!).toList();
         if (top.isEmpty) return const _EmptyState(message: 'No attendance recorded this month yet.');
         return ListView.builder(
           itemCount: top.length,
