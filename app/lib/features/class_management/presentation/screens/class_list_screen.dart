@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/layout/app_shell.dart';
 import '../../../student/presentation/providers/student_providers.dart';
 import '../providers/class_providers.dart';
 
@@ -13,7 +14,7 @@ class ClassListScreen extends ConsumerWidget {
     final classesAsync = ref.watch(classesProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Classes')),
+      appBar: AppBar(leading: const HomeBackButton(), title: const Text('Classes')),
       body: classesAsync.when(
         data: (classes) => ListView.separated(
           itemCount: classes.length,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../../../../core/layout/app_shell.dart';
 import '../../../student/domain/entities/student.dart';
 import '../../../student/presentation/providers/student_providers.dart';
 import '../../domain/entities/register_qr_result.dart';
@@ -140,7 +141,7 @@ class _RegisterQrScreenState extends ConsumerState<RegisterQrScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Register QR Card')),
+      appBar: AppBar(leading: const HomeBackButton(), title: const Text('Register QR Card')),
       body: Column(
         children: [
           if (_feedback != null)

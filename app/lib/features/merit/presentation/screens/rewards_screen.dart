@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/layout/app_shell.dart';
 import '../../domain/entities/class_period_summary.dart';
 import '../../domain/entities/merit_award.dart';
 import '../../domain/entities/student_period_summary.dart';
@@ -28,7 +29,7 @@ class RewardsScreen extends ConsumerWidget {
     final programPeriodAsync = ref.watch(programPeriodProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Rewards & Recognition')),
+      appBar: AppBar(leading: const HomeBackButton(), title: const Text('Rewards & Recognition')),
       body: ListView(
         padding: const EdgeInsets.all(12),
         children: [

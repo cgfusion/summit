@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/layout/app_shell.dart';
 import '../../../class_management/presentation/providers/class_providers.dart';
 import '../../../dashboard/presentation/providers/dashboard_providers.dart';
 import '../../../student/domain/entities/student.dart';
@@ -21,6 +22,7 @@ class ManualAttendanceScreen extends StatelessWidget {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
+          leading: const HomeBackButton(),
           title: const Text('Manual Attendance'),
           bottom: const TabBar(
             tabs: [

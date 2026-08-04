@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/layout/app_shell.dart';
 import '../../../class_management/presentation/providers/class_providers.dart';
 import '../providers/student_providers.dart';
 
@@ -14,7 +15,7 @@ class StudentListScreen extends ConsumerWidget {
     final selectedClassId = ref.watch(studentClassFilterProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Students')),
+      appBar: AppBar(leading: const HomeBackButton(), title: const Text('Students')),
       body: Column(
         children: [
           Padding(

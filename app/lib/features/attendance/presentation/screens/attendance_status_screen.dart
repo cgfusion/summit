@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/layout/app_shell.dart';
 import '../../../class_management/presentation/providers/class_providers.dart';
 import '../../domain/entities/attendance_status.dart';
 import '../providers/attendance_providers.dart';
@@ -19,6 +20,7 @@ class AttendanceStatusScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
+        leading: const HomeBackButton(),
         title: const Text('Attendance Status'),
         actions: [
           IconButton(

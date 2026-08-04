@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../../../../core/layout/app_shell.dart';
 import '../../domain/entities/attendance_status.dart';
 import '../providers/attendance_providers.dart';
 
@@ -80,7 +81,7 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Scan Attendance QR')),
+      appBar: AppBar(leading: const HomeBackButton(), title: const Text('Scan Attendance QR')),
       body: Stack(
         children: [
           MobileScanner(controller: _controller, onDetect: _onDetect),

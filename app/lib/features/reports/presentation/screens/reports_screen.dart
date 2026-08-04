@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/layout/app_shell.dart';
 import '../../../class_management/presentation/providers/class_providers.dart';
 import '../../../dashboard/domain/entities/chronic_latecomer.dart';
 import '../../../dashboard/presentation/providers/dashboard_providers.dart'
@@ -24,7 +25,7 @@ class ReportsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final programPeriodAsync = ref.watch(programPeriodProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Reports')),
+      appBar: AppBar(leading: const HomeBackButton(), title: const Text('Reports')),
       body: programPeriodAsync.when(
         data: (period) => _ReportsBody(defaultRange: period),
         loading: () => const Center(child: CircularProgressIndicator()),

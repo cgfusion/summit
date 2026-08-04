@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/layout/app_shell.dart';
 import '../../../dashboard/domain/entities/attendance_period_summary.dart';
 import '../../../dashboard/presentation/providers/dashboard_providers.dart';
 import '../../domain/value_objects/date_range.dart';
@@ -26,7 +27,7 @@ class _MeritClassSummaryScreenState extends ConsumerState<MeritClassSummaryScree
     final summaryAsync = ref.watch(classPeriodSummaryProvider(_range));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Class Merit Summary')),
+      appBar: AppBar(leading: const HomeBackButton(), title: const Text('Class Merit Summary')),
       body: ListView(
         children: [
           PeriodPicker(range: _range, onChanged: (range) => setState(() => _range = range)),

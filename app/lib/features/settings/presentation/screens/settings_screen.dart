@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/layout/app_shell.dart';
 import '../../../merit/presentation/providers/merit_providers.dart' show programPeriodProvider;
 import '../../domain/entities/cutoff_time_row.dart';
 import '../../domain/entities/staff_profile.dart';
@@ -33,7 +34,7 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(currentProfileProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(leading: const HomeBackButton(), title: const Text('Settings')),
       body: profileAsync.when(
         data: (profile) {
           if (profile?.role != 'admin') {

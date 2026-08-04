@@ -39,6 +39,24 @@ const _navItems = [
   _NavItem(Icons.settings_outlined, 'Settings', '/settings'),
 ];
 
+/// AppBar `leading` for every non-Dashboard/non-Home screen. In mobile mode
+/// (no persistent sidebar) these screens are the only way back to Home, so
+/// this always navigates there instead of relying on the default back
+/// button, which silently disappears whenever there's nothing left to pop
+/// (deep link, page reload, etc).
+class HomeBackButton extends StatelessWidget {
+  const HomeBackButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      icon: const Icon(Icons.arrow_back),
+      tooltip: 'Home',
+      onPressed: () => context.canPop() ? context.pop() : context.go('/home'),
+    );
+  }
+}
+
 /// Responsive shell: below [_sidebarBreakpoint] (or when forced via
 /// [layoutModeProvider]), renders [child] untouched -- exactly today's
 /// mobile behaviour, each screen keeps its own AppBar/back-navigation. At or
