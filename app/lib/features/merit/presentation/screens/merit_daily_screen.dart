@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 
 import '../../../attendance/domain/entities/attendance_status.dart';
 import '../../../class_management/presentation/providers/class_providers.dart';
+import '../../../settings/domain/entities/school_settings.dart';
+import '../../../settings/presentation/providers/settings_providers.dart';
 import '../../domain/entities/merit_day.dart';
 import '../providers/merit_providers.dart';
 
@@ -107,15 +109,17 @@ class _MeritDayTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final present = day.attendanceStatus == AttendanceStatus.hadir || day.attendanceStatus == AttendanceStatus.lewat;
+    final settings = ref.watch(schoolSettingsProvider).value;
 
     return ListTile(
       title: Text(day.studentName),
       subtitle: Row(
         children: [
-          _PointDot(label: 'H', earned: day.pointHadir == 1),
-          _PointDot(label: 'T', earned: day.pointTepatMasa == 1),
-          _PointDot(label: 'R', earned: day.pointKembaliRehat == 1),
-          _PointDot(label: 'S', earned: day.pointKekalSesi == 1),
+          if (settings == null || settings.meritEnableHadir) _PointDot(label: 'H', earned: day.pointHadir == 1),
+          if (settings == null || settings.meritEnableTepatMasa) _PointDot(label: 'T', earned: day.pointTepatMasa == 1),
+          if (settings != null && settings.meritEnableKembaliRehat)
+            _PointDot(label: 'R', earned: day.pointKembaliRehat == 1),
+          if (settings == null || settings.meritEnableKekalSesi) _PointDot(label: 'S', earned: day.pointKekalSesi == 1),
           if (day.bonus > 0) ...[
             const SizedBox(width: 8),
             Chip(
@@ -136,10 +140,11 @@ class _MeritDayTile extends ConsumerWidget {
   }
 
   Future<void> _openEditSheet(BuildContext context, WidgetRef ref, MeritDay day) {
+    final settings = ref.read(schoolSettingsProvider).value;
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) => _MeritEditSheet(day: day),
+      builder: (context) => _MeritEditSheet(day: day, settings: settings),
     );
   }
 }
@@ -164,9 +169,10 @@ class _PointDot extends StatelessWidget {
 }
 
 class _MeritEditSheet extends ConsumerStatefulWidget {
-  const _MeritEditSheet({required this.day});
+  const _MeritEditSheet({required this.day, required this.settings});
 
   final MeritDay day;
+  final SchoolSettings? settings;
 
   @override
   ConsumerState<_MeritEditSheet> createState() => _MeritEditSheetState();
@@ -218,6 +224,12 @@ class _MeritEditSheetState extends ConsumerState<_MeritEditSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final settings = widget.settings;
+    final showTepatMasa = settings == null || settings.meritEnableTepatMasa;
+    final showKembaliRehat = settings != null && settings.meritEnableKembaliRehat;
+    final showKekalSesi = settings == null || settings.meritEnableKekalSesi;
+    final showBonus = settings != null && settings.meritEnableBonus;
+
     return Padding(
       padding: EdgeInsets.only(
         left: 20,
@@ -231,49 +243,54 @@ class _MeritEditSheetState extends ConsumerState<_MeritEditSheet> {
         children: [
           Text(widget.day.studentName, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 12),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Masuk kelas tepat masa'),
-            subtitle: const Text('On time to every subject period today'),
-            value: _onTimeToClass,
-            onChanged: (value) => setState(() => _onTimeToClass = value),
-          ),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Kembali selepas rehat'),
-            subtitle: const Text('Returned to class after recess'),
-            value: _returnedAfterRecess,
-            onChanged: (value) => setState(() => _returnedAfterRecess = value),
-          ),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Kekal hingga tamat sesi'),
-            subtitle: const Text('Stayed until session ended'),
-            value: _stayedUntilEnd,
-            onChanged: (value) => setState(() => _stayedUntilEnd = value),
-          ),
-          const Divider(),
-          Text('Add bonus (optional)', style: Theme.of(context).textTheme.titleSmall),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              SizedBox(
-                width: 80,
-                child: TextField(
-                  controller: _bonusController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Points', border: OutlineInputBorder()),
+          if (showTepatMasa)
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Masuk kelas tepat masa'),
+              subtitle: const Text('On time to every subject period today'),
+              value: _onTimeToClass,
+              onChanged: (value) => setState(() => _onTimeToClass = value),
+            ),
+          if (showKembaliRehat)
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Kembali selepas rehat'),
+              subtitle: const Text('Returned to class after recess'),
+              value: _returnedAfterRecess,
+              onChanged: (value) => setState(() => _returnedAfterRecess = value),
+            ),
+          if (showKekalSesi)
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Kekal hingga tamat sesi'),
+              subtitle: const Text('Stayed until session ended'),
+              value: _stayedUntilEnd,
+              onChanged: (value) => setState(() => _stayedUntilEnd = value),
+            ),
+          if (showBonus) ...[
+            const Divider(),
+            Text('Add bonus (optional)', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                SizedBox(
+                  width: 80,
+                  child: TextField(
+                    controller: _bonusController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Points', border: OutlineInputBorder()),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextField(
-                  controller: _reasonController,
-                  decoration: const InputDecoration(labelText: 'Reason', border: OutlineInputBorder()),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: _reasonController,
+                    decoration: const InputDecoration(labelText: 'Reason', border: OutlineInputBorder()),
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
+          ],
           const SizedBox(height: 20),
           FilledButton(
             onPressed: _saving ? null : _save,

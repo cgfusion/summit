@@ -14,7 +14,9 @@ class SettingsRepositoryImpl implements SettingsRepository {
   Future<SchoolSettings> getSchoolSettings() async {
     final row = await _client
         .from('attendance_settings')
-        .select('program_start_date, program_end_date, school_timezone')
+        .select('program_start_date, program_end_date, school_timezone, merit_enable_hadir, '
+            'merit_enable_tepat_masa, merit_enable_kembali_rehat, merit_enable_kekal_sesi, '
+            'merit_enable_bonus, merit_max_points')
         .eq('id', 1)
         .single();
     return SchoolSettings.fromMap(row);
@@ -26,6 +28,25 @@ class SettingsRepositoryImpl implements SettingsRepository {
         .from('attendance_settings')
         .update({'program_start_date': _dateOnly(start), 'program_end_date': _dateOnly(end)})
         .eq('id', 1);
+  }
+
+  @override
+  Future<void> updateMeritSettings({
+    required bool enableHadir,
+    required bool enableTepatMasa,
+    required bool enableKembaliRehat,
+    required bool enableKekalSesi,
+    required bool enableBonus,
+    required int maxPoints,
+  }) async {
+    await _client.from('attendance_settings').update({
+      'merit_enable_hadir': enableHadir,
+      'merit_enable_tepat_masa': enableTepatMasa,
+      'merit_enable_kembali_rehat': enableKembaliRehat,
+      'merit_enable_kekal_sesi': enableKekalSesi,
+      'merit_enable_bonus': enableBonus,
+      'merit_max_points': maxPoints,
+    }).eq('id', 1);
   }
 
   @override

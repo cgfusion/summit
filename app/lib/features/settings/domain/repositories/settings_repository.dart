@@ -7,6 +7,15 @@ abstract interface class SettingsRepository {
 
   Future<void> updateProgramPeriod({required DateTime start, required DateTime end});
 
+  Future<void> updateMeritSettings({
+    required bool enableHadir,
+    required bool enableTepatMasa,
+    required bool enableKembaliRehat,
+    required bool enableKekalSesi,
+    required bool enableBonus,
+    required int maxPoints,
+  });
+
   Future<List<CutoffTimeRow>> getCutoffTimes();
 
   Future<void> updateCutoffTime({required String session, required int dayOfWeek, required String cutoffTime});

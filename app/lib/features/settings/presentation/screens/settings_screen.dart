@@ -60,6 +60,8 @@ class _SettingsBody extends StatelessWidget {
         SizedBox(height: 16),
         _CutoffTimesSection(),
         SizedBox(height: 16),
+        _MeritComponentsSection(),
+        SizedBox(height: 16),
         _StaffSection(),
       ],
     );
@@ -255,6 +257,125 @@ class _CutoffChip extends ConsumerWidget {
                   );
               ref.invalidate(cutoffTimesProvider);
             },
+    );
+  }
+}
+
+class _MeritComponentsSection extends ConsumerStatefulWidget {
+  const _MeritComponentsSection();
+
+  @override
+  ConsumerState<_MeritComponentsSection> createState() => _MeritComponentsSectionState();
+}
+
+class _MeritComponentsSectionState extends ConsumerState<_MeritComponentsSection> {
+  bool? _enableHadir;
+  bool? _enableTepatMasa;
+  bool? _enableKembaliRehat;
+  bool? _enableKekalSesi;
+  bool? _enableBonus;
+  int? _maxPoints;
+  bool _saving = false;
+
+  Future<void> _save() async {
+    setState(() => _saving = true);
+    try {
+      await ref.read(settingsRepositoryProvider).updateMeritSettings(
+            enableHadir: _enableHadir!,
+            enableTepatMasa: _enableTepatMasa!,
+            enableKembaliRehat: _enableKembaliRehat!,
+            enableKekalSesi: _enableKekalSesi!,
+            enableBonus: _enableBonus!,
+            maxPoints: _maxPoints!,
+          );
+      ref.invalidate(schoolSettingsProvider);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Merit components updated.')));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final settingsAsync = ref.watch(schoolSettingsProvider);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: settingsAsync.when(
+          data: (settings) {
+            _enableHadir ??= settings.meritEnableHadir;
+            _enableTepatMasa ??= settings.meritEnableTepatMasa;
+            _enableKembaliRehat ??= settings.meritEnableKembaliRehat;
+            _enableKekalSesi ??= settings.meritEnableKekalSesi;
+            _enableBonus ??= settings.meritEnableBonus;
+            _maxPoints ??= settings.meritMaxPoints;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Merit Components', style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 4),
+                Text(
+                  'A disabled component no longer counts toward merit points at all.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Hadir ke sekolah'),
+                  value: _enableHadir!,
+                  onChanged: (v) => setState(() => _enableHadir = v),
+                ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Masuk kelas tepat masa'),
+                  value: _enableTepatMasa!,
+                  onChanged: (v) => setState(() => _enableTepatMasa = v),
+                ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Kembali selepas rehat'),
+                  subtitle: const Text('Off by default -- hard to verify reliably in practice'),
+                  value: _enableKembaliRehat!,
+                  onChanged: (v) => setState(() => _enableKembaliRehat = v),
+                ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Kekal hingga tamat sesi'),
+                  value: _enableKekalSesi!,
+                  onChanged: (v) => setState(() => _enableKekalSesi = v),
+                ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Bonus points'),
+                  subtitle: const Text('Off by default -- ad hoc, opt-in'),
+                  value: _enableBonus!,
+                  onChanged: (v) => setState(() => _enableBonus = v),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: 200,
+                  child: TextFormField(
+                    initialValue: _maxPoints.toString(),
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Max points per day', border: OutlineInputBorder()),
+                    onChanged: (v) => _maxPoints = int.tryParse(v) ?? _maxPoints,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                FilledButton(
+                  onPressed: _saving ? null : _save,
+                  child: _saving
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Text('Save'),
+                ),
+              ],
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, stackTrace) => Text('Failed to load: $error'),
+        ),
+      ),
     );
   }
 }
