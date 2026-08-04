@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +13,24 @@ import '../../domain/entities/dashboard_analytics.dart';
 import '../providers/dashboard_providers.dart';
 
 DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
+
+/// A "nice" round axis interval (1/2/5 x a power of 10) for [maxValue], so
+/// fl_chart's left-axis ticks land on clean numbers instead of overlapping
+/// near the top when the default auto-interval doesn't divide evenly.
+double _niceInterval(double maxValue) {
+  if (maxValue <= 0) return 1;
+  final rough = maxValue / 4;
+  final magnitude = math.pow(10, (math.log(rough) / math.ln10).floor()).toDouble();
+  final residual = rough / magnitude;
+  final niceResidual = residual <= 1
+      ? 1.0
+      : residual <= 2
+          ? 2.0
+          : residual <= 5
+              ? 5.0
+              : 10.0;
+  return niceResidual * magnitude;
+}
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -378,6 +398,7 @@ class _AttendanceTrendChart extends ConsumerWidget {
               bottomTitles: AxisTitles(
                 sideTitles: SideTitles(
                   showTitles: true,
+                  interval: 1,
                   getTitlesWidget: (value, meta) {
                     final i = value.toInt();
                     if (i < 0 || i >= points.length) return const SizedBox.shrink();
@@ -518,20 +539,23 @@ class _AttendanceByTimeChart extends ConsumerWidget {
         }
         final buckets = [before715, r715to730, r730to745, after745];
         final labels = ['<7:15', '7:15-7:30', '7:30-7:45', '>7:45'];
-        final maxY = (buckets.reduce((a, b) => a > b ? a : b)).toDouble();
+        final rawMax = (buckets.reduce((a, b) => a > b ? a : b)).toDouble();
+        final interval = _niceInterval(rawMax == 0 ? 1 : rawMax);
+        final maxY = rawMax == 0 ? interval : (rawMax / interval).ceil() * interval;
         final accent = Theme.of(context).colorScheme.primary;
         return BarChart(
           BarChartData(
-            maxY: maxY == 0 ? 1 : maxY * 1.2,
-            gridData: const FlGridData(drawVerticalLine: false),
+            maxY: maxY,
+            gridData: FlGridData(drawVerticalLine: false, horizontalInterval: interval),
             borderData: FlBorderData(show: false),
             titlesData: FlTitlesData(
-              leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 32)),
+              leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 32, interval: interval)),
               rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
               topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
               bottomTitles: AxisTitles(
                 sideTitles: SideTitles(
                   showTitles: true,
+                  interval: 1,
                   getTitlesWidget: (value, meta) {
                     final i = value.toInt();
                     if (i < 0 || i >= labels.length) return const SizedBox.shrink();
@@ -675,20 +699,23 @@ class _MeritTrendChart extends ConsumerWidget {
     return async.when(
       data: (points) {
         if (points.isEmpty) return const _EmptyState(message: 'No merit points this week yet.');
-        final maxY = points.map((p) => p.totalPoints).reduce((a, b) => a > b ? a : b).toDouble();
+        final rawMax = points.map((p) => p.totalPoints).reduce((a, b) => a > b ? a : b).toDouble();
+        final interval = _niceInterval(rawMax == 0 ? 1 : rawMax);
+        final maxY = rawMax == 0 ? interval : (rawMax / interval).ceil() * interval;
         final accent = Colors.purple;
         return BarChart(
           BarChartData(
-            maxY: maxY == 0 ? 1 : maxY * 1.2,
-            gridData: const FlGridData(drawVerticalLine: false),
+            maxY: maxY,
+            gridData: FlGridData(drawVerticalLine: false, horizontalInterval: interval),
             borderData: FlBorderData(show: false),
             titlesData: FlTitlesData(
-              leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 40)),
+              leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 40, interval: interval)),
               rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
               topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
               bottomTitles: AxisTitles(
                 sideTitles: SideTitles(
                   showTitles: true,
+                  interval: 1,
                   getTitlesWidget: (value, meta) {
                     final i = value.toInt();
                     if (i < 0 || i >= points.length) return const SizedBox.shrink();
@@ -813,7 +840,7 @@ class _AttendanceHeatmap extends ConsumerWidget {
             final d = cursor.add(Duration(days: i));
             week.add(d.month == month.month ? d : null);
           }
-          weeks.add(week);
+          if (week.any((d) => d != null)) weeks.add(week);
           cursor = cursor.add(const Duration(days: 7));
         }
         return SingleChildScrollView(
