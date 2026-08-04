@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../class_management/presentation/providers/class_providers.dart';
+import '../../../merit/domain/entities/student_period_summary.dart';
 import '../../../merit/domain/value_objects/date_range.dart';
-import '../../../merit/presentation/providers/merit_providers.dart' show programPeriodProvider;
+import '../../../merit/presentation/providers/merit_providers.dart' show programPeriodProvider, studentPeriodSummaryProvider;
 import '../../../merit/presentation/screens/period_picker.dart';
 import '../../domain/entities/kpi_trend_week.dart';
 import '../providers/reports_providers.dart';
@@ -63,7 +65,7 @@ class _ReportsBodyState extends ConsumerState<_ReportsBody> {
         PeriodPicker(range: _range, onChanged: (range) => setState(() => _range = range)),
         Expanded(
           child: trendAsync.when(
-            data: (weeks) => _KpiReportBody(weeks: weeks),
+            data: (weeks) => _KpiReportBody(weeks: weeks, range: _range),
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (error, stackTrace) => Center(child: Text('Failed to load report: $error')),
           ),
@@ -74,9 +76,10 @@ class _ReportsBodyState extends ConsumerState<_ReportsBody> {
 }
 
 class _KpiReportBody extends StatelessWidget {
-  const _KpiReportBody({required this.weeks});
+  const _KpiReportBody({required this.weeks, required this.range});
 
   final List<KpiTrendWeek> weeks;
+  final DateRange range;
 
   @override
   Widget build(BuildContext context) {
@@ -91,6 +94,7 @@ class _KpiReportBody extends StatelessWidget {
       children: [
         _AttendanceRateCard(first: first, last: last),
         _RepeatAbsenceCard(first: first, last: last),
+        _AtRiskStudentsSection(range: range),
         _LateTransitionCard(first: first, last: last),
         const _UnavailableKpiNote(),
         const SizedBox(height: 16),
@@ -98,6 +102,126 @@ class _KpiReportBody extends StatelessWidget {
         const SizedBox(height: 8),
         ...weeks.map((week) => _WeekRow(week: week)),
       ],
+    );
+  }
+}
+
+/// Students whose attendance rate for the selected period falls below a
+/// threshold -- the actual "who" behind the Repeat Absence KPI's raw count
+/// above, so a principal has an actionable intervention list instead of
+/// just a number. Excused absences (cuti_sakit/urusan_rasmi) don't count
+/// against the rate, only unexcused (tidak_hadir) vs present (hadir/lewat).
+class _AtRiskStudentsSection extends ConsumerStatefulWidget {
+  const _AtRiskStudentsSection({required this.range});
+
+  final DateRange range;
+
+  @override
+  ConsumerState<_AtRiskStudentsSection> createState() => _AtRiskStudentsSectionState();
+}
+
+class _AtRiskStudentsSectionState extends ConsumerState<_AtRiskStudentsSection> {
+  double _threshold = 80;
+
+  @override
+  Widget build(BuildContext context) {
+    final summaryAsync = ref.watch(studentPeriodSummaryProvider(widget.range));
+    final classesAsync = ref.watch(classesProvider);
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.warning_amber, color: Colors.orange.shade700),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text('At-Risk Students', style: Theme.of(context).textTheme.titleMedium),
+                ),
+              ],
+            ),
+            Text(
+              'Attendance rate below threshold for the selected period. Excused leave doesn\'t count against the rate.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Text('Threshold:', style: Theme.of(context).textTheme.bodySmall),
+                const SizedBox(width: 8),
+                SegmentedButton<double>(
+                  segments: const [
+                    ButtonSegment(value: 90, label: Text('90%')),
+                    ButtonSegment(value: 80, label: Text('80%')),
+                    ButtonSegment(value: 70, label: Text('70%')),
+                  ],
+                  selected: {_threshold},
+                  onSelectionChanged: (selection) => setState(() => _threshold = selection.first),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            summaryAsync.when(
+              data: (students) {
+                final classNames = {
+                  for (final c in classesAsync.value ?? []) c.id: c.name,
+                };
+                final atRisk = students.where((s) => s.daysPresent + s.daysAbsent > 0).where((s) {
+                  final rate = s.daysPresent / (s.daysPresent + s.daysAbsent) * 100;
+                  return rate < _threshold;
+                }).toList()
+                  ..sort(
+                    (a, b) => (a.daysPresent / (a.daysPresent + a.daysAbsent))
+                        .compareTo(b.daysPresent / (b.daysPresent + b.daysAbsent)),
+                  );
+                if (atRisk.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Text('No students below threshold for this period.'),
+                  );
+                }
+                return Column(
+                  children: [
+                    for (final s in atRisk) _AtRiskRow(student: s, className: classNames[s.classId]),
+                  ],
+                );
+              },
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (error, stackTrace) => Text('Failed to load: $error'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AtRiskRow extends StatelessWidget {
+  const _AtRiskRow({required this.student, required this.className});
+
+  final StudentPeriodSummary student;
+  final String? className;
+
+  @override
+  Widget build(BuildContext context) {
+    final total = student.daysPresent + student.daysAbsent;
+    final rate = total == 0 ? 0.0 : student.daysPresent / total * 100;
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      dense: true,
+      title: Text(student.fullName),
+      subtitle: Text(className ?? '-'),
+      trailing: Text(
+        '${rate.toStringAsFixed(1)}%  (${student.daysPresent}/$total)',
+        style: TextStyle(color: Colors.red.shade700, fontWeight: FontWeight.bold),
+      ),
     );
   }
 }
