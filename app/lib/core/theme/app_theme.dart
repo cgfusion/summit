@@ -51,6 +51,7 @@ class AppTheme {
     (Color(0xFFE6FBFA), Color(0xFF0C8599)), // Reports - cyan
     (Color(0xFFEEF1F4), Color(0xFF495057)), // Settings - blueGrey
     (Color(0xFFFDF0E7), Color(0xFFD9730D)), // Manual Attendance - orange
+    (Color(0xFFE9F3FF), Color(0xFF1864AB)), // Dashboard - deep blue
   ];
 
   static ThemeData light() {

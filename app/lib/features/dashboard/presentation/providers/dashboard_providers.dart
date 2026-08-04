@@ -1,62 +1,67 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../attendance/domain/entities/attendance_status.dart';
+import '../../../../core/providers/supabase_provider.dart';
+import '../../../attendance/domain/entities/attendance_day.dart';
 import '../../../attendance/presentation/providers/attendance_providers.dart';
-import '../../../class_management/presentation/providers/class_providers.dart';
-import '../../../merit/presentation/providers/merit_providers.dart';
-import '../../../student/presentation/providers/student_providers.dart';
+import '../../../merit/domain/value_objects/date_range.dart';
+import '../../data/repositories/dashboard_repository_impl.dart';
+import '../../domain/entities/dashboard_analytics.dart';
+import '../../domain/repositories/dashboard_repository.dart';
 
-class DashboardStats {
-  const DashboardStats({
-    required this.totalClasses,
-    required this.totalStudents,
-    required this.attendanceRateToday,
-    required this.totalMeritPoints,
-    required this.totalRewardsGiven,
-  });
-
-  final int totalClasses;
-  final int totalStudents;
-  final double attendanceRateToday;
-  final int totalMeritPoints;
-  final int totalRewardsGiven;
-}
-
-/// Aggregates figures already served by each feature's own repository into
-/// one summary for the dashboard's "Quick Overview" bar. Deliberately calls
-/// the repositories directly (not the screen-level `studentsProvider`/
-/// `attendanceForDateProvider`) so this isn't affected by whatever filter
-/// state another screen happens to be left in.
-final dashboardStatsProvider = FutureProvider.autoDispose<DashboardStats>((ref) async {
-  final classRepository = ref.watch(classRepositoryProvider);
-  final studentRepository = ref.watch(studentRepositoryProvider);
-  final attendanceRepository = ref.watch(attendanceRepositoryProvider);
-  final meritRepository = ref.watch(meritRepositoryProvider);
-
-  final classesFuture = classRepository.getClasses();
-  final studentsFuture = studentRepository.getStudents();
-  final attendanceTodayFuture = attendanceRepository.getAttendanceForDate(date: DateTime.now());
-  final programPeriodFuture = meritRepository.getProgramPeriod();
-  final totalRewardsFuture = meritRepository.getTotalAwardsCount();
-
-  final classes = await classesFuture;
-  final students = await studentsFuture;
-  final attendanceToday = await attendanceTodayFuture;
-  final programPeriod = await programPeriodFuture;
-  final totalRewards = await totalRewardsFuture;
-
-  final studentSummaries = await meritRepository.getStudentSummary(from: programPeriod.from, to: programPeriod.to);
-  final totalMeritPoints = studentSummaries.fold<int>(0, (sum, s) => sum + s.totalPoints);
-
-  final presentToday =
-      attendanceToday.where((a) => a.status == AttendanceStatus.hadir || a.status == AttendanceStatus.lewat).length;
-  final attendanceRateToday = students.isEmpty ? 0.0 : presentToday / students.length;
-
-  return DashboardStats(
-    totalClasses: classes.length,
-    totalStudents: students.length,
-    attendanceRateToday: attendanceRateToday,
-    totalMeritPoints: totalMeritPoints,
-    totalRewardsGiven: totalRewards,
-  );
+final dashboardRepositoryProvider = Provider<DashboardRepository>((ref) {
+  return DashboardRepositoryImpl(client: ref.watch(supabaseClientProvider));
 });
+
+/// All attendance_days rows for one date, school-wide -- deliberately
+/// bypasses attendanceClassFilterProvider (the Attendance Status screen's
+/// own filter state), same reasoning as the rest of this file.
+final attendanceForDateAllProvider = FutureProvider.autoDispose.family<List<AttendanceDay>, DateTime>((ref, date) {
+  return ref.watch(attendanceRepositoryProvider).getAttendanceForDate(date: date);
+});
+
+final attendanceDaySummaryProvider = FutureProvider.autoDispose.family<AttendanceDaySummary, DateTime>((ref, date) {
+  return ref.watch(dashboardRepositoryProvider).getAttendanceDaySummary(date);
+});
+
+final dailyAttendanceTrendProvider = FutureProvider.autoDispose.family<List<AttendanceTrendPoint>, DateRange>((
+  ref,
+  range,
+) {
+  return ref.watch(dashboardRepositoryProvider).getDailyAttendanceTrend(from: range.from, to: range.to);
+});
+
+final dailyMeritTrendProvider = FutureProvider.autoDispose.family<List<MeritTrendPoint>, DateRange>((ref, range) {
+  return ref.watch(dashboardRepositoryProvider).getDailyMeritTrend(from: range.from, to: range.to);
+});
+
+final classAttendanceSummaryProvider = FutureProvider.autoDispose.family<List<ClassAttendanceRow>, DateRange>((
+  ref,
+  range,
+) {
+  return ref.watch(dashboardRepositoryProvider).getClassAttendanceSummary(from: range.from, to: range.to);
+});
+
+final attendanceStreaksProvider = FutureProvider.autoDispose<List<StudentStreak>>((ref) {
+  return ref.watch(dashboardRepositoryProvider).getAttendanceStreaks(limit: 10);
+});
+
+final recentActivityProvider = FutureProvider.autoDispose<List<RecentActivityItem>>((ref) {
+  return ref.watch(dashboardRepositoryProvider).getRecentActivity(limit: 12);
+});
+
+final kpiOverviewProvider = FutureProvider.autoDispose.family<KpiOverview, DateRange>((ref, range) {
+  return ref.watch(dashboardRepositoryProvider).getKpiOverview(from: range.from, to: range.to);
+});
+
+/// Invalidates every dashboard analytics provider -- call after any write
+/// that could change attendance/merit/reward figures (manual attendance,
+/// merit edits, awards) so the Dashboard reflects it next time it's shown.
+void invalidateDashboardAnalytics(WidgetRef ref) {
+  ref.invalidate(attendanceDaySummaryProvider);
+  ref.invalidate(dailyAttendanceTrendProvider);
+  ref.invalidate(dailyMeritTrendProvider);
+  ref.invalidate(classAttendanceSummaryProvider);
+  ref.invalidate(attendanceStreaksProvider);
+  ref.invalidate(recentActivityProvider);
+  ref.invalidate(kpiOverviewProvider);
+}

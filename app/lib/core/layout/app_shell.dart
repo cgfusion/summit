@@ -24,6 +24,7 @@ class _NavItem {
 
 const _navItems = [
   _NavItem(Icons.dashboard_outlined, 'Dashboard', '/'),
+  _NavItem(Icons.home_outlined, 'Home', '/home'),
   _NavItem(Icons.groups_outlined, 'Classes', '/classes'),
   _NavItem(Icons.people_outline, 'Students', '/students'),
   _NavItem(Icons.fact_check_outlined, 'Attendance', '/attendance'),

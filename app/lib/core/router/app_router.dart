@@ -10,6 +10,7 @@ import '../../features/attendance/presentation/screens/qr_scan_screen.dart';
 import '../../features/attendance/presentation/screens/register_qr_screen.dart';
 import '../../features/auth/presentation/screens/sign_in_screen.dart';
 import '../../features/class_management/presentation/screens/class_list_screen.dart';
+import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../../features/dashboard/presentation/screens/home_screen.dart';
 import '../../features/merit/presentation/screens/merit_class_summary_screen.dart';
 import '../../features/merit/presentation/screens/merit_daily_screen.dart';
@@ -42,7 +43,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ShellRoute(
         builder: (context, state, child) => AppShell(currentPath: state.matchedLocation, child: child),
         routes: [
-          GoRoute(path: '/', builder: (context, state) => const HomeScreen()),
+          GoRoute(path: '/', builder: (context, state) => const DashboardScreen()),
+          GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
           GoRoute(path: '/classes', builder: (context, state) => const ClassListScreen()),
           GoRoute(path: '/students', builder: (context, state) => const StudentListScreen()),
           GoRoute(path: '/attendance', builder: (context, state) => const AttendanceStatusScreen()),

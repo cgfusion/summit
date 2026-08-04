@@ -115,7 +115,7 @@ class _SingleEntryTabState extends ConsumerState<_SingleEntryTab> {
           );
       if (!mounted) return;
       ref.invalidate(attendanceForDateProvider);
-      ref.invalidate(dashboardStatsProvider);
+      invalidateDashboardAnalytics(ref);
       setState(() {
         _feedback = 'Saved: ${student.fullName} marked ${_status.label} on ${DateFormat('d MMM yyyy').format(_date)}.';
         _feedbackColor = Colors.green;
@@ -333,7 +333,7 @@ class _BulkMigrateTabState extends ConsumerState<_BulkMigrateTab> {
       ]);
       if (!mounted) return;
       ref.invalidate(attendanceForDateProvider);
-      ref.invalidate(dashboardStatsProvider);
+      invalidateDashboardAnalytics(ref);
       final exceptions = _statusByStudent.values.where((s) => s != AttendanceStatus.hadir).length;
       setState(() {
         _feedback = 'Saved ${_roster.length} students (${_roster.length - exceptions} Hadir, $exceptions marked otherwise).';

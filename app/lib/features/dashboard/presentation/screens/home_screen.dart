@@ -6,7 +6,6 @@ import '../../../../core/layout/app_shell.dart';
 import '../../../../core/providers/supabase_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../settings/presentation/providers/settings_providers.dart';
-import '../providers/dashboard_providers.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -16,7 +15,6 @@ class HomeScreen extends ConsumerWidget {
     final layoutMode = ref.watch(layoutModeProvider);
     final themeMode = ref.watch(themeModeProvider);
     final profileAsync = ref.watch(currentProfileProvider);
-    final statsAsync = ref.watch(dashboardStatsProvider);
 
     final firstName = profileAsync.value?.fullName.split(' ').first ?? 'Admin';
 
@@ -77,8 +75,6 @@ class HomeScreen extends ConsumerWidget {
               children: [
                 _WelcomeHeader(name: firstName),
                 const SizedBox(height: 20),
-                _QuickOverview(statsAsync: statsAsync),
-                const SizedBox(height: 20),
                 GridView.count(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
@@ -87,6 +83,13 @@ class HomeScreen extends ConsumerWidget {
                   crossAxisSpacing: 16,
                   childAspectRatio: childAspectRatio,
                   children: [
+                    _DashboardCard(
+                      icon: Icons.dashboard,
+                      label: 'Dashboard',
+                      description: 'Statistics, charts & leaderboards',
+                      paletteIndex: 11,
+                      onTap: () => context.push('/'),
+                    ),
                     _DashboardCard(
                       icon: Icons.groups,
                       label: 'Classes',
@@ -293,104 +296,6 @@ class _DashboardCard extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _QuickOverview extends StatelessWidget {
-  const _QuickOverview({required this.statsAsync});
-
-  final AsyncValue<DashboardStats> statsAsync;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Quick Overview', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            statsAsync.when(
-              data: (stats) => Wrap(
-                spacing: 28,
-                runSpacing: 16,
-                children: [
-                  _StatItem(icon: Icons.groups, color: Colors.blue, value: '${stats.totalClasses}', label: 'Total Classes'),
-                  _StatItem(icon: Icons.people, color: Colors.teal, value: '${stats.totalStudents}', label: 'Total Students'),
-                  _StatItem(
-                    icon: Icons.fact_check,
-                    color: Colors.green,
-                    value: '${(stats.attendanceRateToday * 100).round()}%',
-                    label: 'Attendance Today',
-                  ),
-                  _StatItem(
-                    icon: Icons.military_tech,
-                    color: Colors.amber.shade800,
-                    value: '${stats.totalMeritPoints}',
-                    label: 'Merits Awarded',
-                  ),
-                  _StatItem(
-                    icon: Icons.emoji_events,
-                    color: Colors.pink,
-                    value: '${stats.totalRewardsGiven}',
-                    label: 'Rewards Given',
-                  ),
-                ],
-              ),
-              loading: () => const Padding(
-                padding: EdgeInsets.symmetric(vertical: 4),
-                child: LinearProgressIndicator(),
-              ),
-              error: (error, stack) => const Text('Could not load overview stats.'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _StatItem extends StatelessWidget {
-  const _StatItem({required this.icon, required this.color, required this.value, required this.label});
-
-  final IconData icon;
-  final Color color;
-  final String value;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 150,
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.15), shape: BoxShape.circle),
-            child: Icon(icon, size: 20, color: color),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(value, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-                Text(
-                  label,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
