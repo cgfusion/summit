@@ -36,6 +36,23 @@ class AppTheme {
     colors: [seedColor, gradientEndColor],
   );
 
+  /// Deep navy/violet, used as the Dashboard's page background in dark mode
+  /// only -- light mode keeps [lightScaffoldBackground] untouched.
+  static const darkScaffoldBackground = Color(0xFF0B0F1D);
+  static const darkPageGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF0B0F1D), Color(0xFF121A2E), Color(0xFF17122B)],
+  );
+  static const darkCardColor = Color(0xFF141B2E);
+
+  /// A soft colored glow behind a card, dark mode only -- approximates the
+  /// reference dashboard's neon-accent look without needing real
+  /// glassmorphism/blur support.
+  static List<BoxShadow> glow(Color color) => [
+        BoxShadow(color: color.withValues(alpha: 0.28), blurRadius: 24, spreadRadius: -6),
+      ];
+
   /// One (background tint, accent) pair per dashboard category, cycled by
   /// index. Backgrounds are pastel-light so they read well in both themes'
   /// card surfaces; accents are the saturated version used for icons/text.
@@ -92,6 +109,7 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
+      scaffoldBackgroundColor: darkScaffoldBackground,
       appBarTheme: AppBarTheme(
         centerTitle: false,
         backgroundColor: Colors.transparent,
@@ -100,9 +118,10 @@ class AppTheme {
       ),
       cardTheme: CardThemeData(
         elevation: 0,
+        color: darkCardColor,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: colorScheme.outlineVariant),
+          side: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.4)),
         ),
       ),
       chipTheme: ChipThemeData(shape: const StadiumBorder(), side: BorderSide.none),

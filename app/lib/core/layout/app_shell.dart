@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/settings/presentation/providers/settings_providers.dart';
 import '../providers/supabase_provider.dart';
 import '../theme/app_theme.dart';
 
@@ -156,13 +157,52 @@ class _Sidebar extends ConsumerWidget {
             ),
           ),
           const Divider(height: 1),
-          Padding(
-            padding: const EdgeInsets.all(8),
-            child: ListTile(
-              leading: const Icon(Icons.logout),
-              title: const Text('Sign out'),
-              onTap: () => ref.read(supabaseClientProvider).auth.signOut(),
+          const _AccountFooter(),
+        ],
+      ),
+    );
+  }
+}
+
+class _AccountFooter extends ConsumerWidget {
+  const _AccountFooter();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profile = ref.watch(currentProfileProvider).value;
+    final colorScheme = Theme.of(context).colorScheme;
+    final name = profile?.fullName ?? 'Signed in';
+    final role = profile?.role;
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: colorScheme.primaryContainer,
+            child: Text(initial, style: TextStyle(color: colorScheme.onPrimaryContainer, fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(name, overflow: TextOverflow.ellipsis, maxLines: 1, style: const TextStyle(fontWeight: FontWeight.bold)),
+                if (role != null)
+                  Text(
+                    role[0].toUpperCase() + role.substring(1),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                  ),
+              ],
             ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout, size: 20),
+            tooltip: 'Sign out',
+            onPressed: () => ref.read(supabaseClientProvider).auth.signOut(),
           ),
         ],
       ),

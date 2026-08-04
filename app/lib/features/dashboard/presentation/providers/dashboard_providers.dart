@@ -17,6 +17,10 @@ final dashboardRepositoryProvider = Provider<DashboardRepository>((ref) {
 /// preference only, not persisted.
 final showWorstClassesProvider = StateProvider<bool>((ref) => false);
 
+/// Overrides the Dashboard's "today" reference date via the header's Filter
+/// button. Null means "use the real current date".
+final dashboardReferenceDateProvider = StateProvider<DateTime?>((ref) => null);
+
 /// All attendance_days rows for one date, school-wide -- deliberately
 /// bypasses attendanceClassFilterProvider (the Attendance Status screen's
 /// own filter state), same reasoning as the rest of this file.

@@ -9,10 +9,18 @@ import '../../../../core/layout/app_shell.dart';
 import '../../../../core/providers/supabase_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../merit/presentation/providers/merit_providers.dart';
+import '../../../settings/presentation/providers/settings_providers.dart';
 import '../../domain/entities/dashboard_analytics.dart';
 import '../providers/dashboard_providers.dart';
 
 DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
+
+String _greeting(DateTime now) {
+  final hour = now.hour;
+  if (hour < 12) return 'Good Morning';
+  if (hour < 18) return 'Good Afternoon';
+  return 'Good Evening';
+}
 
 /// A "nice" round axis interval (1/2/5 x a power of 10) for [maxValue], so
 /// fl_chart's left-axis ticks land on clean numbers instead of overlapping
@@ -40,11 +48,14 @@ class DashboardScreen extends ConsumerWidget {
     final layoutMode = ref.watch(layoutModeProvider);
     final themeMode = ref.watch(themeModeProvider);
     final showWorstClasses = ref.watch(showWorstClassesProvider);
-    final today = _dateOnly(DateTime.now());
+    final referenceDateOverride = ref.watch(dashboardReferenceDateProvider);
+    final today = _dateOnly(referenceDateOverride ?? DateTime.now());
     final weekStart = today.subtract(Duration(days: today.weekday - 1));
     final weekEnd = weekStart.add(const Duration(days: 4));
     final monthStart = DateTime(today.year, today.month, 1);
     final monthEnd = DateTime(today.year, today.month + 1, 0);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final firstName = ref.watch(currentProfileProvider).value?.fullName.split(' ').first ?? 'Admin';
 
     return Scaffold(
       appBar: AppBar(
@@ -76,29 +87,30 @@ class DashboardScreen extends ConsumerWidget {
             tooltip: 'Layout: ${layoutMode.name}',
             onPressed: () => ref.read(layoutModeProvider.notifier).state = AppShell.next(layoutMode),
           ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Sign out',
-            onPressed: () => ref.read(supabaseClientProvider).auth.signOut(),
-          ),
+          _AccountMenuButton(name: firstName),
+          const SizedBox(width: 4),
         ],
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final columns = constraints.maxWidth >= 1300
-              ? 4
-              : constraints.maxWidth >= 950
-                  ? 3
-                  : constraints.maxWidth >= 620
-                      ? 2
-                      : 1;
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _TopStatsRow(today: today),
-                const SizedBox(height: 16),
+      body: Container(
+        decoration: isDark ? const BoxDecoration(gradient: AppTheme.darkPageGradient) : null,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final columns = constraints.maxWidth >= 1300
+                ? 4
+                : constraints.maxWidth >= 950
+                    ? 3
+                    : constraints.maxWidth >= 620
+                        ? 2
+                        : 1;
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _GreetingHeader(name: firstName, referenceDate: today),
+                  const SizedBox(height: 16),
+                  _TopStatsRow(today: today),
+                  const SizedBox(height: 16),
                 _DashboardGrid(
                   columns: columns,
                   children: [
@@ -150,7 +162,105 @@ class DashboardScreen extends ConsumerWidget {
               ],
             ),
           );
-        },
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _GreetingHeader extends ConsumerWidget {
+  const _GreetingHeader({required this.name, required this.referenceDate});
+
+  final String name;
+  final DateTime referenceDate;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final override = ref.watch(dashboardReferenceDateProvider);
+    final isToday = override == null;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${_greeting(DateTime.now())}, $name! 👋',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                "Here's what's happening at school today.",
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+        OutlinedButton.icon(
+          icon: const Icon(Icons.filter_alt_outlined, size: 18),
+          label: Text(isToday ? 'Today, ${DateFormat('d MMM').format(referenceDate)}' : DateFormat('d MMM yyyy').format(referenceDate)),
+          onPressed: () async {
+            final picked = await showDatePicker(
+              context: context,
+              initialDate: referenceDate,
+              firstDate: DateTime(2025),
+              lastDate: DateTime(2030),
+            );
+            if (picked != null) ref.read(dashboardReferenceDateProvider.notifier).state = _dateOnly(picked);
+          },
+        ),
+        if (!isToday) ...[
+          const SizedBox(width: 8),
+          IconButton(
+            icon: const Icon(Icons.close),
+            tooltip: 'Back to today',
+            onPressed: () => ref.read(dashboardReferenceDateProvider.notifier).state = null,
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _AccountMenuButton extends ConsumerWidget {
+  const _AccountMenuButton({required this.name});
+
+  final String name;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profile = ref.watch(currentProfileProvider).value;
+    final colorScheme = Theme.of(context).colorScheme;
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+
+    return PopupMenuButton<String>(
+      tooltip: 'Account',
+      onSelected: (value) {
+        switch (value) {
+          case 'signout':
+            ref.read(supabaseClientProvider).auth.signOut();
+        }
+      },
+      itemBuilder: (context) => [
+        PopupMenuItem(enabled: false, child: Text(profile?.role ?? '', style: Theme.of(context).textTheme.bodySmall)),
+        const PopupMenuItem(value: 'signout', child: ListTile(leading: Icon(Icons.logout), title: Text('Sign out'))),
+      ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircleAvatar(
+              radius: 16,
+              backgroundColor: colorScheme.primaryContainer,
+              child: Text(initial, style: TextStyle(color: colorScheme.onPrimaryContainer, fontWeight: FontWeight.bold)),
+            ),
+            const SizedBox(width: 6),
+            const Icon(Icons.expand_more, size: 18),
+          ],
+        ),
       ),
     );
   }
@@ -347,8 +457,9 @@ class _StatCard extends StatelessWidget {
     final unchanged = delta == 0;
     final deltaColor = unchanged ? Colors.grey : (improved ? Colors.green : Colors.red);
     final arrow = unchanged ? Icons.remove : (delta > 0 ? Icons.arrow_upward : Icons.arrow_downward);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Card(
+    final card = Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -382,6 +493,12 @@ class _StatCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+
+    if (!isDark) return card;
+    return Container(
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), boxShadow: AppTheme.glow(color)),
+      child: card,
     );
   }
 }
