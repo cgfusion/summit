@@ -132,8 +132,6 @@ class DashboardLayoutController extends StateNotifier<AsyncValue<DashboardLayout
     unawaited(_ref.read(dashboardRepositoryProvider).saveDashboardLayout(layout));
   }
 
-  /// [oldIndex]/[newIndex] come from ReorderableListView's onReorderItem,
-  /// which already adjusts newIndex for the removed item at oldIndex.
   List<String> _moved(List<String> list, int oldIndex, int newIndex) {
     final copy = [...list];
     copy.insert(newIndex, copy.removeAt(oldIndex));

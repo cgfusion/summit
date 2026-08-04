@@ -382,17 +382,17 @@ class _RearrangeDashboardSheet extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 children: [
                   Text('Stat Cards', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
-                  _ReorderableCatalogList(
+                  _CatalogOrderList(
                     ids: layout.statsOrder,
                     catalog: _statCatalog,
-                    onReorder: controller.reorderStats,
+                    onMove: controller.reorderStats,
                   ),
                   const SizedBox(height: 20),
                   Text('Chart Cards', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
-                  _ReorderableCatalogList(
+                  _CatalogOrderList(
                     ids: layout.chartsOrder,
                     catalog: _chartCatalog,
-                    onReorder: controller.reorderCharts,
+                    onMove: controller.reorderCharts,
                   ),
                   const SizedBox(height: 16),
                 ],
@@ -405,26 +405,51 @@ class _RearrangeDashboardSheet extends ConsumerWidget {
   }
 }
 
-class _ReorderableCatalogList extends StatelessWidget {
-  const _ReorderableCatalogList({required this.ids, required this.catalog, required this.onReorder});
+/// Both a drag handle (for desktop/Android, where pointer-down-initiated
+/// dragging works reliably) and up/down move buttons (guaranteed to work
+/// everywhere, including iPad Safari -- ReorderableListView's default drag
+/// handle only renders on platforms it detects as "desktop", so on
+/// touch/web it silently falls back to whole-tile long-press dragging,
+/// which loses the gesture race against this list's scrollable ancestor
+/// and shows no handle at all). Forcing [ReorderableListView.buildDefaultDragHandles]
+/// on keeps the explicit handle available everywhere it can help, while the
+/// buttons cover everywhere it can't.
+class _CatalogOrderList extends StatelessWidget {
+  const _CatalogOrderList({required this.ids, required this.catalog, required this.onMove});
 
   final List<String> ids;
   final Map<String, (IconData, String)> catalog;
-  final void Function(int oldIndex, int newIndex) onReorder;
+  final void Function(int oldIndex, int newIndex) onMove;
 
   @override
   Widget build(BuildContext context) {
     return ReorderableListView(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      onReorderItem: onReorder,
+      buildDefaultDragHandles: true,
+      onReorderItem: onMove,
       children: [
-        for (final id in ids)
-          if (catalog[id] case (final icon, final label))
+        for (var i = 0; i < ids.length; i++)
+          if (catalog[ids[i]] case (final icon, final label))
             ListTile(
-              key: ValueKey(id),
+              key: ValueKey(ids[i]),
               leading: Icon(icon),
               title: Text(label),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_upward),
+                    tooltip: 'Move up',
+                    onPressed: i == 0 ? null : () => onMove(i, i - 1),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.arrow_downward),
+                    tooltip: 'Move down',
+                    onPressed: i == ids.length - 1 ? null : () => onMove(i, i + 1),
+                  ),
+                ],
+              ),
             ),
       ],
     );
