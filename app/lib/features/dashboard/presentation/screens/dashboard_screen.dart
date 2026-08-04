@@ -60,6 +60,7 @@ class DashboardScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
+        leading: const HomeBackButton(),
         title: Row(
           children: [
             ClipOval(
