@@ -12,7 +12,30 @@ import '../../../merit/presentation/providers/merit_providers.dart';
 import '../../../settings/presentation/providers/settings_providers.dart';
 import '../../domain/entities/attendance_period_summary.dart';
 import '../../domain/entities/dashboard_analytics.dart';
+import '../../domain/entities/dashboard_layout.dart';
 import '../providers/dashboard_providers.dart';
+
+const _statCatalog = <String, (IconData, String)>{
+  'stat_attendance_today': (Icons.fact_check, 'Attendance Today'),
+  'stat_present': (Icons.people, 'Present'),
+  'stat_late': (Icons.access_time, 'Late'),
+  'stat_absent': (Icons.person_off, 'Absent'),
+  'stat_merit_points': (Icons.star, 'Merit Points Today'),
+  'stat_rewards_issued': (Icons.card_giftcard, 'Rewards Issued'),
+};
+
+const _chartCatalog = <String, (IconData, String)>{
+  'chart_attendance_trend': (Icons.show_chart, 'Attendance Trend (This Week)'),
+  'chart_attendance_status': (Icons.donut_small, 'Attendance by Status (Today)'),
+  'chart_attendance_by_time': (Icons.bar_chart, 'Attendance by Time (Today)'),
+  'chart_streak_leaderboard': (Icons.local_fire_department, 'Top 10 Students (Current Streak)'),
+  'chart_class_ranking': (Icons.leaderboard, 'Class Ranking (Attendance)'),
+  'chart_merit_trend': (Icons.trending_up, 'Merit Points (This Week)'),
+  'chart_merit_distribution': (Icons.pie_chart, 'Merit Distribution (This Month)'),
+  'chart_attendance_heatmap': (Icons.calendar_view_month, 'Attendance Heatmap (This Month)'),
+  'chart_recent_activity': (Icons.history, 'Recent Activity'),
+  'chart_kpi_overview': (Icons.speed, 'KPI Overview (This Month)'),
+};
 
 DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
@@ -41,6 +64,71 @@ double _niceInterval(double maxValue) {
   return niceResidual * magnitude;
 }
 
+/// Builds every chart card once, then arranges them per [order] (falling
+/// back to catalog order for any id that's missing, and appending a
+/// "Worst 5 Classes" companion card right after Class Ranking when
+/// [showWorstClasses] is on -- that companion isn't independently
+/// reorderable since it's really a variant of the ranking card next to it).
+List<Widget> _orderedChartCards({
+  required List<String> order,
+  required bool showWorstClasses,
+  required ValueChanged<bool> onToggleWorstClasses,
+  required DateTime today,
+  required DateTime weekStart,
+  required DateTime weekEnd,
+  required DateTime monthStart,
+  required DateTime monthEnd,
+  required TextTheme textTheme,
+}) {
+  final cards = <String, Widget>{
+    'chart_attendance_trend': _ChartCard(
+      title: 'Attendance Trend (This Week)',
+      child: _AttendanceTrendChart(from: weekStart, to: weekEnd),
+    ),
+    'chart_attendance_status': _ChartCard(title: 'Attendance by Status (Today)', child: _AttendanceStatusDonut(date: today)),
+    'chart_attendance_by_time': _ChartCard(title: 'Attendance by Time (Today)', child: _AttendanceByTimeChart(date: today)),
+    'chart_streak_leaderboard': const _ChartCard(title: 'Top 10 Students (Current Streak)', child: _StreakLeaderboard()),
+    'chart_class_ranking': _ChartCard(
+      title: 'Class Ranking (Attendance)',
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('Worst 5', style: textTheme.bodySmall),
+          Switch(value: showWorstClasses, onChanged: onToggleWorstClasses),
+        ],
+      ),
+      child: _ClassLeaderboard(from: monthStart, to: monthEnd, best: true, limit: null),
+    ),
+    'chart_merit_trend': _ChartCard(title: 'Merit Points (This Week)', child: _MeritTrendChart(from: weekStart, to: weekEnd)),
+    'chart_merit_distribution': _ChartCard(
+      title: 'Merit Distribution (This Month)',
+      child: _MeritDistributionDonut(from: monthStart, to: monthEnd),
+    ),
+    'chart_attendance_heatmap': _ChartCard(title: 'Attendance Heatmap (This Month)', child: _AttendanceHeatmap(month: today)),
+    'chart_recent_activity': const _ChartCard(title: 'Recent Activity', child: _RecentActivityList()),
+    'chart_kpi_overview': _ChartCard(title: 'KPI Overview (This Month)', child: _KpiGauges(from: monthStart, to: monthEnd)),
+  };
+
+  final ids = order.where(cards.containsKey).toList();
+  for (final id in cards.keys) {
+    if (!ids.contains(id)) ids.add(id);
+  }
+  if (showWorstClasses) {
+    final index = ids.indexOf('chart_class_ranking');
+    ids.insert(index == -1 ? ids.length : index + 1, 'chart_class_ranking_worst5');
+  }
+
+  return ids.map((id) {
+    if (id == 'chart_class_ranking_worst5') {
+      return _ChartCard(
+        title: 'Worst 5 Classes (Attendance)',
+        child: _ClassLeaderboard(from: monthStart, to: monthEnd, best: false, limit: 5),
+      );
+    }
+    return cards[id]!;
+  }).toList();
+}
+
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
@@ -57,6 +145,7 @@ class DashboardScreen extends ConsumerWidget {
     final monthEnd = DateTime(today.year, today.month + 1, 0);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final firstName = ref.watch(currentProfileProvider).value?.fullName.split(' ').first ?? 'Admin';
+    final layout = ref.watch(dashboardLayoutControllerProvider).value ?? DashboardLayout.defaultLayout;
 
     return Scaffold(
       appBar: AppBar(
@@ -79,6 +168,15 @@ class DashboardScreen extends ConsumerWidget {
         ),
         titleSpacing: 16,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.dashboard_customize_outlined),
+            tooltip: 'Rearrange Dashboard',
+            onPressed: () => showModalBottomSheet<void>(
+              context: context,
+              isScrollControlled: true,
+              builder: (context) => const _RearrangeDashboardSheet(),
+            ),
+          ),
           IconButton(
             icon: Icon(AppTheme.iconFor(themeMode)),
             tooltip: 'Theme: ${AppTheme.labelFor(themeMode)}',
@@ -113,57 +211,23 @@ class DashboardScreen extends ConsumerWidget {
                   const SizedBox(height: 16),
                   _MissingAttendanceBanner(date: today),
                   const SizedBox(height: 16),
-                  _TopStatsRow(today: today),
+                  _TopStatsRow(today: today, order: layout.statsOrder),
                   const SizedBox(height: 16),
-                _DashboardGrid(
-                  columns: columns,
-                  children: [
-                    _ChartCard(title: 'Attendance Trend (This Week)', child: _AttendanceTrendChart(from: weekStart, to: weekEnd)),
-                    _ChartCard(title: 'Attendance by Status (Today)', child: _AttendanceStatusDonut(date: today)),
-                    _ChartCard(title: 'Attendance by Time (Today)', child: _AttendanceByTimeChart(date: today)),
-                    const _ChartCard(title: 'Top 10 Students (Current Streak)', child: _StreakLeaderboard()),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                _DashboardGrid(
-                  columns: columns,
-                  children: [
-                    _ChartCard(
-                      title: 'Class Ranking (Attendance)',
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text('Worst 5', style: Theme.of(context).textTheme.bodySmall),
-                          Switch(
-                            value: showWorstClasses,
-                            onChanged: (v) => ref.read(showWorstClassesProvider.notifier).state = v,
-                          ),
-                        ],
-                      ),
-                      child: _ClassLeaderboard(from: monthStart, to: monthEnd, best: true, limit: null),
+                  _DashboardGrid(
+                    columns: columns,
+                    children: _orderedChartCards(
+                      order: layout.chartsOrder,
+                      showWorstClasses: showWorstClasses,
+                      onToggleWorstClasses: (v) => ref.read(showWorstClassesProvider.notifier).state = v,
+                      today: today,
+                      weekStart: weekStart,
+                      weekEnd: weekEnd,
+                      monthStart: monthStart,
+                      monthEnd: monthEnd,
+                      textTheme: Theme.of(context).textTheme,
                     ),
-                    if (showWorstClasses)
-                      _ChartCard(
-                        title: 'Worst 5 Classes (Attendance)',
-                        child: _ClassLeaderboard(from: monthStart, to: monthEnd, best: false, limit: 5),
-                      ),
-                    _ChartCard(title: 'Merit Points (This Week)', child: _MeritTrendChart(from: weekStart, to: weekEnd)),
-                    _ChartCard(
-                      title: 'Merit Distribution (This Month)',
-                      child: _MeritDistributionDonut(from: monthStart, to: monthEnd),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                _DashboardGrid(
-                  columns: columns < 3 ? columns : 3,
-                  children: [
-                    _ChartCard(title: 'Attendance Heatmap (This Month)', child: _AttendanceHeatmap(month: today)),
-                    const _ChartCard(title: 'Recent Activity', child: _RecentActivityList()),
-                    _ChartCard(title: 'KPI Overview (This Month)', child: _KpiGauges(from: monthStart, to: monthEnd)),
-                  ],
-                ),
-                const SizedBox(height: 16),
+                  ),
+                  const SizedBox(height: 16),
                 SizedBox(
                   height: 180,
                   child: _ChartCard(
@@ -278,6 +342,95 @@ class _AccountMenuButton extends ConsumerWidget {
   }
 }
 
+/// Lets the user drag stat cards and chart cards into their preferred order.
+/// Reorders apply immediately (optimistic local state via
+/// [DashboardLayoutController]) and persist to Supabase in the background.
+class _RearrangeDashboardSheet extends ConsumerWidget {
+  const _RearrangeDashboardSheet();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final layout = ref.watch(dashboardLayoutControllerProvider).value ?? DashboardLayout.defaultLayout;
+    final controller = ref.read(dashboardLayoutControllerProvider.notifier);
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.85,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (context, scrollController) {
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 8, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text('Rearrange Dashboard', style: Theme.of(context).textTheme.titleLarge),
+                  ),
+                  TextButton(
+                    onPressed: controller.resetToDefault,
+                    child: const Text('Reset to Default'),
+                  ),
+                  IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.of(context).pop()),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                controller: scrollController,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                children: [
+                  Text('Stat Cards', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+                  _ReorderableCatalogList(
+                    ids: layout.statsOrder,
+                    catalog: _statCatalog,
+                    onReorder: controller.reorderStats,
+                  ),
+                  const SizedBox(height: 20),
+                  Text('Chart Cards', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+                  _ReorderableCatalogList(
+                    ids: layout.chartsOrder,
+                    catalog: _chartCatalog,
+                    onReorder: controller.reorderCharts,
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _ReorderableCatalogList extends StatelessWidget {
+  const _ReorderableCatalogList({required this.ids, required this.catalog, required this.onReorder});
+
+  final List<String> ids;
+  final Map<String, (IconData, String)> catalog;
+  final void Function(int oldIndex, int newIndex) onReorder;
+
+  @override
+  Widget build(BuildContext context) {
+    return ReorderableListView(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      onReorderItem: onReorder,
+      children: [
+        for (final id in ids)
+          if (catalog[id] case (final icon, final label))
+            ListTile(
+              key: ValueKey(id),
+              leading: Icon(icon),
+              title: Text(label),
+            ),
+      ],
+    );
+  }
+}
+
 class _DashboardGrid extends StatelessWidget {
   const _DashboardGrid({required this.columns, required this.children});
 
@@ -335,9 +488,10 @@ class _ChartCard extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _TopStatsRow extends ConsumerWidget {
-  const _TopStatsRow({required this.today});
+  const _TopStatsRow({required this.today, required this.order});
 
   final DateTime today;
+  final List<String> order;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -351,6 +505,64 @@ class _TopStatsRow extends ConsumerWidget {
 
     final todayRate = t.recordedCount == 0 ? 0.0 : (t.presentCount + t.lateCount) / t.recordedCount * 100;
     final yesterdayRate = y.recordedCount == 0 ? 0.0 : (y.presentCount + y.lateCount) / y.recordedCount * 100;
+
+    final cards = <String, Widget>{
+      'stat_attendance_today': _StatCard(
+        icon: Icons.fact_check,
+        color: Colors.green,
+        label: 'Attendance Today',
+        value: '${todayRate.toStringAsFixed(1)}%',
+        delta: todayRate - yesterdayRate,
+        deltaSuffix: 'pts',
+        loading: loading,
+      ),
+      'stat_present': _StatCard(
+        icon: Icons.people,
+        color: Colors.blue,
+        label: 'Present',
+        value: '${t.presentCount}',
+        delta: (t.presentCount - y.presentCount).toDouble(),
+        loading: loading,
+      ),
+      'stat_late': _StatCard(
+        icon: Icons.access_time,
+        color: Colors.amber.shade800,
+        label: 'Late',
+        value: '${t.lateCount}',
+        delta: (t.lateCount - y.lateCount).toDouble(),
+        lowerIsBetter: true,
+        loading: loading,
+      ),
+      'stat_absent': _StatCard(
+        icon: Icons.person_off,
+        color: Colors.red,
+        label: 'Absent',
+        value: '${t.absentCount}',
+        delta: (t.absentCount - y.absentCount).toDouble(),
+        lowerIsBetter: true,
+        loading: loading,
+      ),
+      'stat_merit_points': _StatCard(
+        icon: Icons.star,
+        color: Colors.purple,
+        label: 'Merit Points Today',
+        value: '${t.meritPoints}',
+        delta: (t.meritPoints - y.meritPoints).toDouble(),
+        loading: loading,
+      ),
+      'stat_rewards_issued': _StatCard(
+        icon: Icons.card_giftcard,
+        color: Colors.pink,
+        label: 'Rewards Issued',
+        value: '${t.rewardsIssued}',
+        delta: (t.rewardsIssued - y.rewardsIssued).toDouble(),
+        loading: loading,
+      ),
+    };
+    final ids = order.where(cards.containsKey).toList();
+    for (final id in cards.keys) {
+      if (!ids.contains(id)) ids.add(id);
+    }
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -366,75 +578,7 @@ class _TopStatsRow extends ConsumerWidget {
           spacing: 12,
           runSpacing: 12,
           children: [
-            SizedBox(
-              width: cardWidth,
-              child: _StatCard(
-                icon: Icons.fact_check,
-                color: Colors.green,
-                label: 'Attendance Today',
-                value: '${todayRate.toStringAsFixed(1)}%',
-                delta: todayRate - yesterdayRate,
-                deltaSuffix: 'pts',
-                loading: loading,
-              ),
-            ),
-            SizedBox(
-              width: cardWidth,
-              child: _StatCard(
-                icon: Icons.people,
-                color: Colors.blue,
-                label: 'Present',
-                value: '${t.presentCount}',
-                delta: (t.presentCount - y.presentCount).toDouble(),
-                loading: loading,
-              ),
-            ),
-            SizedBox(
-              width: cardWidth,
-              child: _StatCard(
-                icon: Icons.access_time,
-                color: Colors.amber.shade800,
-                label: 'Late',
-                value: '${t.lateCount}',
-                delta: (t.lateCount - y.lateCount).toDouble(),
-                lowerIsBetter: true,
-                loading: loading,
-              ),
-            ),
-            SizedBox(
-              width: cardWidth,
-              child: _StatCard(
-                icon: Icons.person_off,
-                color: Colors.red,
-                label: 'Absent',
-                value: '${t.absentCount}',
-                delta: (t.absentCount - y.absentCount).toDouble(),
-                lowerIsBetter: true,
-                loading: loading,
-              ),
-            ),
-            SizedBox(
-              width: cardWidth,
-              child: _StatCard(
-                icon: Icons.star,
-                color: Colors.purple,
-                label: 'Merit Points Today',
-                value: '${t.meritPoints}',
-                delta: (t.meritPoints - y.meritPoints).toDouble(),
-                loading: loading,
-              ),
-            ),
-            SizedBox(
-              width: cardWidth,
-              child: _StatCard(
-                icon: Icons.card_giftcard,
-                color: Colors.pink,
-                label: 'Rewards Issued',
-                value: '${t.rewardsIssued}',
-                delta: (t.rewardsIssued - y.rewardsIssued).toDouble(),
-                loading: loading,
-              ),
-            ),
+            for (final id in ids) SizedBox(width: cardWidth, child: cards[id]),
           ],
         );
       },

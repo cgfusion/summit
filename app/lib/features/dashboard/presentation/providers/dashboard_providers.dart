@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/providers/supabase_provider.dart';
@@ -8,6 +10,7 @@ import '../../data/repositories/dashboard_repository_impl.dart';
 import '../../domain/entities/attendance_period_summary.dart';
 import '../../domain/entities/chronic_latecomer.dart';
 import '../../domain/entities/dashboard_analytics.dart';
+import '../../domain/entities/dashboard_layout.dart';
 import '../../domain/entities/leave_type_breakdown.dart';
 import '../../domain/repositories/dashboard_repository.dart';
 
@@ -87,6 +90,60 @@ final chronicLatecomersProvider = FutureProvider.autoDispose.family<List<Chronic
 
 final leaveTypeBreakdownProvider = FutureProvider.autoDispose.family<LeaveTypeBreakdown, DateRange>((ref, range) {
   return ref.watch(dashboardRepositoryProvider).getLeaveTypeBreakdown(from: range.from, to: range.to);
+});
+
+/// Holds the signed-in user's Dashboard card order. Reorders update local
+/// state immediately (so the drag feels instant) and persist to Supabase in
+/// the background; a persist failure is silently retried on next load since
+/// the local reorder already reflects what the user asked for.
+class DashboardLayoutController extends StateNotifier<AsyncValue<DashboardLayout>> {
+  DashboardLayoutController(this._ref) : super(const AsyncValue.loading()) {
+    _load();
+  }
+
+  final Ref _ref;
+
+  Future<void> _load() async {
+    state = const AsyncValue.loading();
+    try {
+      final layout = await _ref.read(dashboardRepositoryProvider).getDashboardLayout();
+      state = AsyncValue.data(layout);
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+    }
+  }
+
+  void reorderStats(int oldIndex, int newIndex) {
+    final current = state.value;
+    if (current == null) return;
+    _apply(current.copyWith(statsOrder: _moved(current.statsOrder, oldIndex, newIndex)));
+  }
+
+  void reorderCharts(int oldIndex, int newIndex) {
+    final current = state.value;
+    if (current == null) return;
+    _apply(current.copyWith(chartsOrder: _moved(current.chartsOrder, oldIndex, newIndex)));
+  }
+
+  void resetToDefault() => _apply(DashboardLayout.defaultLayout);
+
+  void _apply(DashboardLayout layout) {
+    state = AsyncValue.data(layout);
+    unawaited(_ref.read(dashboardRepositoryProvider).saveDashboardLayout(layout));
+  }
+
+  /// [oldIndex]/[newIndex] come from ReorderableListView's onReorderItem,
+  /// which already adjusts newIndex for the removed item at oldIndex.
+  List<String> _moved(List<String> list, int oldIndex, int newIndex) {
+    final copy = [...list];
+    copy.insert(newIndex, copy.removeAt(oldIndex));
+    return copy;
+  }
+}
+
+final dashboardLayoutControllerProvider =
+    StateNotifierProvider.autoDispose<DashboardLayoutController, AsyncValue<DashboardLayout>>((ref) {
+  return DashboardLayoutController(ref);
 });
 
 /// Invalidates every dashboard analytics provider -- call after any write

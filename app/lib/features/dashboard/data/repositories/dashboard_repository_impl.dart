@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/attendance_period_summary.dart';
 import '../../domain/entities/chronic_latecomer.dart';
 import '../../domain/entities/dashboard_analytics.dart';
+import '../../domain/entities/dashboard_layout.dart';
 import '../../domain/entities/leave_type_breakdown.dart';
 import '../../domain/repositories/dashboard_repository.dart';
 
@@ -95,6 +96,19 @@ class DashboardRepositoryImpl implements DashboardRepository {
       'p_to': _dateOnly(to),
     }) as List;
     return LeaveTypeBreakdown.fromMap(rows.first as Map<String, dynamic>);
+  }
+
+  @override
+  Future<DashboardLayout> getDashboardLayout() async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) return DashboardLayout.defaultLayout;
+    final row = await _client.from('profiles').select('dashboard_layout').eq('id', userId).maybeSingle();
+    return DashboardLayout.fromMap(row?['dashboard_layout'] as Map<String, dynamic>?);
+  }
+
+  @override
+  Future<void> saveDashboardLayout(DashboardLayout layout) async {
+    await _client.rpc('fn_update_dashboard_layout', params: {'p_layout': layout.toMap()});
   }
 
   String _dateOnly(DateTime date) {

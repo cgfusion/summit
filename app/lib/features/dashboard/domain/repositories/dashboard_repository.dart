@@ -1,6 +1,7 @@
 import '../entities/attendance_period_summary.dart';
 import '../entities/chronic_latecomer.dart';
 import '../entities/dashboard_analytics.dart';
+import '../entities/dashboard_layout.dart';
 import '../entities/leave_type_breakdown.dart';
 
 abstract interface class DashboardRepository {
@@ -31,4 +32,10 @@ abstract interface class DashboardRepository {
   });
 
   Future<LeaveTypeBreakdown> getLeaveTypeBreakdown({required DateTime from, required DateTime to});
+
+  /// The signed-in user's saved Dashboard card order, or the default order
+  /// if they haven't customised it yet.
+  Future<DashboardLayout> getDashboardLayout();
+
+  Future<void> saveDashboardLayout(DashboardLayout layout);
 }
