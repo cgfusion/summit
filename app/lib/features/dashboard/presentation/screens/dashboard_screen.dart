@@ -110,6 +110,8 @@ class DashboardScreen extends ConsumerWidget {
                 children: [
                   _GreetingHeader(name: firstName, referenceDate: today),
                   const SizedBox(height: 16),
+                  _MissingAttendanceBanner(date: today),
+                  const SizedBox(height: 16),
                   _TopStatsRow(today: today),
                   const SizedBox(height: 16),
                 _DashboardGrid(
@@ -499,6 +501,73 @@ class _StatCard extends StatelessWidget {
                   ),
                 ],
               ),
+          ],
+        ),
+      ),
+    );
+
+    if (!isDark) return card;
+    return Container(
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), boxShadow: AppTheme.glow(color)),
+      child: card,
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Missing attendance banner -- compliance flag for classes not yet marked
+// ---------------------------------------------------------------------------
+
+class _MissingAttendanceBanner extends ConsumerWidget {
+  const _MissingAttendanceBanner({required this.date});
+
+  final DateTime date;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final rowsAsync = ref.watch(classAttendanceSummaryProvider((from: date, to: date)));
+    final rows = rowsAsync.value;
+    if (rows == null) return const SizedBox.shrink();
+
+    final missing = rows.where((r) => r.recordedCount == 0).toList()
+      ..sort((a, b) => a.className.compareTo(b.className));
+    if (missing.isEmpty) return const SizedBox.shrink();
+
+    final color = Colors.orange.shade800;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final card = Card(
+      color: isDark ? null : Colors.orange.shade50,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: color),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '${missing.length} class${missing.length == 1 ? '' : 'es'} with no attendance recorded today',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final r in missing)
+                  Chip(
+                    label: Text(r.className),
+                    backgroundColor: color.withValues(alpha: isDark ? 0.18 : 0.12),
+                    side: BorderSide(color: color.withValues(alpha: 0.4)),
+                  ),
+              ],
+            ),
           ],
         ),
       ),

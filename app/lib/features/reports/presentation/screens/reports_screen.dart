@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../class_management/presentation/providers/class_providers.dart';
+import '../../../dashboard/domain/entities/chronic_latecomer.dart';
+import '../../../dashboard/presentation/providers/dashboard_providers.dart'
+    show chronicLatecomersProvider, leaveTypeBreakdownProvider;
 import '../../../merit/domain/entities/student_period_summary.dart';
 import '../../../merit/domain/value_objects/date_range.dart';
 import '../../../merit/presentation/providers/merit_providers.dart' show programPeriodProvider, studentPeriodSummaryProvider;
@@ -95,6 +98,8 @@ class _KpiReportBody extends StatelessWidget {
         _AttendanceRateCard(first: first, last: last),
         _RepeatAbsenceCard(first: first, last: last),
         _AtRiskStudentsSection(range: range),
+        const _ChronicLatecomersSection(),
+        _LeaveTypeBreakdownSection(range: range),
         _LateTransitionCard(first: first, last: last),
         const _UnavailableKpiNote(),
         const SizedBox(height: 16),
@@ -222,6 +227,227 @@ class _AtRiskRow extends StatelessWidget {
         '${rate.toStringAsFixed(1)}%  (${student.daysPresent}/$total)',
         style: TextStyle(color: Colors.red.shade700, fontWeight: FontWeight.bold),
       ),
+    );
+  }
+}
+
+/// Students with repeated "lewat" days in a rolling 7-day window, ending
+/// today -- distinct from the At-Risk list above, which uses the selected
+/// period's overall rate. This is a short-horizon behavioural flag, so it's
+/// deliberately not tied to the period picker.
+class _ChronicLatecomersSection extends ConsumerStatefulWidget {
+  const _ChronicLatecomersSection();
+
+  @override
+  ConsumerState<_ChronicLatecomersSection> createState() => _ChronicLatecomersSectionState();
+}
+
+class _ChronicLatecomersSectionState extends ConsumerState<_ChronicLatecomersSection> {
+  int _minLate = 3;
+
+  @override
+  Widget build(BuildContext context) {
+    final today = DateTime.now();
+    final referenceDate = DateTime(today.year, today.month, today.day);
+    final latecomersAsync = ref.watch(
+      chronicLatecomersProvider((referenceDate: referenceDate, windowDays: 7, minLate: _minLate)),
+    );
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.schedule, color: Colors.amber.shade800),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text('Chronic Latecomers (Last 7 Days)', style: Theme.of(context).textTheme.titleMedium),
+                ),
+              ],
+            ),
+            Text(
+              'Students with repeated "lewat" days in the trailing 7-day window.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Text('Minimum late days:', style: Theme.of(context).textTheme.bodySmall),
+                const SizedBox(width: 8),
+                SegmentedButton<int>(
+                  segments: const [
+                    ButtonSegment(value: 2, label: Text('2+')),
+                    ButtonSegment(value: 3, label: Text('3+')),
+                    ButtonSegment(value: 5, label: Text('5+')),
+                  ],
+                  selected: {_minLate},
+                  onSelectionChanged: (selection) => setState(() => _minLate = selection.first),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            latecomersAsync.when(
+              data: (students) {
+                if (students.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Text('No students meet this threshold in the last 7 days.'),
+                  );
+                }
+                return Column(
+                  children: [
+                    for (final s in students) _LatecomerRow(student: s),
+                  ],
+                );
+              },
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (error, stackTrace) => Text('Failed to load: $error'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LatecomerRow extends StatelessWidget {
+  const _LatecomerRow({required this.student});
+
+  final ChronicLatecomer student;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      dense: true,
+      title: Text(student.fullName),
+      subtitle: Text(student.className),
+      trailing: Text(
+        '${student.lateCount}x lewat',
+        style: TextStyle(color: Colors.amber.shade900, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+}
+
+/// How the selected period's absence days split between unexplained
+/// (tidak_hadir) and the two excused-leave types -- surfaces whether the
+/// exception workflow (cuti_sakit / urusan_rasmi) is actually being used.
+class _LeaveTypeBreakdownSection extends ConsumerWidget {
+  const _LeaveTypeBreakdownSection({required this.range});
+
+  final DateRange range;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final breakdownAsync = ref.watch(leaveTypeBreakdownProvider(range));
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.event_busy, color: Colors.indigo.shade400),
+                const SizedBox(width: 12),
+                Expanded(child: Text('Leave-Type Breakdown', style: Theme.of(context).textTheme.titleMedium)),
+              ],
+            ),
+            Text(
+              'How absence days split between unexplained and excused leave for the selected period.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 12),
+            breakdownAsync.when(
+              data: (b) {
+                if (b.total == 0) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Text('No absence/leave days recorded for this period.'),
+                  );
+                }
+                return Column(
+                  children: [
+                    _LeaveTypeBar(
+                      label: 'Tidak Hadir (unexplained)',
+                      count: b.tidakHadirCount,
+                      total: b.total,
+                      color: Colors.red.shade400,
+                    ),
+                    const SizedBox(height: 8),
+                    _LeaveTypeBar(
+                      label: 'Cuti Sakit',
+                      count: b.cutiSakitCount,
+                      total: b.total,
+                      color: Colors.blue.shade400,
+                    ),
+                    const SizedBox(height: 8),
+                    _LeaveTypeBar(
+                      label: 'Urusan Rasmi',
+                      count: b.urusanRasmiCount,
+                      total: b.total,
+                      color: Colors.teal.shade400,
+                    ),
+                  ],
+                );
+              },
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (error, stackTrace) => Text('Failed to load: $error'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LeaveTypeBar extends StatelessWidget {
+  const _LeaveTypeBar({required this.label, required this.count, required this.total, required this.color});
+
+  final String label;
+  final int count;
+  final int total;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = total == 0 ? 0.0 : count / total * 100;
+    return Row(
+      children: [
+        SizedBox(width: 150, child: Text(label, style: Theme.of(context).textTheme.bodySmall)),
+        Expanded(
+          child: Stack(
+            children: [
+              Container(
+                height: 16,
+                decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(4)),
+              ),
+              FractionallySizedBox(
+                widthFactor: (pct / 100).clamp(0, 1),
+                child: Container(
+                  height: 16,
+                  decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4)),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        SizedBox(width: 90, child: Text('$count (${pct.toStringAsFixed(0)}%)', textAlign: TextAlign.right)),
+      ],
     );
   }
 }

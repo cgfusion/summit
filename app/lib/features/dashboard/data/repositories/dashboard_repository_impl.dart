@@ -1,7 +1,9 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../domain/entities/attendance_period_summary.dart';
+import '../../domain/entities/chronic_latecomer.dart';
 import '../../domain/entities/dashboard_analytics.dart';
+import '../../domain/entities/leave_type_breakdown.dart';
 import '../../domain/repositories/dashboard_repository.dart';
 
 class DashboardRepositoryImpl implements DashboardRepository {
@@ -70,6 +72,29 @@ class DashboardRepositoryImpl implements DashboardRepository {
       'p_reference_date': _dateOnly(referenceDate),
     }) as List;
     return rows.map((row) => AttendancePeriodSummary.fromMap(row as Map<String, dynamic>)).toList();
+  }
+
+  @override
+  Future<List<ChronicLatecomer>> getChronicLatecomers({
+    required DateTime referenceDate,
+    int windowDays = 7,
+    int minLate = 3,
+  }) async {
+    final rows = await _client.rpc('fn_chronic_latecomers', params: {
+      'p_reference_date': _dateOnly(referenceDate),
+      'p_window_days': windowDays,
+      'p_min_late': minLate,
+    }) as List;
+    return rows.map((row) => ChronicLatecomer.fromMap(row as Map<String, dynamic>)).toList();
+  }
+
+  @override
+  Future<LeaveTypeBreakdown> getLeaveTypeBreakdown({required DateTime from, required DateTime to}) async {
+    final rows = await _client.rpc('fn_leave_type_breakdown', params: {
+      'p_from': _dateOnly(from),
+      'p_to': _dateOnly(to),
+    }) as List;
+    return LeaveTypeBreakdown.fromMap(rows.first as Map<String, dynamic>);
   }
 
   String _dateOnly(DateTime date) {

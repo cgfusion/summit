@@ -6,7 +6,9 @@ import '../../../attendance/presentation/providers/attendance_providers.dart';
 import '../../../merit/domain/value_objects/date_range.dart';
 import '../../data/repositories/dashboard_repository_impl.dart';
 import '../../domain/entities/attendance_period_summary.dart';
+import '../../domain/entities/chronic_latecomer.dart';
 import '../../domain/entities/dashboard_analytics.dart';
+import '../../domain/entities/leave_type_breakdown.dart';
 import '../../domain/repositories/dashboard_repository.dart';
 
 final dashboardRepositoryProvider = Provider<DashboardRepository>((ref) {
@@ -70,6 +72,23 @@ final attendancePeriodSummaryProvider = FutureProvider.autoDispose.family<List<A
   return ref.watch(dashboardRepositoryProvider).getAttendancePeriodSummary(referenceDate);
 });
 
+typedef ChronicLatecomerQuery = ({DateTime referenceDate, int windowDays, int minLate});
+
+final chronicLatecomersProvider = FutureProvider.autoDispose.family<List<ChronicLatecomer>, ChronicLatecomerQuery>((
+  ref,
+  query,
+) {
+  return ref.watch(dashboardRepositoryProvider).getChronicLatecomers(
+        referenceDate: query.referenceDate,
+        windowDays: query.windowDays,
+        minLate: query.minLate,
+      );
+});
+
+final leaveTypeBreakdownProvider = FutureProvider.autoDispose.family<LeaveTypeBreakdown, DateRange>((ref, range) {
+  return ref.watch(dashboardRepositoryProvider).getLeaveTypeBreakdown(from: range.from, to: range.to);
+});
+
 /// Invalidates every dashboard analytics provider -- call after any write
 /// that could change attendance/merit/reward figures (manual attendance,
 /// merit edits, awards) so the Dashboard reflects it next time it's shown.
@@ -82,4 +101,6 @@ void invalidateDashboardAnalytics(WidgetRef ref) {
   ref.invalidate(recentActivityProvider);
   ref.invalidate(kpiOverviewProvider);
   ref.invalidate(attendancePeriodSummaryProvider);
+  ref.invalidate(chronicLatecomersProvider);
+  ref.invalidate(leaveTypeBreakdownProvider);
 }
