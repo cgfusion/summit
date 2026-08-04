@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../domain/entities/attendance_period_summary.dart';
 import '../../domain/entities/dashboard_analytics.dart';
 import '../../domain/repositories/dashboard_repository.dart';
 
@@ -61,6 +62,14 @@ class DashboardRepositoryImpl implements DashboardRepository {
       'p_to': _dateOnly(to),
     }) as List;
     return KpiOverview.fromMap(rows.first as Map<String, dynamic>);
+  }
+
+  @override
+  Future<List<AttendancePeriodSummary>> getAttendancePeriodSummary(DateTime referenceDate) async {
+    final rows = await _client.rpc('fn_attendance_period_summary', params: {
+      'p_reference_date': _dateOnly(referenceDate),
+    }) as List;
+    return rows.map((row) => AttendancePeriodSummary.fromMap(row as Map<String, dynamic>)).toList();
   }
 
   String _dateOnly(DateTime date) {

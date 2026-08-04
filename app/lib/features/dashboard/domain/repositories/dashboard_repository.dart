@@ -1,3 +1,4 @@
+import '../entities/attendance_period_summary.dart';
 import '../entities/dashboard_analytics.dart';
 
 abstract interface class DashboardRepository {
@@ -14,4 +15,8 @@ abstract interface class DashboardRepository {
   Future<List<RecentActivityItem>> getRecentActivity({int limit = 15});
 
   Future<KpiOverview> getKpiOverview({required DateTime from, required DateTime to});
+
+  /// Per-class + whole-school attendance rate for day/week/month/year, all
+  /// anchored to [referenceDate].
+  Future<List<AttendancePeriodSummary>> getAttendancePeriodSummary(DateTime referenceDate);
 }

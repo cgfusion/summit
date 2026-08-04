@@ -159,6 +159,14 @@ class DashboardScreen extends ConsumerWidget {
                     _ChartCard(title: 'KPI Overview (This Month)', child: _KpiGauges(from: monthStart, to: monthEnd)),
                   ],
                 ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  height: 180,
+                  child: _ChartCard(
+                    title: 'School Attendance Summary',
+                    child: _SchoolAttendanceSummary(referenceDate: today),
+                  ),
+                ),
               ],
             ),
           );
@@ -1165,6 +1173,58 @@ class _KpiGauges extends ConsumerWidget {
       },
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, stackTrace) => _EmptyState(message: 'Failed to load: $error'),
+    );
+  }
+}
+
+/// Compact day/week/month/year school-wide attendance rate. Week/month/year
+/// use the full period's school-day count as denominator (not days elapsed
+/// so far), so it reads as progress-so-far and only reaches its final value
+/// at period end -- see fn_attendance_period_summary. The full per-class
+/// breakdown lives on Class Summary.
+class _SchoolAttendanceSummary extends ConsumerWidget {
+  const _SchoolAttendanceSummary({required this.referenceDate});
+
+  final DateTime referenceDate;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final async = ref.watch(attendancePeriodSummaryProvider(referenceDate));
+    return async.when(
+      data: (rows) {
+        final schoolRows = rows.where((r) => r.isWholeSchool);
+        if (schoolRows.isEmpty) return const _EmptyState(message: 'No attendance data yet.');
+        final school = schoolRows.first;
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _SummaryStat(label: 'Day', value: school.dayRate),
+            _SummaryStat(label: 'Week', value: school.weekRate),
+            _SummaryStat(label: 'Month', value: school.monthRate),
+            _SummaryStat(label: 'Year', value: school.yearRate),
+          ],
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stackTrace) => _EmptyState(message: 'Failed to load: $error'),
+    );
+  }
+}
+
+class _SummaryStat extends StatelessWidget {
+  const _SummaryStat({required this.label, required this.value});
+
+  final String label;
+  final double value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text('$value%', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+        Text(label, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey)),
+      ],
     );
   }
 }

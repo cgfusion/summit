@@ -5,6 +5,7 @@ import '../../../attendance/domain/entities/attendance_day.dart';
 import '../../../attendance/presentation/providers/attendance_providers.dart';
 import '../../../merit/domain/value_objects/date_range.dart';
 import '../../data/repositories/dashboard_repository_impl.dart';
+import '../../domain/entities/attendance_period_summary.dart';
 import '../../domain/entities/dashboard_analytics.dart';
 import '../../domain/repositories/dashboard_repository.dart';
 
@@ -62,6 +63,13 @@ final kpiOverviewProvider = FutureProvider.autoDispose.family<KpiOverview, DateR
   return ref.watch(dashboardRepositoryProvider).getKpiOverview(from: range.from, to: range.to);
 });
 
+final attendancePeriodSummaryProvider = FutureProvider.autoDispose.family<List<AttendancePeriodSummary>, DateTime>((
+  ref,
+  referenceDate,
+) {
+  return ref.watch(dashboardRepositoryProvider).getAttendancePeriodSummary(referenceDate);
+});
+
 /// Invalidates every dashboard analytics provider -- call after any write
 /// that could change attendance/merit/reward figures (manual attendance,
 /// merit edits, awards) so the Dashboard reflects it next time it's shown.
@@ -73,4 +81,5 @@ void invalidateDashboardAnalytics(WidgetRef ref) {
   ref.invalidate(attendanceStreaksProvider);
   ref.invalidate(recentActivityProvider);
   ref.invalidate(kpiOverviewProvider);
+  ref.invalidate(attendancePeriodSummaryProvider);
 }
