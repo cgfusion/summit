@@ -10,6 +10,7 @@ import '../../../../core/providers/supabase_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../merit/presentation/providers/merit_providers.dart';
 import '../../../settings/presentation/providers/settings_providers.dart';
+import '../../domain/entities/attendance_period_summary.dart';
 import '../../domain/entities/dashboard_analytics.dart';
 import '../providers/dashboard_providers.dart';
 
@@ -1192,7 +1193,7 @@ class _SchoolAttendanceSummary extends ConsumerWidget {
     final async = ref.watch(attendancePeriodSummaryProvider(referenceDate));
     return async.when(
       data: (rows) {
-        final schoolRows = rows.where((r) => r.isWholeSchool);
+        final schoolRows = rows.where((r) => r.scope == AttendanceSummaryScope.school);
         if (schoolRows.isEmpty) return const _EmptyState(message: 'No attendance data yet.');
         final school = schoolRows.first;
         return Row(

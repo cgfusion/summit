@@ -120,18 +120,28 @@ class _AttendanceSummarySection extends ConsumerWidget {
           async.when(
             data: (rows) {
               if (rows.isEmpty) return const Text('No attendance data yet.');
-              return SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: DataTable(
-                  columns: const [
-                    DataColumn(label: Text('Class')),
-                    DataColumn(label: Text('Day'), numeric: true),
-                    DataColumn(label: Text('Week'), numeric: true),
-                    DataColumn(label: Text('Month'), numeric: true),
-                    DataColumn(label: Text('Year'), numeric: true),
-                  ],
-                  rows: [for (final row in rows) _buildRow(context, row)],
-                ),
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Attendance %', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  _AttendanceTable(
+                    rows: rows,
+                    valueBuilder: (r) => ['${r.dayRate}%', '${r.weekRate}%', '${r.monthRate}%', '${r.yearRate}%'],
+                  ),
+                  const SizedBox(height: 24),
+                  Text('Attendance Counts (present / total)', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  _AttendanceTable(
+                    rows: rows,
+                    valueBuilder: (r) => [
+                      '${r.dayPresent}/${r.dayTotal}',
+                      '${r.weekPresent}/${r.weekTotal}',
+                      '${r.monthPresent}/${r.monthTotal}',
+                      '${r.yearPresent}/${r.yearTotal}',
+                    ],
+                  ),
+                ],
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
@@ -141,19 +151,45 @@ class _AttendanceSummarySection extends ConsumerWidget {
       ),
     );
   }
+}
+
+class _AttendanceTable extends StatelessWidget {
+  const _AttendanceTable({required this.rows, required this.valueBuilder});
+
+  final List<AttendancePeriodSummary> rows;
+  final List<String> Function(AttendancePeriodSummary) valueBuilder;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: DataTable(
+        columns: const [
+          DataColumn(label: Text('Class')),
+          DataColumn(label: Text('Day'), numeric: true),
+          DataColumn(label: Text('Week'), numeric: true),
+          DataColumn(label: Text('Month'), numeric: true),
+          DataColumn(label: Text('Year'), numeric: true),
+        ],
+        rows: [for (final row in rows) _buildRow(context, row)],
+      ),
+    );
+  }
 
   DataRow _buildRow(BuildContext context, AttendancePeriodSummary row) {
-    final style = row.isWholeSchool
-        ? const TextStyle(fontWeight: FontWeight.bold)
-        : const TextStyle();
+    final isSchool = row.scope == AttendanceSummaryScope.school;
+    final isForm = row.scope == AttendanceSummaryScope.form;
+    final style = TextStyle(fontWeight: isSchool || isForm ? FontWeight.bold : FontWeight.normal);
+    final values = valueBuilder(row);
     return DataRow(
-      color: row.isWholeSchool ? WidgetStatePropertyAll(Theme.of(context).colorScheme.primaryContainer) : null,
+      color: isSchool
+          ? WidgetStatePropertyAll(Theme.of(context).colorScheme.primaryContainer)
+          : isForm
+              ? WidgetStatePropertyAll(Theme.of(context).colorScheme.surfaceContainerHighest)
+              : null,
       cells: [
-        DataCell(Text(row.className, style: style)),
-        DataCell(Text('${row.dayRate}%', style: style)),
-        DataCell(Text('${row.weekRate}%', style: style)),
-        DataCell(Text('${row.monthRate}%', style: style)),
-        DataCell(Text('${row.yearRate}%', style: style)),
+        DataCell(Text(row.scopeName, style: style)),
+        for (final value in values) DataCell(Text(value, style: style)),
       ],
     );
   }
