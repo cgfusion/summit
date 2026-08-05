@@ -4,6 +4,7 @@ class StudentGuardian {
     required this.studentId,
     required this.fullName,
     this.relationship,
+    this.icNumber,
     this.phone,
     this.email,
     required this.isPrimary,
@@ -15,6 +16,7 @@ class StudentGuardian {
   final String studentId;
   final String fullName;
   final String? relationship;
+  final String? icNumber;
   final String? phone;
   final String? email;
   final bool isPrimary;
@@ -27,6 +29,7 @@ class StudentGuardian {
       studentId: map['student_id'] as String,
       fullName: map['full_name'] as String,
       relationship: map['relationship'] as String?,
+      icNumber: map['ic_number'] as String?,
       phone: map['phone'] as String?,
       email: map['email'] as String?,
       isPrimary: map['is_primary'] as bool,

@@ -185,6 +185,7 @@ class _GuardianCard extends ConsumerWidget {
             if (guardian.relationship != null && guardian.relationship!.isNotEmpty) guardian.relationship,
             if (guardian.phone != null && guardian.phone!.isNotEmpty) guardian.phone,
             if (guardian.email != null && guardian.email!.isNotEmpty) guardian.email,
+            if (guardian.icNumber != null && guardian.icNumber!.isNotEmpty) 'IC ${guardian.icNumber}',
           ].join(' • '),
         ),
         trailing: PopupMenuButton<String>(
@@ -306,6 +307,7 @@ void _showGuardianFormDialog(
 }) {
   final nameController = TextEditingController(text: existing?.fullName ?? '');
   final relationshipController = TextEditingController(text: existing?.relationship ?? '');
+  final icNumberController = TextEditingController(text: existing?.icNumber ?? '');
   final phoneController = TextEditingController(text: existing?.phone ?? '');
   final emailController = TextEditingController(text: existing?.email ?? '');
   var isPrimary = existing?.isPrimary ?? false;
@@ -326,6 +328,12 @@ void _showGuardianFormDialog(
               TextField(
                 controller: relationshipController,
                 decoration: const InputDecoration(labelText: 'Relationship (e.g. Bapa, Ibu, Penjaga)'),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: icNumberController,
+                decoration: const InputDecoration(labelText: 'IC number (optional)'),
+                keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 8),
               TextField(
@@ -373,6 +381,7 @@ void _showGuardianFormDialog(
                     studentId: studentId,
                     fullName: nameController.text.trim(),
                     relationship: relationshipController.text.trim().isEmpty ? null : relationshipController.text.trim(),
+                    icNumber: icNumberController.text.trim().isEmpty ? null : icNumberController.text.trim(),
                     phone: phoneController.text.trim().isEmpty ? null : phoneController.text.trim(),
                     email: emailController.text.trim().isEmpty ? null : emailController.text.trim(),
                     isPrimary: isPrimary,
@@ -383,6 +392,7 @@ void _showGuardianFormDialog(
                     guardianId: existing.id,
                     fullName: nameController.text.trim(),
                     relationship: relationshipController.text.trim().isEmpty ? null : relationshipController.text.trim(),
+                    icNumber: icNumberController.text.trim().isEmpty ? null : icNumberController.text.trim(),
                     phone: phoneController.text.trim().isEmpty ? null : phoneController.text.trim(),
                     email: emailController.text.trim().isEmpty ? null : emailController.text.trim(),
                     isPrimary: isPrimary,
