@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -25,6 +26,8 @@ Color colorForEnrollmentStatus(EnrollmentStatus status) {
       return Colors.purple;
   }
 }
+
+String _parentPortalLink(String token) => '${Uri.base.origin}${Uri.base.path}#/parent/$token';
 
 Future<void> showStudentDetailSheet(BuildContext context, Student student) {
   return showModalBottomSheet<void>(
@@ -192,6 +195,37 @@ class _GuardianCard extends ConsumerWidget {
           onSelected: (value) async {
             if (value == 'edit') {
               _showGuardianFormDialog(context, ref, studentId: student.id, existing: guardian);
+            } else if (value == 'copy_link') {
+              await Clipboard.setData(ClipboardData(text: _parentPortalLink(guardian.accessToken)));
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Parent portal link copied.')),
+                );
+              }
+            } else if (value == 'regenerate_link') {
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (dialogContext) => AlertDialog(
+                  title: const Text('Regenerate link?'),
+                  content: const Text(
+                    "The old link will stop working immediately. Use this if it was shared with the wrong person.",
+                  ),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
+                    FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Regenerate')),
+                  ],
+                ),
+              );
+              if (confirmed == true) {
+                final newToken = await ref.read(studentRepositoryProvider).regenerateGuardianToken(guardian.id);
+                ref.invalidate(studentGuardiansProvider(student.id));
+                await Clipboard.setData(ClipboardData(text: _parentPortalLink(newToken)));
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('New link generated and copied.')),
+                  );
+                }
+              }
             } else if (value == 'delete') {
               final confirmed = await showDialog<bool>(
                 context: context,
@@ -212,6 +246,8 @@ class _GuardianCard extends ConsumerWidget {
           },
           itemBuilder: (context) => const [
             PopupMenuItem(value: 'edit', child: Text('Edit')),
+            PopupMenuItem(value: 'copy_link', child: Text('Copy Parent Link')),
+            PopupMenuItem(value: 'regenerate_link', child: Text('Regenerate Link')),
             PopupMenuItem(value: 'delete', child: Text('Remove')),
           ],
         ),

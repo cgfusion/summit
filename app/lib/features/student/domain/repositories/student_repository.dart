@@ -47,4 +47,8 @@ abstract interface class StudentRepository {
   });
 
   Future<void> deleteGuardian(String guardianId);
+
+  /// Invalidates the guardian's current parent-portal link and returns a
+  /// new access token, e.g. after a link was shared with the wrong person.
+  Future<String> regenerateGuardianToken(String guardianId);
 }

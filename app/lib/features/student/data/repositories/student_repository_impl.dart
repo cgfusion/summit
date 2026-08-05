@@ -125,6 +125,12 @@ class StudentRepositoryImpl implements StudentRepository {
     await _client.from('student_guardians').delete().eq('id', guardianId);
   }
 
+  @override
+  Future<String> regenerateGuardianToken(String guardianId) async {
+    final result = await _client.rpc('fn_regenerate_guardian_token', params: {'p_guardian_id': guardianId});
+    return result as String;
+  }
+
   String _dateOnly(DateTime date) {
     final d = DateTime(date.year, date.month, date.day);
     return d.toIso8601String().split('T').first;

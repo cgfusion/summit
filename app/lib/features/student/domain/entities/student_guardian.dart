@@ -10,6 +10,7 @@ class StudentGuardian {
     required this.isPrimary,
     required this.isEmergencyContact,
     this.notes,
+    required this.accessToken,
   });
 
   final String id;
@@ -23,6 +24,11 @@ class StudentGuardian {
   final bool isEmergencyContact;
   final String? notes;
 
+  /// The secret behind this guardian's parent-portal link
+  /// (`/parent/<accessToken>`). Unauthenticated by design -- see
+  /// fn_parent_portal_data.
+  final String accessToken;
+
   factory StudentGuardian.fromMap(Map<String, dynamic> map) {
     return StudentGuardian(
       id: map['id'] as String,
@@ -35,6 +41,7 @@ class StudentGuardian {
       isPrimary: map['is_primary'] as bool,
       isEmergencyContact: map['is_emergency_contact'] as bool,
       notes: map['notes'] as String?,
+      accessToken: map['access_token'] as String,
     );
   }
 }
