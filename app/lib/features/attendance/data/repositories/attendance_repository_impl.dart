@@ -13,7 +13,8 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
   final SupabaseClient _client;
 
   static const _studentSelectWithClass = 'id, student_id, full_name, ic_number, ic_type, date_of_birth, '
-      'gender, study_status, enrolled_at, class_joined_at, class_id, classes(name)';
+      'gender, study_status, enrolled_at, class_joined_at, class_id, classes(name), '
+      'enrollment_status, enrollment_status_reason, enrollment_status_date';
 
   @override
   Future<Student?> resolveQrToken(String token) async {

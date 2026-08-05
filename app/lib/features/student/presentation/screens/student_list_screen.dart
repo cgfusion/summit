@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/layout/app_shell.dart';
 import '../../../class_management/presentation/providers/class_providers.dart';
+import '../../domain/entities/enrollment_status.dart';
 import '../providers/student_providers.dart';
+import 'student_detail_sheet.dart';
 
 class StudentListScreen extends ConsumerWidget {
   const StudentListScreen({super.key});
@@ -13,6 +15,7 @@ class StudentListScreen extends ConsumerWidget {
     final studentsAsync = ref.watch(studentsProvider);
     final classesAsync = ref.watch(classesProvider);
     final selectedClassId = ref.watch(studentClassFilterProvider);
+    final includeInactive = ref.watch(studentIncludeInactiveProvider);
 
     return Scaffold(
       appBar: AppBar(leading: const HomeBackButton(), title: const Text('Students')),
@@ -49,6 +52,18 @@ class StudentListScreen extends ConsumerWidget {
               ],
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              children: [
+                Checkbox(
+                  value: includeInactive,
+                  onChanged: (value) => ref.read(studentIncludeInactiveProvider.notifier).state = value ?? false,
+                ),
+                const Text('Show suspended / expelled / transferred / etc.'),
+              ],
+            ),
+          ),
           Expanded(
             child: studentsAsync.when(
               data: (students) {
@@ -60,8 +75,32 @@ class StudentListScreen extends ConsumerWidget {
                   separatorBuilder: (_, _) => const Divider(height: 1),
                   itemBuilder: (context, index) {
                     final student = students[index];
+                    final notActive = student.enrollmentStatus != EnrollmentStatus.active;
                     return ListTile(
-                      title: Text(student.fullName),
+                      onTap: () => showStudentDetailSheet(context, student),
+                      title: Row(
+                        children: [
+                          Flexible(child: Text(student.fullName)),
+                          if (notActive) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: colorForEnrollmentStatus(student.enrollmentStatus).withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                student.enrollmentStatus.shortLabel,
+                                style: TextStyle(
+                                  color: colorForEnrollmentStatus(student.enrollmentStatus),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
                       subtitle: Text('${student.className ?? '-'} • ID ${student.studentId}'),
                       trailing: Text(student.gender ?? ''),
                     );

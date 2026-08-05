@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../../../core/layout/app_shell.dart';
+import '../../../student/domain/entities/enrollment_status.dart';
 import '../../domain/entities/attendance_status.dart';
 import '../providers/attendance_providers.dart';
 
@@ -45,6 +46,11 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen> {
       if (student == null) {
         setState(() => _unrecognisedToken = token);
         _showFeedback('Unrecognised QR code.', Colors.red);
+        return;
+      }
+
+      if (student.enrollmentStatus != EnrollmentStatus.active) {
+        _showFeedback('${student.fullName} — ${student.enrollmentStatus.label}, card no longer valid.', Colors.red);
         return;
       }
 

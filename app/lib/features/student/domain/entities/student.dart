@@ -1,3 +1,5 @@
+import 'enrollment_status.dart';
+
 class Student {
   const Student({
     required this.id,
@@ -12,6 +14,9 @@ class Student {
     this.classJoinedAt,
     this.classId,
     this.className,
+    this.enrollmentStatus = EnrollmentStatus.active,
+    this.enrollmentStatusReason,
+    this.enrollmentStatusDate,
   });
 
   final String id;
@@ -26,6 +31,9 @@ class Student {
   final DateTime? classJoinedAt;
   final String? classId;
   final String? className;
+  final EnrollmentStatus enrollmentStatus;
+  final String? enrollmentStatusReason;
+  final DateTime? enrollmentStatusDate;
 
   factory Student.fromMap(Map<String, dynamic> map) {
     final classRow = map['classes'] as Map<String, dynamic>?;
@@ -42,6 +50,13 @@ class Student {
       classJoinedAt: map['class_joined_at'] == null ? null : DateTime.parse(map['class_joined_at'] as String),
       classId: map['class_id'] as String?,
       className: classRow?['name'] as String?,
+      enrollmentStatus: map['enrollment_status'] == null
+          ? EnrollmentStatus.active
+          : EnrollmentStatus.fromDb(map['enrollment_status'] as String),
+      enrollmentStatusReason: map['enrollment_status_reason'] as String?,
+      enrollmentStatusDate: map['enrollment_status_date'] == null
+          ? null
+          : DateTime.parse(map['enrollment_status_date'] as String),
     );
   }
 }
