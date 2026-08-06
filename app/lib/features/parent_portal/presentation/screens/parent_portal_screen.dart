@@ -54,7 +54,7 @@ class ParentPortalScreen extends ConsumerWidget {
               message: "This link isn't valid anymore. Please ask the school for a new one.",
             );
           }
-          return _PortalBody(data: data);
+          return ParentPortalBody(data: data);
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stackTrace) => _PortalMessage(icon: Icons.error_outline, message: 'Failed to load: $error'),
@@ -87,8 +87,8 @@ class _PortalMessage extends StatelessWidget {
   }
 }
 
-class _PortalBody extends StatelessWidget {
-  const _PortalBody({required this.data});
+class ParentPortalBody extends StatelessWidget {
+  const ParentPortalBody({super.key, required this.data});
 
   final ParentPortalData data;
 

@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/utils/date_utils.dart';
 import '../../../student/domain/entities/student.dart';
 import '../../domain/entities/attendance_day.dart';
 import '../../domain/entities/attendance_log.dart';
@@ -46,7 +47,7 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
 
   @override
   Future<List<AttendanceDay>> getAttendanceForDate({required DateTime date, String? classId}) async {
-    final schoolDate = _dateOnly(date);
+    final schoolDate = formatDateOnly(date);
     var query = _client
         .from('attendance_days')
         .select('id, student_id, school_date, status, source, first_scan_at, students!inner(full_name, class_id)')
@@ -62,7 +63,7 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
 
   @override
   Future<AttendanceDay?> getAttendanceForStudentOnDate({required String studentId, required DateTime date}) async {
-    final schoolDate = _dateOnly(date);
+    final schoolDate = formatDateOnly(date);
     final row = await _client
         .from('attendance_days')
         .select('id, student_id, school_date, status, source, first_scan_at, students!inner(full_name, class_id)')
@@ -139,7 +140,7 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
   }) async {
     await _client.rpc('fn_manual_attendance_set', params: {
       'p_student_id': studentId,
-      'p_school_date': _dateOnly(schoolDate),
+      'p_school_date': formatDateOnly(schoolDate),
       'p_status': status.dbValue,
       'p_time': time == null ? null : _timeOnly(time),
       'p_note': ?note,
@@ -158,11 +159,6 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
       'student_id': row['student_id'],
       'full_name': (row['students'] as Map<String, dynamic>)['full_name'],
     };
-  }
-
-  String _dateOnly(DateTime date) {
-    final d = DateTime(date.year, date.month, date.day);
-    return d.toIso8601String().split('T').first;
   }
 
   String _timeOnly(DateTime time) {

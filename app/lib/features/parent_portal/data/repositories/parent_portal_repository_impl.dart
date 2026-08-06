@@ -14,4 +14,18 @@ class ParentPortalRepositoryImpl implements ParentPortalRepository {
     if (result == null) return null;
     return ParentPortalData.fromMap(result as Map<String, dynamic>);
   }
+
+  @override
+  Future<List<ParentPortalData>> getPortalDataByIc({
+    required String parentIc,
+    String? childIc,
+  }) async {
+    final result = await _client.rpc('fn_parent_portal_data_by_ic', params: {
+      'p_parent_ic': parentIc,
+      'p_child_ic': ?childIc,
+    });
+    if (result == null) return [];
+    final list = result as List;
+    return list.map((item) => ParentPortalData.fromMap(item as Map<String, dynamic>)).toList();
+  }
 }

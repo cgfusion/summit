@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/utils/date_utils.dart';
 import '../../domain/entities/class_period_summary.dart';
 import '../../domain/entities/merit_award.dart';
 import '../../domain/entities/merit_day.dart';
@@ -27,7 +28,7 @@ class MeritRepositoryImpl implements MeritRepository {
         .from('merit_student_daily')
         .select('student_id, school_date, class_id, attendance_status, point_hadir, point_tepat_masa, '
             'point_kembali_rehat, point_kekal_sesi, bonus, total_points, full_name')
-        .eq('school_date', _dateOnly(date));
+        .eq('school_date', formatDateOnly(date));
 
     if (classId != null) {
       query = query.eq('class_id', classId);
@@ -45,7 +46,7 @@ class MeritRepositoryImpl implements MeritRepository {
     required bool missedRecessReturn,
     required bool leftEarly,
   }) async {
-    final schoolDate = _dateOnly(date);
+    final schoolDate = formatDateOnly(date);
     if (!lateToClass && !missedRecessReturn && !leftEarly) {
       await _client.from('attendance_day_exceptions').delete().eq('student_id', studentId).eq('school_date', schoolDate);
       return;
@@ -73,7 +74,7 @@ class MeritRepositoryImpl implements MeritRepository {
     final userId = _client.auth.currentUser?.id;
     await _client.from('merit_bonus_points').insert({
       'student_id': studentId,
-      'school_date': _dateOnly(date),
+      'school_date': formatDateOnly(date),
       'points': points,
       'reason': ?reason,
       'awarded_by': ?userId,
@@ -87,8 +88,8 @@ class MeritRepositoryImpl implements MeritRepository {
     String? classId,
   }) async {
     final rows = await _client.rpc('fn_student_period_summary', params: {
-      'p_from': _dateOnly(from),
-      'p_to': _dateOnly(to),
+      'p_from': formatDateOnly(from),
+      'p_to': formatDateOnly(to),
       'p_class_id': classId,
     });
     return (rows as List).map((row) => StudentPeriodSummary.fromMap(row as Map<String, dynamic>)).toList();
@@ -97,8 +98,8 @@ class MeritRepositoryImpl implements MeritRepository {
   @override
   Future<List<ClassPeriodSummary>> getClassSummary({required DateTime from, required DateTime to}) async {
     final rows = await _client.rpc('fn_class_period_summary', params: {
-      'p_from': _dateOnly(from),
-      'p_to': _dateOnly(to),
+      'p_from': formatDateOnly(from),
+      'p_to': formatDateOnly(to),
     });
     return (rows as List).map((row) => ClassPeriodSummary.fromMap(row as Map<String, dynamic>)).toList();
   }
@@ -120,8 +121,8 @@ class MeritRepositoryImpl implements MeritRepository {
         'scope_type': scopeType,
         'student_id': ?studentId,
         'class_id': ?classId,
-        'period_start': _dateOnly(periodStart),
-        'period_end': _dateOnly(periodEnd),
+        'period_start': formatDateOnly(periodStart),
+        'period_end': formatDateOnly(periodEnd),
         'awarded_by': ?userId,
         'note': ?note,
       });
@@ -137,8 +138,8 @@ class MeritRepositoryImpl implements MeritRepository {
     final rows = await _client
         .from('merit_awards')
         .select()
-        .eq('period_start', _dateOnly(periodStart))
-        .eq('period_end', _dateOnly(periodEnd))
+        .eq('period_start', formatDateOnly(periodStart))
+        .eq('period_end', formatDateOnly(periodEnd))
         .order('awarded_at', ascending: false);
     return rows.map((row) => MeritAward.fromMap(row)).toList();
   }
@@ -147,10 +148,5 @@ class MeritRepositoryImpl implements MeritRepository {
   Future<int> getTotalAwardsCount() async {
     final rows = await _client.from('merit_awards').select('id');
     return rows.length;
-  }
-
-  String _dateOnly(DateTime date) {
-    final d = DateTime(date.year, date.month, date.day);
-    return d.toIso8601String().split('T').first;
   }
 }

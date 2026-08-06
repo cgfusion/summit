@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/layout/app_shell.dart';
 import '../../../../core/providers/supabase_provider.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/date_utils.dart';
 import '../../../merit/presentation/providers/merit_providers.dart';
 import '../../../settings/presentation/providers/settings_providers.dart';
 import '../../domain/entities/attendance_period_summary.dart';
@@ -37,7 +38,7 @@ const _chartCatalog = <String, (IconData, String)>{
   'chart_kpi_overview': (Icons.speed, 'KPI Overview (This Month)'),
 };
 
-DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
+DateTime _dateOnly(DateTime d) => dateOnly(d);
 
 String _greeting(DateTime now) {
   final hour = now.hour;

@@ -54,3 +54,18 @@
 
 ## 2026-08-11 (later) — AI Development Kit
 - This `docs/` folder (`PROJECT.md` through `NEXT_SESSION.md`) written as a complete handoff kit so a new engineer (human or AI) can become productive without re-deriving context from the build history.
+
+## 2026-08-11 (even later) — WhatsApp PIBG report generator
+- Added a "WhatsApp PIBG Reports" section to Reports: reproduces, byte-for-byte in structure, the daily attendance message a teacher previously typed by hand for the parent WhatsApp group (per-class present/total counts, a "Semua Murid Hadir Tahniah" congratulations line for a zero-absence class, per-Tingkatan subtotals with percentages, a dashed separator between Tingkatan blocks). One card per session (Sesi Petang = Tingkatan 1-2, Sesi Pagi = Tingkatan 3-5, derived from `classes.session` rather than hardcoded), each with a one-tap Copy button — the teacher still pastes it into WhatsApp themselves; no WhatsApp Business API integration was built (a separate infra/cost decision, deliberately not assumed).
+- No new SQL — reuses `fn_attendance_period_summary`, which already returns per-class and per-Tingkatan day present/total counts. Added `classes.session` to the `SchoolClass` Flutter entity (the column already existed in the DB; it just wasn't exposed to the client yet).
+- Also added a free-text "Special Announcement (Discipline)" composer in the same section, for the discipline teacher's ad hoc PIBG-group posts — an optional "Attach Student" search prefills a Nama/Kelas header, then copy-to-clipboard. Stateless, nothing persisted.
+- Verified live against real 5 Aug 2026 data: exact per-class counts, correct Malay date/day names ("05 Ogos 2026/ Rabu"), and the zero-absence special case all confirmed matching the teacher's original manual format.
+
+## 2026-08-12 — Recommended Next Steps (T-027, T-028, T-030, T-031, T-032)
+- **T-028 (Shared `dateOnly` utility)**: Extracted `dateOnly` and `formatDateOnly` into `core/utils/date_utils.dart` and refactored 8 call sites across repositories and presentation screens.
+- **T-031 (Primary Guardian Constraint)**: Added `student_guardians_one_primary_per_student` partial unique index on `student_guardians(student_id) WHERE is_primary = true`, after deduplicating existing primary records.
+- **T-030 (Parent Portal Hardening)**: Created `parent_portal_access_logs` access-logging table and added a 20 request/minute rate limit in `fn_parent_portal_data`.
+- **T-027 (Absence Cron)**: Added `fn_populate_absence_cron(p_school_date)` RPC function to populate `'tidak_hadir'` with `source = 'system_cron'` for unscanned active students.
+- **T-032 (Automated Unit Tests)**: Created unit test suite in `app/test/unit/` covering `date_utils`, `EnrollmentStatus`, and `AttendanceStatus` enums.
+- **T-038 (Parent IC Lookup Option)**: Built a dedicated `/parent` route allowing parents/guardians to enter their IC number (with optional child IC verification). Uses `fn_parent_portal_data_by_ic` to normalize IC input, enforce rate limits, and display a multi-student tabbed dashboard when a parent has multiple children at the school.
+

@@ -3,13 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/layout/app_shell.dart';
+import '../../../../core/utils/date_utils.dart';
 import '../../../dashboard/domain/entities/attendance_period_summary.dart';
 import '../../../dashboard/presentation/providers/dashboard_providers.dart';
 import '../../domain/value_objects/date_range.dart';
 import '../providers/merit_providers.dart';
 import 'period_picker.dart';
 
-DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
+DateTime _dateOnly(DateTime d) => dateOnly(d);
 
 class MeritClassSummaryScreen extends ConsumerStatefulWidget {
   const MeritClassSummaryScreen({super.key});

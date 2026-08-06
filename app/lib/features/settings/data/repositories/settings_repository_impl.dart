@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/utils/date_utils.dart';
 import '../../domain/entities/cutoff_time_row.dart';
 import '../../domain/entities/school_settings.dart';
 import '../../domain/entities/staff_profile.dart';
@@ -26,7 +27,7 @@ class SettingsRepositoryImpl implements SettingsRepository {
   Future<void> updateProgramPeriod({required DateTime start, required DateTime end}) async {
     await _client
         .from('attendance_settings')
-        .update({'program_start_date': _dateOnly(start), 'program_end_date': _dateOnly(end)})
+        .update({'program_start_date': formatDateOnly(start), 'program_end_date': formatDateOnly(end)})
         .eq('id', 1);
   }
 
@@ -87,10 +88,5 @@ class SettingsRepositoryImpl implements SettingsRepository {
   @override
   Future<void> removeStaff({required String profileId}) async {
     await _client.from('profiles').delete().eq('id', profileId);
-  }
-
-  String _dateOnly(DateTime date) {
-    final d = DateTime(date.year, date.month, date.day);
-    return d.toIso8601String().split('T').first;
   }
 }

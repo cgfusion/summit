@@ -15,6 +15,7 @@ import '../../features/dashboard/presentation/screens/home_screen.dart';
 import '../../features/merit/presentation/screens/merit_class_summary_screen.dart';
 import '../../features/merit/presentation/screens/merit_daily_screen.dart';
 import '../../features/merit/presentation/screens/rewards_screen.dart';
+import '../../features/parent_portal/presentation/screens/parent_ic_lookup_screen.dart';
 import '../../features/parent_portal/presentation/screens/parent_portal_screen.dart';
 import '../../features/reports/presentation/screens/reports_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
@@ -32,10 +33,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     initialLocation: '/',
     refreshListenable: authRefresh,
     redirect: (context, state) {
-      // The parent portal is unauthenticated by design (a private link, not
-      // a staff login) -- never bounce it to /sign-in, regardless of
-      // whether a staff member also happens to be signed in on this device.
-      if (state.matchedLocation.startsWith('/parent/')) return null;
+      // The parent portal is unauthenticated by design -- never bounce it to
+      // /sign-in, regardless of whether staff is signed in.
+      if (state.matchedLocation == '/parent' || state.matchedLocation.startsWith('/parent/')) return null;
 
       final isSignedIn = ref.read(supabaseClientProvider).auth.currentSession != null;
       final isSigningIn = state.matchedLocation == '/sign-in';
@@ -46,6 +46,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       GoRoute(path: '/sign-in', builder: (context, state) => const SignInScreen()),
+      GoRoute(path: '/parent', builder: (context, state) => const ParentIcLookupScreen()),
       GoRoute(
         path: '/parent/:token',
         builder: (context, state) => ParentPortalScreen(token: state.pathParameters['token']!),

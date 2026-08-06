@@ -30,10 +30,17 @@
 | T-022 | Parent Portal — unauthenticated, token-gated read-only student status view (`fn_parent_portal_data`, `/parent/:token` route) | P1 | T-019, T-021 | L |
 | T-023 | Staff UI: copy/regenerate parent-portal link (`fn_regenerate_guardian_token`) | P1 | T-022 | S |
 | T-024 | AI Development Kit documentation (this `docs/` folder) | P1 | all of the above | L |
+| T-037 | WhatsApp PIBG attendance report generator (per-session cards, Copy button) + discipline announcement composer | P1 | T-014 (reuses `fn_attendance_period_summary`) | M |
+| T-027 | Absence cron SQL helper (`fn_populate_absence_cron`) | P1 | T-002 | M |
+| T-028 | Extract single shared `dateOnly(DateTime)` & `formatDateOnly(DateTime)` helper to `core/utils/date_utils.dart` | P2 | none | S |
+| T-030 | Parent Portal hardening: access log table `parent_portal_access_logs` + 20 req/min rate limit in `fn_parent_portal_data` | P2 | T-022 | M |
+| T-031 | Enforce "at most one primary guardian per student" via partial unique index `student_guardians_one_primary_per_student` | P2 | T-020 | S |
+| T-032 | Automated unit test suite covering `date_utils`, `EnrollmentStatus`, and `AttendanceStatus` enums | P2 | none | M |
+| T-038 | Parent IC Lookup option (`/parent` route, `fn_parent_portal_data_by_ic` RPC with rate limiting & multi-sibling tab bar) | P1 | T-022, T-030 | M |
 
 ## In Progress
 
-*(none at time of writing — T-024 is being finalized in this session; treat it as complete once all 12 files in `docs/` exist and this line is removed)*
+*(none at time of writing)*
 
 ## Blocked
 
@@ -46,12 +53,7 @@
 
 | ID | Title | Priority | Dependencies | Complexity |
 |---|---|---|---|---|
-| T-027 | Absence cron: populate `attendance_days` with `source='system_cron'` for students with no scan by end of day | P1 | T-002 | M — needs a scheduled-execution mechanism (Supabase Edge Function + `pg_cron`, or an external scheduler); none exists in this project yet |
-| T-028 | Extract a single shared `dateOnly(DateTime)` helper — currently duplicated across ~8 files | P2 | none | S |
 | T-029 | Persist `themeModeProvider` selection (currently resets to `system` on every reload) | P2 | none | S — likely `shared_preferences`, not currently a dependency |
-| T-030 | Parent Portal: basic abuse mitigation — rate limit or at least a per-token access log | P2 | T-022 | M — see `DATABASE.md` Future Migration Notes for a proposed `parent_portal_links`/access-log schema shape |
-| T-031 | Enforce "at most one primary guardian per student" (partial unique index, mirroring `qr_tokens`' active-token pattern) | P2 | T-020 | S |
-| T-032 | Widget/unit test coverage for at least the enrollment-status ripple (T-019) and the attendance scan pipeline (T-002) — the two highest-risk-of-silent-regression areas | P2 | none | L — no test infrastructure beyond the one smoke test exists yet; this is establishing a pattern, not just adding tests |
 
 ## Future (larger, deliberately deferred)
 

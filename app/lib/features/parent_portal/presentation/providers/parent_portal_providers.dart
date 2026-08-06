@@ -12,3 +12,13 @@ final parentPortalRepositoryProvider = Provider<ParentPortalRepository>((ref) {
 final parentPortalDataProvider = FutureProvider.autoDispose.family<ParentPortalData?, String>((ref, token) {
   return ref.watch(parentPortalRepositoryProvider).getPortalData(token);
 });
+
+typedef ParentIcLookupParams = ({String parentIc, String? childIc});
+
+final parentPortalDataByIcProvider =
+    FutureProvider.autoDispose.family<List<ParentPortalData>, ParentIcLookupParams>((ref, params) {
+  return ref.watch(parentPortalRepositoryProvider).getPortalDataByIc(
+        parentIc: params.parentIc,
+        childIc: params.childIc,
+      );
+});

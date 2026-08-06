@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/utils/date_utils.dart';
 import '../../domain/entities/enrollment_status.dart';
 import '../../domain/entities/student.dart';
 import '../../domain/entities/student_guardian.dart';
@@ -56,7 +57,7 @@ class StudentRepositoryImpl implements StudentRepository {
       'p_student_id': studentId,
       'p_status': status.dbValue,
       'p_reason': ?reason,
-      'p_date': _dateOnly(effectiveDate),
+      'p_date': formatDateOnly(effectiveDate),
     });
   }
 
@@ -129,10 +130,5 @@ class StudentRepositoryImpl implements StudentRepository {
   Future<String> regenerateGuardianToken(String guardianId) async {
     final result = await _client.rpc('fn_regenerate_guardian_token', params: {'p_guardian_id': guardianId});
     return result as String;
-  }
-
-  String _dateOnly(DateTime date) {
-    final d = DateTime(date.year, date.month, date.day);
-    return d.toIso8601String().split('T').first;
   }
 }
