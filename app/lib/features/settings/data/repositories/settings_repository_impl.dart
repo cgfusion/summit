@@ -81,6 +81,18 @@ class SettingsRepositoryImpl implements SettingsRepository {
   }
 
   @override
+  Future<String> inviteStaff({required String email, required String fullName, required String role}) async {
+    final response = await _client.functions.invoke(
+      'invite-staff',
+      body: {'email': email, 'full_name': fullName, 'role': role},
+    );
+    final data = response.data as Map<String, dynamic>?;
+    if (data == null) throw Exception('No response from invite-staff function');
+    if (data.containsKey('error')) throw Exception(data['error'] as String);
+    return data['message'] as String? ?? 'Done.';
+  }
+
+  @override
   Future<void> updateStaffRole({required String profileId, required String role}) async {
     await _client.from('profiles').update({'role': role}).eq('id', profileId);
   }

@@ -27,6 +27,12 @@ abstract interface class SettingsRepository {
   /// if no account exists for that email -- they must sign up first.
   Future<void> upsertStaffByEmail({required String email, required String fullName, required String role});
 
+  /// Invites a new staff member by email via the `invite-staff` Edge Function.
+  /// If the email already has an Auth account, only their profile/role is updated.
+  /// If new, a Supabase invite email is sent (they set their password from the link).
+  /// Returns a human-readable status message.
+  Future<String> inviteStaff({required String email, required String fullName, required String role});
+
   Future<void> updateStaffRole({required String profileId, required String role});
 
   /// Revokes app access (deletes the profiles row). Does not delete their

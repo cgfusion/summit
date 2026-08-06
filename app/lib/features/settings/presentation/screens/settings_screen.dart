@@ -406,7 +406,7 @@ class _StaffSection extends ConsumerWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'The person must already have signed in at least once before they can be added here.',
+              'Enter the staff member\'s email and an invite link will be sent to them. They set their own password.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 8),
@@ -426,22 +426,33 @@ class _StaffSection extends ConsumerWidget {
     final nameController = TextEditingController();
     var role = 'teacher';
     String? errorText;
+    var loading = false;
 
     return showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
-          title: const Text('Add Staff'),
+          title: const Text('Invite Staff'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: emailController,
-                decoration: const InputDecoration(labelText: 'Email'),
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  prefixIcon: Icon(Icons.email_outlined),
+                ),
                 keyboardType: TextInputType.emailAddress,
               ),
               const SizedBox(height: 8),
-              TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Full name')),
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Full name',
+                  prefixIcon: Icon(Icons.person_outline),
+                ),
+              ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 initialValue: role,
@@ -456,22 +467,52 @@ class _StaffSection extends ConsumerWidget {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
-            FilledButton(
-              onPressed: () async {
-                try {
-                  await ref.read(settingsRepositoryProvider).upsertStaffByEmail(
-                        email: emailController.text.trim(),
-                        fullName: nameController.text.trim(),
-                        role: role,
-                      );
-                  ref.invalidate(staffListProvider);
-                  if (dialogContext.mounted) Navigator.pop(dialogContext);
-                } catch (error) {
-                  setDialogState(() => errorText = error.toString());
-                }
-              },
-              child: const Text('Add'),
+            TextButton(
+              onPressed: loading ? null : () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            FilledButton.icon(
+              onPressed: loading
+                  ? null
+                  : () async {
+                      final email = emailController.text.trim();
+                      final name = nameController.text.trim();
+                      if (email.isEmpty || name.isEmpty) {
+                        setDialogState(() => errorText = 'Email and name are required.');
+                        return;
+                      }
+                      setDialogState(() {
+                        loading = true;
+                        errorText = null;
+                      });
+                      try {
+                        final message = await ref.read(settingsRepositoryProvider).inviteStaff(
+                              email: email,
+                              fullName: name,
+                              role: role,
+                            );
+                        ref.invalidate(staffListProvider);
+                        if (dialogContext.mounted) Navigator.pop(dialogContext);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(message),
+                              backgroundColor: Colors.green.shade700,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+                      } catch (error) {
+                        setDialogState(() {
+                          loading = false;
+                          errorText = error.toString().replaceFirst('Exception: ', '');
+                        });
+                      }
+                    },
+              icon: loading
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Icon(Icons.send),
+              label: Text(loading ? 'Sending invite…' : 'Invite & Add'),
             ),
           ],
         ),
