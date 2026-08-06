@@ -8,6 +8,7 @@ import '../../features/attendance/presentation/screens/attendance_status_screen.
 import '../../features/attendance/presentation/screens/manual_attendance_screen.dart';
 import '../../features/attendance/presentation/screens/qr_scan_screen.dart';
 import '../../features/attendance/presentation/screens/register_qr_screen.dart';
+import '../../features/auth/presentation/screens/set_password_screen.dart';
 import '../../features/auth/presentation/screens/sign_in_screen.dart';
 import '../../features/class_management/presentation/screens/class_list_screen.dart';
 import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
@@ -36,16 +37,27 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // The parent portal is unauthenticated by design -- never bounce it to
       // /sign-in, regardless of whether staff is signed in.
       if (state.matchedLocation == '/parent' || state.matchedLocation.startsWith('/parent/')) return null;
+      // Already on set-password -- let it render.
+      if (state.matchedLocation == '/set-password') return null;
 
       final isSignedIn = ref.read(supabaseClientProvider).auth.currentSession != null;
       final isSigningIn = state.matchedLocation == '/sign-in';
 
       if (!isSignedIn) return isSigningIn ? null : '/sign-in';
+
+      // Detect Supabase invite link: the SDK signs the user in but the URL
+      // fragment still contains type=invite until the app clears it.
+      if (isSignedIn && kIsWeb) {
+        final fragment = Uri.base.fragment;
+        if (fragment.contains('type=invite')) return '/set-password';
+      }
+
       if (isSignedIn && isSigningIn) return '/';
       return null;
     },
     routes: [
       GoRoute(path: '/sign-in', builder: (context, state) => const SignInScreen()),
+      GoRoute(path: '/set-password', builder: (context, state) => const SetPasswordScreen()),
       GoRoute(path: '/parent', builder: (context, state) => const ParentIcLookupScreen()),
       GoRoute(
         path: '/parent/:token',

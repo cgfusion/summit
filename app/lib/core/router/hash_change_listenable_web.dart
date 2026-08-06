@@ -20,6 +20,16 @@ void syncRouterWithExternalHashChanges(GoRouter router) {
     final requestedPath = html.window.location.hash.replaceFirst('#', '');
     if (requestedPath.isEmpty) return;
 
+    // Supabase auth callbacks (invite, password recovery, magic link) arrive
+    // as URL fragments containing access_token. Don't treat them as router
+    // paths -- the Supabase SDK picks them up automatically.
+    if (requestedPath.contains('access_token=') ||
+        requestedPath.contains('type=invite') ||
+        requestedPath.contains('type=recovery') ||
+        requestedPath.contains('type=magiclink')) {
+      return;
+    }
+
     router.go(requestedPath);
     await Future<void>.delayed(const Duration(milliseconds: 50));
 
