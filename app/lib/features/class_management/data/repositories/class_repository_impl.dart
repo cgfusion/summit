@@ -8,7 +8,7 @@ class ClassRepositoryImpl implements ClassRepository {
 
   final SupabaseClient _client;
 
-  static const _select = 'id, name, form_level, homeroom_teacher_name, homeroom_teacher_id';
+  static const _select = 'id, name, form_level, session, homeroom_teacher_name, homeroom_teacher_id';
 
   @override
   Future<List<SchoolClass>> getClasses() async {

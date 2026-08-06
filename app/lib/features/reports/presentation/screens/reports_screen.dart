@@ -13,6 +13,7 @@ import '../../../merit/presentation/providers/merit_providers.dart' show program
 import '../../../merit/presentation/screens/period_picker.dart';
 import '../../domain/entities/kpi_trend_week.dart';
 import '../providers/reports_providers.dart';
+import 'whatsapp_report_section.dart';
 
 /// KPI dashboard per KK D2C.docx section 18.0. Only the 3 indicators
 /// derivable from current data are shown (attendance %, repeat absence,
@@ -96,6 +97,7 @@ class _KpiReportBody extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(12),
       children: [
+        const WhatsAppReportSection(),
         _AttendanceRateCard(first: first, last: last),
         _RepeatAbsenceCard(first: first, last: last),
         _AtRiskStudentsSection(range: range),
