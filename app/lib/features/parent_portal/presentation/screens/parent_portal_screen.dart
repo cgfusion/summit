@@ -54,7 +54,10 @@ class ParentPortalScreen extends ConsumerWidget {
               message: "This link isn't valid anymore. Please ask the school for a new one.",
             );
           }
-          return ParentPortalBody(data: data);
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: ParentPortalBody(data: data),
+          );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stackTrace) => _PortalMessage(icon: Icons.error_outline, message: 'Failed to load: $error'),
@@ -96,8 +99,8 @@ class ParentPortalBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final notActive = data.enrollmentStatus != EnrollmentStatus.active;
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(data.studentFullName, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
         Text(data.className ?? 'No class', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey)),
