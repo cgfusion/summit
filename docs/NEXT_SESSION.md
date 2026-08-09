@@ -16,7 +16,7 @@ None.
 
 ## Expected Outcome
 
-A clean `main` branch, deployed and live at `https://cgfusion.github.io/summit/`, with:
+A clean `main` branch, deployed and live at `https://d2csummit.online/`, with:
 - Every feature in `CHANGELOG.md` working as described.
 - A `docs/` folder kept up to date.
 

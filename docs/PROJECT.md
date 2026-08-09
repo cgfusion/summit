@@ -42,7 +42,7 @@ For a school administrator or teacher, D2C answers:
 - **Backend**: Supabase (Postgres + PostgREST + Auth + RLS). No custom backend server — all business logic lives in Postgres functions (`fn_*`) or client-side Dart.
 - **Charts**: `fl_chart: ^1.2.0`.
 - **QR scanning**: `mobile_scanner: ^7.4.0`.
-- **Hosting**: GitHub Pages, auto-deployed via GitHub Actions on push to `main`. Live at `https://cgfusion.github.io/summit/`.
+- **Hosting**: GitHub Pages, auto-deployed via GitHub Actions on push to `main`, served at the custom domain `https://d2csummit.online/` (CNAME set via the `deploy-web.yml` workflow's `peaceiris/actions-gh-pages` step; app built with `--base-href /`).
 - **Local dev DB tooling**: Supabase CLI (`supabase db push`, `supabase db query --linked`) — **no local Postgres/Docker is used**; every migration is pushed and verified directly against the **production** database (see `AI_RULES.md` — there is no staging environment).
 - **Dead dependency**: `isar` + `isar_flutter_libs` + `path_provider` are in `pubspec.yaml` but **unused** anywhere in `app/lib`. Leftover from an early offline-cache plan that was never implemented. See `KNOWN_ISSUES.md`.
 

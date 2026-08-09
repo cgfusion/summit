@@ -64,7 +64,7 @@ Every feature, every time, in this order:
 5. **`flutter test`** — must pass.
 6. **Commit + push to `main`** — this repo has no PR/review workflow; commits go directly to `main` and auto-deploy via GitHub Actions on push (confirmed project convention — do not propose a PR workflow for this repo unless explicitly asked).
 7. **Poll GitHub Actions** (`gh api` or the REST API directly) until the run for your commit SHA shows `status: completed`.
-8. **Live-verify in a real browser** against `https://cgfusion.github.io/summit/` — click through the actual feature, don't just confirm the page loads. **Hard-reload** (`Ctrl+Shift+R`) before judging — see §6, caching is aggressive here.
+8. **Live-verify in a real browser** against `https://d2csummit.online/` — click through the actual feature, don't just confirm the page loads. **Hard-reload** (`Ctrl+Shift+R`) before judging — see §6, caching is aggressive here.
 
 ## 6. Caching Will Lie to You — Don't Conclude "It's Broken" Too Fast
 

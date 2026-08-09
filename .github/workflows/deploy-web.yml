@@ -26,7 +26,7 @@ jobs:
         working-directory: app
         run: |
           flutter build web --release \
-            --base-href /summit/ \
+            --base-href / \
             --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
             --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
 
@@ -36,3 +36,4 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: app/build/web
           publish_branch: gh-pages
+          cname: d2csummit.online
