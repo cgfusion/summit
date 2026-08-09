@@ -11,14 +11,14 @@ import '../../../merit/domain/entities/student_period_summary.dart';
 import '../../../merit/domain/value_objects/date_range.dart';
 import '../../../merit/presentation/providers/merit_providers.dart' show programPeriodProvider, studentPeriodSummaryProvider;
 import '../../../merit/presentation/screens/period_picker.dart';
+import '../../../student/presentation/providers/student_providers.dart';
+import '../../../student/presentation/screens/student_detail_sheet.dart';
 import '../../domain/entities/kpi_trend_week.dart';
 import '../providers/reports_providers.dart';
+import 'report_drill_down_sheets.dart';
 import 'whatsapp_report_section.dart';
 
-/// KPI dashboard per KK D2C.docx section 18.0. Only the 3 indicators
-/// derivable from current data are shown (attendance %, repeat absence,
-/// late/missed-recess trend) -- the other 2 need the mentor/escalation
-/// module, deferred when the merit module was built.
+/// KPI dashboard per KK D2C.docx section 18.0.
 class ReportsScreen extends ConsumerWidget {
   const ReportsScreen({super.key});
 
@@ -98,17 +98,17 @@ class _KpiReportBody extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       children: [
         const WhatsAppReportSection(),
-        _AttendanceRateCard(first: first, last: last),
-        _RepeatAbsenceCard(first: first, last: last),
+        _AttendanceRateCard(first: first, last: last, range: range),
+        _RepeatAbsenceCard(first: first, last: last, range: range),
         _AtRiskStudentsSection(range: range),
         const _ChronicLatecomersSection(),
         _LeaveTypeBreakdownSection(range: range),
-        _LateTransitionCard(first: first, last: last),
+        _LateTransitionCard(first: first, last: last, range: range),
         const _UnavailableKpiNote(),
         const SizedBox(height: 16),
         Text('Weekly Breakdown', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
-        ...weeks.map((week) => _WeekRow(week: week)),
+        ...weeks.map((week) => _WeekRow(week: week, range: range)),
       ],
     );
   }
@@ -117,8 +117,7 @@ class _KpiReportBody extends StatelessWidget {
 /// Students whose attendance rate for the selected period falls below a
 /// threshold -- the actual "who" behind the Repeat Absence KPI's raw count
 /// above, so a principal has an actionable intervention list instead of
-/// just a number. Excused absences (cuti_sakit/urusan_rasmi) don't count
-/// against the rate, only unexcused (tidak_hadir) vs present (hadir/lewat).
+/// just a number.
 class _AtRiskStudentsSection extends ConsumerStatefulWidget {
   const _AtRiskStudentsSection({required this.range});
 
@@ -211,33 +210,42 @@ class _AtRiskStudentsSectionState extends ConsumerState<_AtRiskStudentsSection> 
   }
 }
 
-class _AtRiskRow extends StatelessWidget {
+class _AtRiskRow extends ConsumerWidget {
   const _AtRiskRow({required this.student, required this.className});
 
   final StudentPeriodSummary student;
   final String? className;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final total = student.daysPresent + student.daysAbsent;
     final rate = total == 0 ? 0.0 : student.daysPresent / total * 100;
     return ListTile(
       contentPadding: EdgeInsets.zero,
       dense: true,
-      title: Text(student.fullName),
+      title: Text(student.fullName, style: const TextStyle(fontWeight: FontWeight.w500)),
       subtitle: Text(className ?? '-'),
-      trailing: Text(
-        '${rate.toStringAsFixed(1)}%  (${student.daysPresent}/$total)',
-        style: TextStyle(color: Colors.red.shade700, fontWeight: FontWeight.bold),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '${rate.toStringAsFixed(1)}%  (${student.daysPresent}/$total)',
+            style: TextStyle(color: Colors.red.shade700, fontWeight: FontWeight.bold),
+          ),
+          const Icon(Icons.chevron_right, size: 18, color: Colors.grey),
+        ],
       ),
+      onTap: () async {
+        final fullStudent = await ref.read(studentRepositoryProvider).getById(student.studentId);
+        if (fullStudent != null && context.mounted) {
+          showStudentDetailSheet(context, fullStudent);
+        }
+      },
     );
   }
 }
 
-/// Students with repeated "lewat" days in a rolling 7-day window, ending
-/// today -- distinct from the At-Risk list above, which uses the selected
-/// period's overall rate. This is a short-horizon behavioural flag, so it's
-/// deliberately not tied to the period picker.
+/// Students with repeated "lewat" days in a rolling 7-day window, ending today.
 class _ChronicLatecomersSection extends ConsumerStatefulWidget {
   const _ChronicLatecomersSection();
 
@@ -320,29 +328,38 @@ class _ChronicLatecomersSectionState extends ConsumerState<_ChronicLatecomersSec
   }
 }
 
-class _LatecomerRow extends StatelessWidget {
+class _LatecomerRow extends ConsumerWidget {
   const _LatecomerRow({required this.student});
 
   final ChronicLatecomer student;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       dense: true,
-      title: Text(student.fullName),
+      title: Text(student.fullName, style: const TextStyle(fontWeight: FontWeight.w500)),
       subtitle: Text(student.className),
-      trailing: Text(
-        '${student.lateCount}x lewat',
-        style: TextStyle(color: Colors.amber.shade900, fontWeight: FontWeight.bold),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '${student.lateCount}x lewat',
+            style: TextStyle(color: Colors.amber.shade900, fontWeight: FontWeight.bold),
+          ),
+          const Icon(Icons.chevron_right, size: 18, color: Colors.grey),
+        ],
       ),
+      onTap: () async {
+        final fullStudent = await ref.read(studentRepositoryProvider).getById(student.studentId);
+        if (fullStudent != null && context.mounted) {
+          showStudentDetailSheet(context, fullStudent);
+        }
+      },
     );
   }
 }
 
-/// How the selected period's absence days split between unexplained
-/// (tidak_hadir) and the two excused-leave types -- surfaces whether the
-/// exception workflow (cuti_sakit / urusan_rasmi) is actually being used.
 class _LeaveTypeBreakdownSection extends ConsumerWidget {
   const _LeaveTypeBreakdownSection({required this.range});
 
@@ -364,6 +381,16 @@ class _LeaveTypeBreakdownSection extends ConsumerWidget {
                 Icon(Icons.event_busy, color: Colors.indigo.shade400),
                 const SizedBox(width: 12),
                 Expanded(child: Text('Leave-Type Breakdown', style: Theme.of(context).textTheme.titleMedium)),
+                TextButton(
+                  onPressed: () => showLeaveTypeDrillDown(context, range),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('Lihat senarai', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                      Icon(Icons.chevron_right, size: 18),
+                    ],
+                  ),
+                ),
               ],
             ),
             Text(
@@ -386,6 +413,7 @@ class _LeaveTypeBreakdownSection extends ConsumerWidget {
                       count: b.tidakHadirCount,
                       total: b.total,
                       color: Colors.red.shade400,
+                      onTap: () => showLeaveTypeDrillDown(context, range, initialStatus: 'tidak_hadir'),
                     ),
                     const SizedBox(height: 8),
                     _LeaveTypeBar(
@@ -393,6 +421,7 @@ class _LeaveTypeBreakdownSection extends ConsumerWidget {
                       count: b.cutiSakitCount,
                       total: b.total,
                       color: Colors.blue.shade400,
+                      onTap: () => showLeaveTypeDrillDown(context, range, initialStatus: 'cuti_sakit'),
                     ),
                     const SizedBox(height: 8),
                     _LeaveTypeBar(
@@ -400,6 +429,7 @@ class _LeaveTypeBreakdownSection extends ConsumerWidget {
                       count: b.urusanRasmiCount,
                       total: b.total,
                       color: Colors.teal.shade400,
+                      onTap: () => showLeaveTypeDrillDown(context, range, initialStatus: 'urusan_rasmi'),
                     ),
                   ],
                 );
@@ -418,73 +448,50 @@ class _LeaveTypeBreakdownSection extends ConsumerWidget {
 }
 
 class _LeaveTypeBar extends StatelessWidget {
-  const _LeaveTypeBar({required this.label, required this.count, required this.total, required this.color});
+  const _LeaveTypeBar({
+    required this.label,
+    required this.count,
+    required this.total,
+    required this.color,
+    this.onTap,
+  });
 
   final String label;
   final int count;
   final int total;
   final Color color;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final pct = total == 0 ? 0.0 : count / total * 100;
-    return Row(
-      children: [
-        SizedBox(width: 150, child: Text(label, style: Theme.of(context).textTheme.bodySmall)),
-        Expanded(
-          child: Stack(
-            children: [
-              Container(
-                height: 16,
-                decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(4)),
-              ),
-              FractionallySizedBox(
-                widthFactor: (pct / 100).clamp(0, 1),
-                child: Container(
-                  height: 16,
-                  decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4)),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 8),
-        SizedBox(width: 90, child: Text('$count (${pct.toStringAsFixed(0)}%)', textAlign: TextAlign.right)),
-      ],
-    );
-  }
-}
-
-class _KpiCard extends StatelessWidget {
-  const _KpiCard({required this.title, required this.subtitle, required this.metTarget, required this.child});
-
-  final String title;
-  final String subtitle;
-  final bool metTarget;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(4),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(vertical: 2),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(metTarget ? Icons.check_circle : Icons.info_outline, color: metTarget ? Colors.green : Colors.orange),
-            const SizedBox(width: 12),
+            SizedBox(width: 150, child: Text(label, style: Theme.of(context).textTheme.bodySmall)),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Stack(
                 children: [
-                  Text(title, style: Theme.of(context).textTheme.titleMedium),
-                  Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
-                  const SizedBox(height: 6),
-                  child,
+                  Container(
+                    height: 16,
+                    decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(4)),
+                  ),
+                  FractionallySizedBox(
+                    widthFactor: (pct / 100).clamp(0, 1),
+                    child: Container(
+                      height: 16,
+                      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4)),
+                    ),
+                  ),
                 ],
               ),
             ),
+            const SizedBox(width: 8),
+            SizedBox(width: 90, child: Text('$count (${pct.toStringAsFixed(0)}%)', textAlign: TextAlign.right)),
           ],
         ),
       ),
@@ -492,11 +499,80 @@ class _KpiCard extends StatelessWidget {
   }
 }
 
+class _KpiCard extends StatelessWidget {
+  const _KpiCard({
+    required this.title,
+    required this.subtitle,
+    required this.metTarget,
+    required this.child,
+    this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final bool metTarget;
+  final Widget child;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(metTarget ? Icons.check_circle : Icons.info_outline, color: metTarget ? Colors.green : Colors.orange),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(child: Text(title, style: Theme.of(context).textTheme.titleMedium)),
+                        if (onTap != null)
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Lihat senarai',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              Icon(Icons.chevron_right, size: 18, color: Theme.of(context).colorScheme.primary),
+                            ],
+                          ),
+                      ],
+                    ),
+                    Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+                    const SizedBox(height: 6),
+                    child,
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _AttendanceRateCard extends StatelessWidget {
-  const _AttendanceRateCard({required this.first, required this.last});
+  const _AttendanceRateCard({required this.first, required this.last, required this.range});
 
   final KpiTrendWeek first;
   final KpiTrendWeek last;
+  final DateRange range;
 
   @override
   Widget build(BuildContext context) {
@@ -505,6 +581,7 @@ class _AttendanceRateCard extends StatelessWidget {
       title: 'Peratus Kehadiran',
       subtitle: 'Target: naik sekurang-kurangnya 5 mata peratus',
       metTarget: delta >= 5.0,
+      onTap: () => showAttendanceRateDrillDown(context, range),
       child: Text(
         '${first.attendanceRate.toStringAsFixed(1)}% → ${last.attendanceRate.toStringAsFixed(1)}% '
         '(${delta >= 0 ? '+' : ''}${delta.toStringAsFixed(1)} mp)',
@@ -514,18 +591,22 @@ class _AttendanceRateCard extends StatelessWidget {
 }
 
 class _RepeatAbsenceCard extends StatelessWidget {
-  const _RepeatAbsenceCard({required this.first, required this.last});
+  const _RepeatAbsenceCard({required this.first, required this.last, required this.range});
 
   final KpiTrendWeek first;
   final KpiTrendWeek last;
+  final DateRange range;
 
   @override
   Widget build(BuildContext context) {
+    void handleTap() => showRepeatAbsenceDrillDown(context, range);
+
     if (first.repeatAbsentStudents == 0) {
       return _KpiCard(
         title: 'Ketidakhadiran Berulang',
         subtitle: 'Target: kurangkan sekurang-kurangnya 20%',
         metTarget: last.repeatAbsentStudents == 0,
+        onTap: handleTap,
         child: Text('${first.repeatAbsentStudents} → ${last.repeatAbsentStudents} murid (tiada kes asas untuk dibandingkan)'),
       );
     }
@@ -534,6 +615,7 @@ class _RepeatAbsenceCard extends StatelessWidget {
       title: 'Ketidakhadiran Berulang',
       subtitle: 'Target: kurangkan sekurang-kurangnya 20%',
       metTarget: reductionPct >= 20.0,
+      onTap: handleTap,
       child: Text(
         '${first.repeatAbsentStudents} → ${last.repeatAbsentStudents} murid '
         '(${reductionPct >= 0 ? '-' : '+'}${reductionPct.abs().toStringAsFixed(1)}%)',
@@ -543,19 +625,19 @@ class _RepeatAbsenceCard extends StatelessWidget {
 }
 
 class _LateTransitionCard extends StatelessWidget {
-  const _LateTransitionCard({required this.first, required this.last});
+  const _LateTransitionCard({required this.first, required this.last, required this.range});
 
   final KpiTrendWeek first;
   final KpiTrendWeek last;
+  final DateRange range;
 
   @override
   Widget build(BuildContext context) {
-    final lateDelta = last.lateCount - first.lateCount;
-    final recessDelta = last.missedRecessCount - first.missedRecessCount;
     return _KpiCard(
       title: 'Lewat & Tidak Kembali Selepas Rehat',
       subtitle: 'Target: trend menurun sepanjang program',
-      metTarget: lateDelta <= 0 && recessDelta <= 0,
+      metTarget: (last.lateCount - first.lateCount) <= 0 && (last.missedRecessCount - first.missedRecessCount) <= 0,
+      onTap: () => showLateTransitionDrillDown(context, range),
       child: Text(
         'Lewat: ${first.lateCount} → ${last.lateCount}   '
         'Tidak kembali rehat: ${first.missedRecessCount} → ${last.missedRecessCount}',
@@ -583,41 +665,50 @@ class _UnavailableKpiNote extends StatelessWidget {
 }
 
 class _WeekRow extends StatelessWidget {
-  const _WeekRow({required this.week});
+  const _WeekRow({required this.week, required this.range});
 
   final KpiTrendWeek week;
+  final DateRange range;
 
   @override
   Widget build(BuildContext context) {
     final format = DateFormat('d MMM');
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        children: [
-          SizedBox(width: 70, child: Text(format.format(week.weekStart))),
-          Expanded(
-            child: Stack(
-              children: [
-                Container(
-                  height: 18,
-                  decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(4)),
-                ),
-                FractionallySizedBox(
-                  widthFactor: (week.attendanceRate / 100).clamp(0, 1),
-                  child: Container(
+    return InkWell(
+      onTap: () => showRepeatAbsenceDrillDown(
+        context,
+        (from: week.weekStart, to: week.weekStart.add(const Duration(days: 6))),
+      ),
+      borderRadius: BorderRadius.circular(4),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+        child: Row(
+          children: [
+            SizedBox(width: 70, child: Text(format.format(week.weekStart))),
+            Expanded(
+              child: Stack(
+                children: [
+                  Container(
                     height: 18,
-                    decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(4)),
+                    decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(4)),
                   ),
-                ),
-              ],
+                  FractionallySizedBox(
+                    widthFactor: (week.attendanceRate / 100).clamp(0, 1),
+                    child: Container(
+                      height: 18,
+                      decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(4)),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          SizedBox(width: 46, child: Text('${week.attendanceRate.toStringAsFixed(0)}%', textAlign: TextAlign.right)),
-          const SizedBox(width: 12),
-          SizedBox(width: 90, child: Text('Lewat: ${week.lateCount}', style: Theme.of(context).textTheme.bodySmall)),
-          SizedBox(width: 80, child: Text('Ulang: ${week.repeatAbsentStudents}', style: Theme.of(context).textTheme.bodySmall)),
-        ],
+            const SizedBox(width: 8),
+            SizedBox(width: 46, child: Text('${week.attendanceRate.toStringAsFixed(0)}%', textAlign: TextAlign.right)),
+            const SizedBox(width: 12),
+            SizedBox(width: 90, child: Text('Lewat: ${week.lateCount}', style: Theme.of(context).textTheme.bodySmall)),
+            SizedBox(width: 80, child: Text('Ulang: ${week.repeatAbsentStudents}', style: Theme.of(context).textTheme.bodySmall)),
+            const Icon(Icons.chevron_right, size: 16, color: Colors.grey),
+          ],
+        ),
       ),
     );
   }
