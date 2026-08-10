@@ -21,11 +21,16 @@ final weeklyKpiTrendProvider = FutureProvider.autoDispose.family<List<KpiTrendWe
   return repository.getWeeklyKpiTrend(from: range.from, to: range.to, session: session);
 });
 
-final repeatAbsentStudentsProvider =
-    FutureProvider.autoDispose.family<List<RepeatAbsentStudentDetail>, DateRange>((ref, range) {
+final repeatAbsentStudentsProvider = FutureProvider.autoDispose
+    .family<List<RepeatAbsentStudentDetail>, ({DateRange range, int minAbsent})>((ref, arg) {
   final repository = ref.watch(reportsRepositoryProvider);
   final session = ref.watch(reportsSessionFilterProvider);
-  return repository.getRepeatAbsentStudents(from: range.from, to: range.to, session: session);
+  return repository.getRepeatAbsentStudents(
+    from: arg.range.from,
+    to: arg.range.to,
+    session: session,
+    minAbsent: arg.minAbsent,
+  );
 });
 
 final classAttendanceRatesProvider =

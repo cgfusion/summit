@@ -62,7 +62,7 @@ class _RepeatAbsenceSheetState extends ConsumerState<_RepeatAbsenceSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final listAsync = ref.watch(repeatAbsentStudentsProvider(widget.range));
+    final listAsync = ref.watch(repeatAbsentStudentsProvider((range: widget.range, minAbsent: _minAbsent)));
     final dateFormat = DateFormat('d MMM yyyy');
     final dateSubtitle = '${dateFormat.format(widget.range.from)} - ${dateFormat.format(widget.range.to)}';
 
@@ -142,7 +142,6 @@ class _RepeatAbsenceSheetState extends ConsumerState<_RepeatAbsenceSheet> {
               child: listAsync.when(
                 data: (students) {
                   final filtered = students.where((s) {
-                    if (s.absentCount < _minAbsent) return false;
                     if (_search.isEmpty) return true;
                     return s.fullName.toLowerCase().contains(_search) ||
                         s.className.toLowerCase().contains(_search);

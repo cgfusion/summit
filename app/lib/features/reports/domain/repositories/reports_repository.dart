@@ -14,6 +14,7 @@ abstract interface class ReportsRepository {
     required DateTime from,
     required DateTime to,
     String? session,
+    int minAbsent = 2,
   });
 
   Future<List<ClassAttendanceRateDetail>> getClassAttendanceRates({
