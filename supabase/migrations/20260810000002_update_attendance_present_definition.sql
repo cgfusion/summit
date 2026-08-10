@@ -3,6 +3,7 @@
 -- while only unexplained absence ('tidak_hadir') counts against attendance rate.
 
 -- 1. fn_weekly_kpi_trend
+drop function if exists public.fn_weekly_kpi_trend(date, date, text);
 create or replace function public.fn_weekly_kpi_trend(
   p_from date,
   p_to date,
@@ -86,6 +87,7 @@ $$;
 grant execute on function public.fn_weekly_kpi_trend(date, date, text) to authenticated, anon;
 
 -- 2. fn_student_period_summary
+drop function if exists public.fn_student_period_summary(date, date, uuid);
 create or replace function public.fn_student_period_summary(
   p_from date,
   p_to date,
@@ -134,6 +136,7 @@ $$;
 grant execute on function public.fn_student_period_summary(date, date, uuid) to authenticated, anon;
 
 -- 3. fn_repeat_absent_students
+drop function if exists public.fn_repeat_absent_students(date, date, text, int);
 create or replace function public.fn_repeat_absent_students(
   p_from date,
   p_to date,
@@ -180,6 +183,7 @@ $$;
 grant execute on function public.fn_repeat_absent_students(date, date, text, int) to authenticated, anon;
 
 -- 4. fn_class_attendance_rates
+drop function if exists public.fn_class_attendance_rates(date, date, text);
 create or replace function public.fn_class_attendance_rates(
   p_from date,
   p_to date,
@@ -226,6 +230,7 @@ $$;
 grant execute on function public.fn_class_attendance_rates(date, date, text) to authenticated, anon;
 
 -- 5. fn_class_attendance_summary
+drop function if exists public.fn_class_attendance_summary(date, date);
 create or replace function public.fn_class_attendance_summary(
   p_from date,
   p_to date
@@ -269,6 +274,7 @@ $$;
 grant execute on function public.fn_class_attendance_summary(date, date) to authenticated, anon;
 
 -- 6. fn_attendance_period_summary (used by WhatsApp Report & Period Summaries)
+drop function if exists public.fn_attendance_period_summary(date);
 create or replace function public.fn_attendance_period_summary(p_reference_date date)
 returns table (
   scope_type text,
@@ -426,6 +432,7 @@ $$;
 grant execute on function public.fn_attendance_period_summary(date) to authenticated, anon;
 
 -- 7. Parent Portal lookup functions
+drop function if exists public.fn_parent_portal_data_by_ic(text);
 create or replace function public.fn_parent_portal_data_by_ic(p_ic_number text)
 returns jsonb
 language plpgsql
