@@ -1,5 +1,7 @@
 # Disiplin & Kaunseling (SSDOP/SSDM & UBK) Reference Document
 
+> **Status: informational / scoping input.** Tracked as `TASKS.md` T-041, in the Blocked table alongside T-026 — same reason: no existing table models infractions, severity, actions-taken, or counseling sessions, and no existing role maps to `disiplin`/`kaunselor`. This document is reference material for that future scoping conversation, **not** a build ticket or a schema. Explicitly not being implemented yet (Raizal, 2026-08-12) — do not start migrations or UI from this file alone.
+
 ## 📌 Overview
 This document serves as the operational and technical reference for the **Disiplin & Kaunseling (SSDOP/UBK)** module in the D2C Summit system.
 

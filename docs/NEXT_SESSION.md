@@ -24,9 +24,10 @@ A clean `main` branch, deployed and live at `https://d2csummit.online/`, with:
 
 ## Known Blockers
 
-None for shipped work. Two **deliberately blocked** future items exist (see `TASKS.md` §Blocked):
-- **T-025** (real parent/student login) — blocked on a product decision (SMS provider budget vs. email-collection step).
+None for shipped work. Three **deliberately blocked** future items exist (see `TASKS.md` §Blocked):
+- **T-025** (real parent/student login) — blocked on a product decision (SMS provider budget vs. email-collection step). Reconfirmed not-now on 2026-08-12.
 - **T-026** (mentor/PRS case-tracking module) — blocked on a scoping conversation; no existing table shape fits this need.
+- **T-041** (Disiplin & Kaunseling / SSDOP-UBK module) — same shape as T-026, blocked on a scoping conversation. Reference doc `DISCIPLINE_AND_COUNSELING.md` added 2026-08-12; explicitly not being implemented yet.
 
 ## Next Recommended Tasks
 

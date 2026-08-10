@@ -83,3 +83,6 @@
 ## 2026-08-12 (decision) — T-025 (real parent/student login) reconfirmed not-now
 - No code change. Raizal explicitly reconfirmed T-025 stays deferred for now — still no SMS-provider budget decision or parent-email collection step chosen. See `TASKS.md` T-025.
 
+## 2026-08-12 (decision) — T-041 tracked: Disiplin & Kaunseling module, not started
+- No code change. Added `T-041` to `TASKS.md`'s Blocked table for the Disiplin & Kaunseling (SSDOP/UBK) module described in `DISCIPLINE_AND_COUNSELING.md` — same "needs a scoping conversation, no existing table shape fits" reasoning as T-026. Cross-linked from `PROJECT.md` §11 and `NEXT_SESSION.md`'s Known Blockers, and added an explicit "informational, not a build ticket" status banner to `DISCIPLINE_AND_COUNSELING.md` itself. Explicitly not being implemented yet (Raizal, 2026-08-12).
+
