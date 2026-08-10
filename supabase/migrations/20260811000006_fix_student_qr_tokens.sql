@@ -1,48 +1,8 @@
 -- ---------------------------------------------------------------------------
--- Migration: 20260811000003_student_voice.sql
--- Description: Creates student_voice_submissions table and fn_student_portal_data_by_qr
--- RPC for QR-authenticated student portal & Suara Murid feedback.
+-- Migration: 20260811000006_fix_student_qr_tokens.sql
+-- Description: Updates fn_student_portal_data_by_qr to lookup tokens from public.qr_tokens
 -- ---------------------------------------------------------------------------
 
--- 1. Student Voice Submissions Table (Suara Murid / Aduan & Cadangan)
-create table if not exists public.student_voice_submissions (
-  id uuid primary key default gen_random_uuid(),
-  student_id uuid references public.students(id) on delete set null,
-  category text not null, -- 'cadangan_sekolah', 'maklum_balas_pembelajaran', 'aduan_buli_keselamatan', 'permohonan_kaunseling'
-  is_anonymous boolean not null default false,
-  subject text not null,
-  message text not null,
-  status text not null default 'baru', -- 'baru', 'dalam_tindakan', 'selesai'
-  response_notes text,
-  responded_by uuid references public.profiles(id),
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
--- Indices
-create index if not exists idx_student_voice_student on public.student_voice_submissions(student_id);
-create index if not exists idx_student_voice_status on public.student_voice_submissions(status);
-create index if not exists idx_student_voice_date on public.student_voice_submissions(created_at desc);
-
--- RLS
-alter table public.student_voice_submissions enable row level security;
-
-drop policy if exists "public_read_voice" on public.student_voice_submissions;
-create policy "public_read_voice"
-  on public.student_voice_submissions for select
-  to authenticated, anon using (true);
-
-drop policy if exists "public_insert_voice" on public.student_voice_submissions;
-create policy "public_insert_voice"
-  on public.student_voice_submissions for insert
-  to authenticated, anon with check (true);
-
-drop policy if exists "authenticated_update_voice" on public.student_voice_submissions;
-create policy "authenticated_update_voice"
-  on public.student_voice_submissions for update
-  to authenticated using (true) with check (true);
-
--- 2. RPC: Resolve Student Portal Data by QR Code Token
 create or replace function public.fn_student_portal_data_by_qr(p_qr_token text)
 returns jsonb
 language plpgsql
