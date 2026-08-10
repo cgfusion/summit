@@ -11,9 +11,11 @@ import '../providers/settings_providers.dart';
 const _dayLabels = {1: 'Monday', 2: 'Tuesday', 3: 'Wednesday', 4: 'Thursday', 5: 'Friday'};
 
 const _roleOptions = [
-  DropdownMenuItem(value: 'teacher', child: Text('Teacher')),
-  DropdownMenuItem(value: 'staff', child: Text('Staff')),
-  DropdownMenuItem(value: 'admin', child: Text('Admin')),
+  DropdownMenuItem(value: 'teacher', child: Text('Guru (Teacher)')),
+  DropdownMenuItem(value: 'disiplin', child: Text('Guru Disiplin')),
+  DropdownMenuItem(value: 'kaunselor', child: Text('Guru Kaunselor (UBK)')),
+  DropdownMenuItem(value: 'staff', child: Text('Staf (Staff)')),
+  DropdownMenuItem(value: 'admin', child: Text('Pentadbir (Admin)')),
 ];
 
 TimeOfDay _parseTime(String value) {

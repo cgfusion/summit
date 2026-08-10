@@ -3,6 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import 'package:go_router/go_router.dart';
+
+import '../../../discipline_counseling/presentation/providers/discipline_counseling_providers.dart';
 import '../../domain/entities/enrollment_status.dart';
 import '../../domain/entities/student.dart';
 import '../../domain/entities/student_guardian.dart';
@@ -231,13 +234,15 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-class _DisciplineCounselingSummaryCard extends StatelessWidget {
+class _DisciplineCounselingSummaryCard extends ConsumerWidget {
   const _DisciplineCounselingSummaryCard({required this.student});
 
   final Student student;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final summaryAsync = ref.watch(studentDisciplineSummaryProvider(student.id));
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -249,41 +254,67 @@ class _DisciplineCounselingSummaryCard extends StatelessWidget {
                 Icon(Icons.gavel_outlined, size: 18, color: Colors.indigo.shade600),
                 const SizedBox(width: 8),
                 Text(
-                  'Rekod Disiplin & Kaunseling',
+                  'Rekod Disiplin & Kaunseling (SSDOP/UBK)',
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const Spacer(),
+                TextButton.icon(
+                  onPressed: () => context.go('/discipline-counseling'),
+                  icon: const Icon(Icons.open_in_new, size: 14),
+                  label: const Text('Buka Modul'),
                 ),
               ],
             ),
             const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.indigo.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.indigo.shade100),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+            summaryAsync.when(
+              data: (summary) {
+                final discCount = summary['discipline_count'] as int? ?? 0;
+                final counsCount = summary['counseling_count'] as int? ?? 0;
+                final activeWarning = summary['active_warning'] as String? ?? 'Tiada Kes Tertunggak';
+
+                final isClean = discCount == 0 && counsCount == 0;
+                final statusColor = isClean ? Colors.green : Colors.amber.shade900;
+                final bgColor = isClean ? Colors.green.shade50 : Colors.amber.shade50;
+                final borderColor = isClean ? Colors.green.shade200 : Colors.amber.shade200;
+
+                return Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: bgColor,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: borderColor),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.check_circle_outline, size: 16, color: Colors.indigo.shade700),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          'Status Disiplin: TIADA KES TERTUNGGAK',
-                          style: TextStyle(color: Colors.indigo.shade900, fontWeight: FontWeight.bold, fontSize: 12),
-                        ),
+                      Row(
+                        children: [
+                          Icon(
+                            isClean ? Icons.check_circle_outline : Icons.warning_amber_rounded,
+                            size: 16,
+                            color: statusColor,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'Status Disiplin: ${activeWarning.toUpperCase()}',
+                              style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 12),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '• Jumlah Rekod Disiplin (SSDOP): $discCount kes\n'
+                        '• Jumlah Sesi Kaunseling (UBK): $counsCount sesi',
+                        style: TextStyle(fontSize: 11, color: Colors.grey.shade800),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Modul Rekod Kaunseling & Kes Amaran (SSDOP/PRS) bersedia untuk penyepaduan.',
-                    style: TextStyle(color: Colors.indigo.shade800, fontSize: 11),
-                  ),
-                ],
-              ),
+                );
+              },
+              loading: () => const LinearProgressIndicator(),
+              error: (err, _) => Text('Gagal memuatkan status: $err'),
             ),
           ],
         ),

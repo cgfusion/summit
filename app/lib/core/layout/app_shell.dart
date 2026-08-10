@@ -35,6 +35,7 @@ const _navItems = [
   _NavItem(Icons.military_tech_outlined, 'Merit', '/merit'),
   _NavItem(Icons.leaderboard_outlined, 'Class Summary', '/merit/class-summary'),
   _NavItem(Icons.emoji_events_outlined, 'Rewards', '/merit/rewards'),
+  _NavItem(Icons.gavel_outlined, 'Disiplin & Kaunseling', '/discipline-counseling'),
   _NavItem(Icons.insights_outlined, 'Reports', '/reports'),
   _NavItem(Icons.settings_outlined, 'Settings', '/settings'),
 ];

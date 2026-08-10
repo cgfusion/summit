@@ -13,6 +13,7 @@ import '../../features/auth/presentation/screens/sign_in_screen.dart';
 import '../../features/class_management/presentation/screens/class_list_screen.dart';
 import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../../features/dashboard/presentation/screens/home_screen.dart';
+import '../../features/discipline_counseling/presentation/screens/discipline_counseling_screen.dart';
 import '../../features/merit/presentation/screens/merit_class_summary_screen.dart';
 import '../../features/merit/presentation/screens/merit_daily_screen.dart';
 import '../../features/merit/presentation/screens/rewards_screen.dart';
@@ -80,6 +81,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/merit', builder: (context, state) => const MeritDailyScreen()),
           GoRoute(path: '/merit/class-summary', builder: (context, state) => const MeritClassSummaryScreen()),
           GoRoute(path: '/merit/rewards', builder: (context, state) => const RewardsScreen()),
+          GoRoute(path: '/discipline-counseling', builder: (context, state) => const DisciplineCounselingScreen()),
           GoRoute(path: '/reports', builder: (context, state) => const ReportsScreen()),
           GoRoute(path: '/settings', builder: (context, state) => const SettingsScreen()),
         ],
