@@ -22,6 +22,8 @@ abstract interface class StudentRepository {
 
   Future<List<StudentGuardian>> getGuardians(String studentId);
 
+  Future<List<Student>> getSiblings(String studentId);
+
   Future<void> addGuardian({
     required String studentId,
     required String fullName,

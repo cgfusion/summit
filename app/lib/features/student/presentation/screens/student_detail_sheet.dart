@@ -69,8 +69,27 @@ class _StudentDetailSheet extends ConsumerWidget {
               '${student.className ?? 'No class'} • ID ${student.studentId}',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey),
             ),
-            const SizedBox(height: 20),
-            Text('Enrollment Status', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+
+            // 1. Personal Information Section
+            Text('Maklumat Peribadi (Personal Info)',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            _StudentPersonalInfoCard(student: student),
+
+            const SizedBox(height: 16),
+
+            // 2. Discipline & Counseling Summary
+            Text('Disiplin & Kaunseling',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            _DisciplineCounselingSummaryCard(student: student),
+
+            const SizedBox(height: 16),
+
+            // 3. Enrollment Status Section
+            Text('Status Enrolmen (Enrollment)',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Card(
               child: Padding(
@@ -111,12 +130,14 @@ class _StudentDetailSheet extends ConsumerWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
+
+            // 4. Parent / Guardian Section
             Row(
               children: [
                 Expanded(
                   child: Text(
-                    'Parent / Guardian',
+                    'Ibu Bapa / Penjaga (Guardians)',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -147,9 +168,177 @@ class _StudentDetailSheet extends ConsumerWidget {
               ),
               error: (error, stackTrace) => Text('Failed to load: $error'),
             ),
+
+            // 5. Siblings Section
+            _SiblingsSection(studentId: student.id),
           ],
         );
       },
+    );
+  }
+}
+
+class _StudentPersonalInfoCard extends StatelessWidget {
+  const _StudentPersonalInfoCard({required this.student});
+
+  final Student student;
+
+  @override
+  Widget build(BuildContext context) {
+    final dobStr = student.dateOfBirth == null ? null : DateFormat('d MMM yyyy').format(student.dateOfBirth!);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _InfoRow(icon: Icons.badge_outlined, label: 'No. IC / MyKad', value: student.icNumber ?? 'Belum direkodkan'),
+            const SizedBox(height: 8),
+            _InfoRow(icon: Icons.cake_outlined, label: 'Tarikh Lahir', value: dobStr ?? '-'),
+            const SizedBox(height: 8),
+            _InfoRow(icon: Icons.person_outline, label: 'Jantina', value: student.gender ?? '-'),
+            const SizedBox(height: 8),
+            _InfoRow(icon: Icons.school_outlined, label: 'Status Pengajian', value: student.studyStatus),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({required this.icon, required this.label, required this.value});
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: Colors.grey.shade600),
+        const SizedBox(width: 8),
+        SizedBox(
+          width: 130,
+          child: Text(label, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey.shade700)),
+        ),
+        Expanded(
+          child: Text(value, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
+        ),
+      ],
+    );
+  }
+}
+
+class _DisciplineCounselingSummaryCard extends StatelessWidget {
+  const _DisciplineCounselingSummaryCard({required this.student});
+
+  final Student student;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.gavel_outlined, size: 18, color: Colors.indigo.shade600),
+                const SizedBox(width: 8),
+                Text(
+                  'Rekod Disiplin & Kaunseling',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.indigo.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.indigo.shade100),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.check_circle_outline, size: 16, color: Colors.indigo.shade700),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Status Disiplin: TIADA KES TERTUNGGAK',
+                          style: TextStyle(color: Colors.indigo.shade900, fontWeight: FontWeight.bold, fontSize: 12),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Modul Rekod Kaunseling & Kes Amaran (SSDOP/PRS) bersedia untuk penyepaduan.',
+                    style: TextStyle(color: Colors.indigo.shade800, fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SiblingsSection extends ConsumerWidget {
+  const _SiblingsSection({required this.studentId});
+
+  final String studentId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final siblingsAsync = ref.watch(studentSiblingsProvider(studentId));
+
+    return siblingsAsync.when(
+      data: (siblings) {
+        if (siblings.isEmpty) return const SizedBox.shrink();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 16),
+            Text(
+              'Adik-beradik (Siblings)',
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Card(
+              child: Column(
+                children: [
+                  for (final sib in siblings)
+                    ListTile(
+                      dense: true,
+                      leading: const CircleAvatar(
+                        radius: 14,
+                        child: Icon(Icons.people_outline, size: 16),
+                      ),
+                      title: Text(sib.fullName, style: const TextStyle(fontWeight: FontWeight.w600)),
+                      subtitle: Text(sib.className ?? 'No Class'),
+                      trailing: const Icon(Icons.chevron_right, size: 18),
+                      onTap: () {
+                        Navigator.pop(context);
+                        showStudentDetailSheet(context, sib);
+                      },
+                    ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
     );
   }
 }

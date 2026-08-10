@@ -73,6 +73,43 @@ class StudentRepositoryImpl implements StudentRepository {
   }
 
   @override
+  Future<List<Student>> getSiblings(String studentId) async {
+    final guardians = await getGuardians(studentId);
+    final icNumbers = guardians
+        .map((g) => g.icNumber?.replaceAll(RegExp(r'\D'), ''))
+        .where((ic) => ic != null && ic.isNotEmpty)
+        .toSet();
+
+    if (icNumbers.isEmpty) return [];
+
+    final allGuardians = await _client
+        .from('student_guardians')
+        .select('student_id, ic_number');
+
+    final siblingStudentIds = <String>{};
+    for (final row in (allGuardians as List)) {
+      final sId = row['student_id'] as String?;
+      final rawIc = row['ic_number'] as String?;
+      if (sId == null || sId == studentId || rawIc == null) continue;
+      final normIc = rawIc.replaceAll(RegExp(r'\D'), '');
+      if (icNumbers.contains(normIc)) {
+        siblingStudentIds.add(sId);
+      }
+    }
+
+    if (siblingStudentIds.isEmpty) return [];
+
+    final rows = await _client
+        .from('students')
+        .select(_selectWithClass)
+        .inFilter('id', siblingStudentIds.toList())
+        .eq('enrollment_status', 'active')
+        .order('full_name');
+
+    return rows.map((row) => Student.fromMap(row)).toList();
+  }
+
+  @override
   Future<void> addGuardian({
     required String studentId,
     required String fullName,

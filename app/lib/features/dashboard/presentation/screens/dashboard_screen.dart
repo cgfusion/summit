@@ -11,10 +11,13 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/date_utils.dart';
 import '../../../merit/presentation/providers/merit_providers.dart';
 import '../../../settings/presentation/providers/settings_providers.dart';
+import '../../../student/presentation/providers/student_providers.dart';
+import '../../../student/presentation/screens/student_detail_sheet.dart';
 import '../../domain/entities/attendance_period_summary.dart';
 import '../../domain/entities/dashboard_analytics.dart';
 import '../../domain/entities/dashboard_layout.dart';
 import '../providers/dashboard_providers.dart';
+import 'dashboard_drill_down_sheets.dart';
 
 const _statCatalog = <String, (IconData, String)>{
   'stat_attendance_today': (Icons.fact_check, 'Attendance Today'),
@@ -71,6 +74,7 @@ double _niceInterval(double maxValue) {
 /// [showWorstClasses] is on -- that companion isn't independently
 /// reorderable since it's really a variant of the ranking card next to it).
 List<Widget> _orderedChartCards({
+  required BuildContext context,
   required List<String> order,
   required bool showWorstClasses,
   required ValueChanged<bool> onToggleWorstClasses,
@@ -86,8 +90,26 @@ List<Widget> _orderedChartCards({
       title: 'Attendance Trend (This Week)',
       child: _AttendanceTrendChart(from: weekStart, to: weekEnd),
     ),
-    'chart_attendance_status': _ChartCard(title: 'Attendance by Status (Today)', child: _AttendanceStatusDonut(date: today)),
-    'chart_attendance_by_time': _ChartCard(title: 'Attendance by Time (Today)', child: _AttendanceByTimeChart(date: today)),
+    'chart_attendance_status': _ChartCard(
+      title: 'Attendance by Status (Today)',
+      onTap: () => showDashboardAttendanceDrillDown(
+        context,
+        date: today,
+        title: 'Pecahan Kehadiran Hari Ini',
+        initialStatusFilter: null,
+      ),
+      child: _AttendanceStatusDonut(date: today),
+    ),
+    'chart_attendance_by_time': _ChartCard(
+      title: 'Attendance by Time (Today)',
+      onTap: () => showDashboardAttendanceDrillDown(
+        context,
+        date: today,
+        title: 'Masa Ketibaan Hari Ini',
+        initialStatusFilter: null,
+      ),
+      child: _AttendanceByTimeChart(date: today),
+    ),
     'chart_streak_leaderboard': const _ChartCard(title: 'Top 10 Students (Current Streak)', child: _StreakLeaderboard()),
     'chart_class_ranking': _ChartCard(
       title: 'Class Ranking (Attendance)',
@@ -217,6 +239,7 @@ class DashboardScreen extends ConsumerWidget {
                   _DashboardGrid(
                     columns: columns,
                     children: _orderedChartCards(
+                      context: context,
                       order: layout.chartsOrder,
                       showWorstClasses: showWorstClasses,
                       onToggleWorstClasses: (v) => ref.read(showWorstClassesProvider.notifier).state = v,
@@ -478,31 +501,41 @@ class _DashboardGrid extends StatelessWidget {
 }
 
 class _ChartCard extends StatelessWidget {
-  const _ChartCard({required this.title, required this.child, this.trailing});
+  const _ChartCard({required this.title, required this.child, this.trailing, this.onTap});
 
   final String title;
   final Widget child;
   final Widget? trailing;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
-                ),
-                ?trailing,
-              ],
-            ),
-            const SizedBox(height: 12),
-            Expanded(child: child),
-          ],
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+                  ),
+                  if (onTap != null)
+                    const Padding(
+                      padding: EdgeInsets.only(right: 4),
+                      child: Icon(Icons.chevron_right, size: 18, color: Colors.grey),
+                    ),
+                  ?trailing,
+                ],
+              ),
+              const SizedBox(height: 12),
+              Expanded(child: child),
+            ],
+          ),
         ),
       ),
     );
@@ -541,6 +574,12 @@ class _TopStatsRow extends ConsumerWidget {
         delta: todayRate - yesterdayRate,
         deltaSuffix: 'pts',
         loading: loading,
+        onTap: () => showDashboardAttendanceDrillDown(
+          context,
+          date: today,
+          title: 'Senarai Kehadiran Hari Ini',
+          initialStatusFilter: null,
+        ),
       ),
       'stat_present': _StatCard(
         icon: Icons.people,
@@ -549,6 +588,12 @@ class _TopStatsRow extends ConsumerWidget {
         value: '${t.presentCount}',
         delta: (t.presentCount - y.presentCount).toDouble(),
         loading: loading,
+        onTap: () => showDashboardAttendanceDrillDown(
+          context,
+          date: today,
+          title: 'Senarai Murid Hadir Hari Ini',
+          initialStatusFilter: 'hadir',
+        ),
       ),
       'stat_late': _StatCard(
         icon: Icons.access_time,
@@ -558,6 +603,12 @@ class _TopStatsRow extends ConsumerWidget {
         delta: (t.lateCount - y.lateCount).toDouble(),
         lowerIsBetter: true,
         loading: loading,
+        onTap: () => showDashboardAttendanceDrillDown(
+          context,
+          date: today,
+          title: 'Senarai Murid Lewat Hari Ini',
+          initialStatusFilter: 'lewat',
+        ),
       ),
       'stat_absent': _StatCard(
         icon: Icons.person_off,
@@ -567,6 +618,12 @@ class _TopStatsRow extends ConsumerWidget {
         delta: (t.absentCount - y.absentCount).toDouble(),
         lowerIsBetter: true,
         loading: loading,
+        onTap: () => showDashboardAttendanceDrillDown(
+          context,
+          date: today,
+          title: 'Senarai Murid Tidak Hadir Hari Ini',
+          initialStatusFilter: 'tidak_hadir',
+        ),
       ),
       'stat_merit_points': _StatCard(
         icon: Icons.star,
@@ -575,6 +632,12 @@ class _TopStatsRow extends ConsumerWidget {
         value: '${t.meritPoints}',
         delta: (t.meritPoints - y.meritPoints).toDouble(),
         loading: loading,
+        onTap: () => showDashboardAttendanceDrillDown(
+          context,
+          date: today,
+          title: 'Senarai Murid Rekod Merit Hari Ini',
+          initialStatusFilter: null,
+        ),
       ),
       'stat_rewards_issued': _StatCard(
         icon: Icons.card_giftcard,
@@ -583,6 +646,12 @@ class _TopStatsRow extends ConsumerWidget {
         value: '${t.rewardsIssued}',
         delta: (t.rewardsIssued - y.rewardsIssued).toDouble(),
         loading: loading,
+        onTap: () => showDashboardAttendanceDrillDown(
+          context,
+          date: today,
+          title: 'Senarai Murid Ganjaran Diterima',
+          initialStatusFilter: null,
+        ),
       ),
     };
     final ids = order.where(cards.containsKey).toList();
@@ -622,6 +691,7 @@ class _StatCard extends StatelessWidget {
     this.deltaSuffix = '',
     this.lowerIsBetter = false,
     this.loading = false,
+    this.onTap,
   });
 
   final IconData icon;
@@ -632,6 +702,7 @@ class _StatCard extends StatelessWidget {
   final String deltaSuffix;
   final bool lowerIsBetter;
   final bool loading;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -642,37 +713,48 @@ class _StatCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final card = Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(color: color.withValues(alpha: 0.15), shape: BoxShape.circle),
-              child: Icon(icon, size: 18, color: color),
-            ),
-            const SizedBox(height: 10),
-            Text(label, style: Theme.of(context).textTheme.bodySmall),
-            const SizedBox(height: 2),
-            loading
-                ? const SizedBox(height: 28, width: 28, child: CircularProgressIndicator(strokeWidth: 2))
-                : Text(value, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 4),
-            if (!loading)
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               Row(
-                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Icon(arrow, size: 12, color: deltaColor),
-                  const SizedBox(width: 2),
-                  Text(
-                    '${delta.abs().toStringAsFixed(delta.abs() == delta.abs().roundToDouble() ? 0 : 1)}$deltaSuffix vs yesterday',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: deltaColor),
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(color: color.withValues(alpha: 0.15), shape: BoxShape.circle),
+                    child: Icon(icon, size: 18, color: color),
                   ),
+                  if (onTap != null)
+                    const Icon(Icons.chevron_right, size: 18, color: Colors.grey),
                 ],
               ),
-          ],
+              const SizedBox(height: 10),
+              Text(label, style: Theme.of(context).textTheme.bodySmall),
+              const SizedBox(height: 2),
+              loading
+                  ? const SizedBox(height: 28, width: 28, child: CircularProgressIndicator(strokeWidth: 2))
+                  : Text(value, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              if (!loading)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(arrow, size: 12, color: deltaColor),
+                    const SizedBox(width: 2),
+                    Text(
+                      '${delta.abs().toStringAsFixed(delta.abs() == delta.abs().roundToDouble() ? 0 : 1)}$deltaSuffix vs yesterday',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: deltaColor),
+                    ),
+                  ],
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -990,6 +1072,12 @@ class _StreakLeaderboard extends ConsumerWidget {
               rank: index + 1,
               label: row.fullName,
               trailing: '${row.streakDays} day${row.streakDays == 1 ? '' : 's'}',
+              onTap: () async {
+                final fullStudent = await ref.read(studentRepositoryProvider).getById(row.studentId);
+                if (fullStudent != null && context.mounted) {
+                  showStudentDetailSheet(context, fullStudent);
+                }
+              },
             );
           },
         );
@@ -1001,11 +1089,17 @@ class _StreakLeaderboard extends ConsumerWidget {
 }
 
 class _LeaderboardRow extends StatelessWidget {
-  const _LeaderboardRow({required this.rank, required this.label, required this.trailing});
+  const _LeaderboardRow({
+    required this.rank,
+    required this.label,
+    required this.trailing,
+    this.onTap,
+  });
 
   final int rank;
   final String label;
   final String trailing;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -1015,21 +1109,27 @@ class _LeaderboardRow extends StatelessWidget {
       3 => Colors.brown,
       _ => null,
     };
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 22,
-            child: medalColor != null
-                ? Icon(Icons.emoji_events, size: 16, color: medalColor)
-                : Text('$rank', style: Theme.of(context).textTheme.bodySmall),
-          ),
-          Expanded(
-            child: Text(label, overflow: TextOverflow.ellipsis, maxLines: 1, style: Theme.of(context).textTheme.bodySmall),
-          ),
-          Text(trailing, style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold)),
-        ],
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(4),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 22,
+              child: medalColor != null
+                  ? Icon(Icons.emoji_events, size: 16, color: medalColor)
+                  : Text('$rank', style: Theme.of(context).textTheme.bodySmall),
+            ),
+            Expanded(
+              child: Text(label, overflow: TextOverflow.ellipsis, maxLines: 1, style: Theme.of(context).textTheme.bodySmall),
+            ),
+            Text(trailing, style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold)),
+            if (onTap != null)
+              const Icon(Icons.chevron_right, size: 14, color: Colors.grey),
+          ],
+        ),
       ),
     );
   }

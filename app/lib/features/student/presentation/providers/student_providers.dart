@@ -29,3 +29,7 @@ final studentsProvider = FutureProvider.autoDispose<List<Student>>((ref) {
 final studentGuardiansProvider = FutureProvider.autoDispose.family<List<StudentGuardian>, String>((ref, studentId) {
   return ref.watch(studentRepositoryProvider).getGuardians(studentId);
 });
+
+final studentSiblingsProvider = FutureProvider.autoDispose.family<List<Student>, String>((ref, studentId) {
+  return ref.watch(studentRepositoryProvider).getSiblings(studentId);
+});
