@@ -190,7 +190,11 @@ class _DashboardAttendanceSheetState extends ConsumerState<_DashboardAttendanceS
               child: listAsync.when(
                 data: (items) {
                   final filtered = items.where((item) {
-                    if (_statusFilter != null && item.statusToday != _statusFilter) return false;
+                    if (_statusFilter == 'hadir') {
+                      if (item.statusToday == 'tidak_hadir') return false;
+                    } else if (_statusFilter != null && item.statusToday != _statusFilter) {
+                      return false;
+                    }
                     if (_searchQuery.isNotEmpty) {
                       return item.fullName.toLowerCase().contains(_searchQuery) ||
                           item.className.toLowerCase().contains(_searchQuery);

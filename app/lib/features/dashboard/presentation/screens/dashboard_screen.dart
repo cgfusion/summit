@@ -562,8 +562,8 @@ class _TopStatsRow extends ConsumerWidget {
     final y = yesterdayAsync.value ?? AttendanceDaySummary.zero;
     final loading = todayAsync.isLoading || yesterdayAsync.isLoading;
 
-    final todayRate = t.recordedCount == 0 ? 0.0 : (t.presentCount + t.lateCount) / t.recordedCount * 100;
-    final yesterdayRate = y.recordedCount == 0 ? 0.0 : (y.presentCount + y.lateCount) / y.recordedCount * 100;
+    final todayRate = t.recordedCount == 0 ? 0.0 : (t.recordedCount - t.absentCount) / t.recordedCount * 100;
+    final yesterdayRate = y.recordedCount == 0 ? 0.0 : (y.recordedCount - y.absentCount) / y.recordedCount * 100;
 
     final cards = <String, Widget>{
       'stat_attendance_today': _StatCard(
