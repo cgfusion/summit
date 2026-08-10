@@ -267,3 +267,252 @@ as $$
 $$;
 
 grant execute on function public.fn_class_attendance_summary(date, date) to authenticated, anon;
+
+-- 6. fn_attendance_period_summary (used by WhatsApp Report & Period Summaries)
+create or replace function public.fn_attendance_period_summary(p_reference_date date)
+returns table (
+  scope_type text,
+  scope_id uuid,
+  scope_name text,
+  student_count bigint,
+  day_present bigint,
+  day_total bigint,
+  day_rate numeric,
+  week_present bigint,
+  week_total bigint,
+  week_rate numeric,
+  month_present bigint,
+  month_total bigint,
+  month_rate numeric,
+  year_present bigint,
+  year_total bigint,
+  year_rate numeric
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  with bounds as (
+    select
+      p_reference_date as day_from,
+      p_reference_date as day_to,
+      (p_reference_date - (extract(isodow from p_reference_date)::int - 1))::date as week_from,
+      (p_reference_date - (extract(isodow from p_reference_date)::int - 1))::date + 4 as week_to,
+      date_trunc('month', p_reference_date)::date as month_from,
+      (date_trunc('month', p_reference_date) + interval '1 month - 1 day')::date as month_to,
+      date_trunc('year', p_reference_date)::date as year_from,
+      (date_trunc('year', p_reference_date) + interval '1 year - 1 day')::date as year_to
+  ),
+  weekdays as (
+    select
+      public.fn_weekday_count(b.week_from, b.week_to) as week_days,
+      public.fn_weekday_count(b.month_from, b.month_to) as month_days,
+      public.fn_weekday_count(b.year_from, b.year_to) as year_days
+    from bounds b
+  ),
+  raw as (
+    -- Whole school
+    select
+      'school'::text as scope_type,
+      null::uuid as scope_id,
+      'Whole School'::text as scope_name,
+      count(distinct s.id) as student_count,
+      count(*) filter (
+        where ad.school_date = (select day_from from bounds) and ad.status in ('hadir', 'lewat', 'cuti_sakit', 'urusan_rasmi')
+      ) as day_present,
+      count(*) filter (
+        where ad.school_date between (select week_from from bounds) and (select week_to from bounds)
+          and ad.status in ('hadir', 'lewat', 'cuti_sakit', 'urusan_rasmi')
+      ) as week_present,
+      count(*) filter (
+        where ad.school_date between (select month_from from bounds) and (select month_to from bounds)
+          and ad.status in ('hadir', 'lewat', 'cuti_sakit', 'urusan_rasmi')
+      ) as month_present,
+      count(*) filter (
+        where ad.school_date between (select year_from from bounds) and (select year_to from bounds)
+          and ad.status in ('hadir', 'lewat', 'cuti_sakit', 'urusan_rasmi')
+      ) as year_present
+    from public.students s
+    left join public.attendance_days ad on ad.student_id = s.id
+    where s.enrollment_status = 'active'
+
+    union all
+
+    -- Tingkatan (form level 1-5)
+    select
+      'form'::text,
+      null::uuid,
+      ('Tingkatan ' || c.form_level)::text,
+      count(distinct s.id),
+      count(*) filter (
+        where ad.school_date = (select day_from from bounds) and ad.status in ('hadir', 'lewat', 'cuti_sakit', 'urusan_rasmi')
+      ),
+      count(*) filter (
+        where ad.school_date between (select week_from from bounds) and (select week_to from bounds)
+          and ad.status in ('hadir', 'lewat', 'cuti_sakit', 'urusan_rasmi')
+      ),
+      count(*) filter (
+        where ad.school_date between (select month_from from bounds) and (select month_to from bounds)
+          and ad.status in ('hadir', 'lewat', 'cuti_sakit', 'urusan_rasmi')
+      ),
+      count(*) filter (
+        where ad.school_date between (select year_from from bounds) and (select year_to from bounds)
+          and ad.status in ('hadir', 'lewat', 'cuti_sakit', 'urusan_rasmi')
+      )
+    from public.classes c
+    join public.students s on s.class_id = c.id and s.enrollment_status = 'active'
+    left join public.attendance_days ad on ad.student_id = s.id
+    group by c.form_level
+
+    union all
+
+    -- Per class
+    select
+      'class'::text,
+      c.id,
+      c.name,
+      count(distinct s.id),
+      count(*) filter (
+        where ad.school_date = (select day_from from bounds) and ad.status in ('hadir', 'lewat', 'cuti_sakit', 'urusan_rasmi')
+      ),
+      count(*) filter (
+        where ad.school_date between (select week_from from bounds) and (select week_to from bounds)
+          and ad.status in ('hadir', 'lewat', 'cuti_sakit', 'urusan_rasmi')
+      ),
+      count(*) filter (
+        where ad.school_date between (select month_from from bounds) and (select month_to from bounds)
+          and ad.status in ('hadir', 'lewat', 'cuti_sakit', 'urusan_rasmi')
+      ),
+      count(*) filter (
+        where ad.school_date between (select year_from from bounds) and (select year_to from bounds)
+          and ad.status in ('hadir', 'lewat', 'cuti_sakit', 'urusan_rasmi')
+      )
+    from public.classes c
+    join public.students s on s.class_id = c.id and s.enrollment_status = 'active'
+    left join public.attendance_days ad on ad.student_id = s.id
+    group by c.id, c.name
+  )
+  select
+    r.scope_type,
+    r.scope_id,
+    r.scope_name,
+    r.student_count,
+    r.day_present,
+    r.student_count as day_total,
+    case when r.student_count = 0 then 0 else round(r.day_present::numeric / r.student_count * 100, 1) end as day_rate,
+    r.week_present,
+    r.student_count * w.week_days as week_total,
+    case when r.student_count = 0 or w.week_days = 0 then 0
+      else round(r.week_present::numeric / (r.student_count * w.week_days) * 100, 1)
+    end as week_rate,
+    r.month_present,
+    r.student_count * w.month_days as month_total,
+    case when r.student_count = 0 or w.month_days = 0 then 0
+      else round(r.month_present::numeric / (r.student_count * w.month_days) * 100, 1)
+    end as month_rate,
+    r.year_present,
+    r.student_count * w.year_days as year_total,
+    case when r.student_count = 0 or w.year_days = 0 then 0
+      else round(r.year_present::numeric / (r.student_count * w.year_days) * 100, 1)
+    end as year_rate
+  from raw r
+  cross join weekdays w
+  order by
+    case r.scope_type when 'school' then 0 when 'form' then 1 else 2 end,
+    r.scope_name;
+$$;
+
+grant execute on function public.fn_attendance_period_summary(date) to authenticated, anon;
+
+-- 7. Parent Portal lookup functions
+create or replace function public.fn_parent_portal_data_by_ic(p_ic_number text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_normalized_ic text;
+  v_week_start date;
+  v_week_end date;
+  v_month_start date;
+  v_month_end date;
+  v_max_points int;
+  v_today date := current_date;
+  v_result jsonb;
+begin
+  v_normalized_ic := regexp_replace(p_ic_number, '\D', '', 'g');
+  if v_normalized_ic = '' then
+    return '[]'::jsonb;
+  end if;
+
+  v_week_start := (v_today - (extract(isodow from v_today)::int - 1))::date;
+  v_week_end := v_week_start + 4;
+  v_month_start := date_trunc('month', v_today)::date;
+  v_month_end := (date_trunc('month', v_today) + interval '1 month - 1 day')::date;
+
+  select merit_max_points into v_max_points
+  from public.attendance_settings where id = 1;
+  v_max_points := coalesce(v_max_points, 1);
+
+  select coalesce(jsonb_agg(
+    jsonb_build_object(
+      'student', jsonb_build_object(
+        'full_name', s.full_name,
+        'class_name', c.name,
+        'enrollment_status', s.enrollment_status,
+        'enrollment_status_reason', s.enrollment_status_reason,
+        'enrollment_status_date', s.enrollment_status_date
+      ),
+      'attendance_recent', coalesce((
+        select jsonb_agg(jsonb_build_object('date', recent.school_date, 'status', recent.status) order by recent.school_date desc)
+        from (
+          select school_date, status from public.attendance_days
+          where student_id = s.id
+          order by school_date desc
+          limit 30
+        ) recent
+      ), '[]'::jsonb),
+      'attendance_week', jsonb_build_object(
+        'present', (
+          select count(*) filter (where status in ('hadir', 'lewat', 'cuti_sakit', 'urusan_rasmi'))
+          from public.attendance_days
+          where student_id = s.id and school_date between v_week_start and v_week_end
+        ),
+        'total_days', public.fn_weekday_count(v_week_start, v_week_end)
+      ),
+      'attendance_month', jsonb_build_object(
+        'present', (
+          select count(*) filter (where status in ('hadir', 'lewat', 'cuti_sakit', 'urusan_rasmi'))
+          from public.attendance_days
+          where student_id = s.id and school_date between v_month_start and v_month_end
+        ),
+        'total_days', public.fn_weekday_count(v_month_start, v_month_end)
+      ),
+      'merit_month', jsonb_build_object(
+        'total_points', (
+          select coalesce(sum(total_points), 0) from public.merit_student_daily
+          where student_id = s.id and school_date between v_month_start and v_month_end
+        ),
+        'days_recorded', (
+          select count(*) from public.merit_student_daily
+          where student_id = s.id and school_date between v_month_start and v_month_end
+        ),
+        'max_points_per_day', v_max_points
+      )
+    )
+    order by c.name, s.full_name
+  ), '[]'::jsonb)
+  into v_result
+  from public.students s
+  join public.classes c on c.id = s.class_id
+  join public.student_guardians sg on sg.student_id = s.id
+  where regexp_replace(sg.ic_number, '\D', '', 'g') = v_normalized_ic
+    and s.enrollment_status = 'active';
+
+  return v_result;
+end;
+$$;
+
+grant execute on function public.fn_parent_portal_data_by_ic(text) to authenticated, anon;
