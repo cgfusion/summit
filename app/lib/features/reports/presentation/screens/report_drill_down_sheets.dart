@@ -65,6 +65,11 @@ class _RepeatAbsenceSheetState extends ConsumerState<_RepeatAbsenceSheet> {
     final listAsync = ref.watch(repeatAbsentStudentsProvider((range: widget.range, minAbsent: _minAbsent)));
     final dateFormat = DateFormat('d MMM yyyy');
     final dateSubtitle = '${dateFormat.format(widget.range.from)} - ${dateFormat.format(widget.range.to)}';
+    final items = listAsync.value ?? [];
+    final filtered = items.where((s) {
+      if (_search.isEmpty) return true;
+      return s.fullName.toLowerCase().contains(_search) || s.className.toLowerCase().contains(_search);
+    }).toList();
 
     return DraggableScrollableSheet(
       initialChildSize: 0.85,
@@ -98,7 +103,7 @@ class _RepeatAbsenceSheetState extends ConsumerState<_RepeatAbsenceSheet> {
                               'Senarai Ketidakhadiran Berulang',
                               style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                             ),
-                            Text(dateSubtitle, style: Theme.of(context).textTheme.bodySmall),
+                            Text('$dateSubtitle • ${filtered.length} murid', style: Theme.of(context).textTheme.bodySmall),
                           ],
                         ),
                       ),
@@ -119,18 +124,21 @@ class _RepeatAbsenceSheetState extends ConsumerState<_RepeatAbsenceSheet> {
                             isDense: true,
                             contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           ),
-                          onChanged: (val) => setState(() => _search = val.trim().toLowerCase()),
+                          onChanged: (v) => setState(() => _search = v.trim().toLowerCase()),
                         ),
                       ),
                       const SizedBox(width: 8),
-                      SegmentedButton<int>(
-                        segments: const [
-                          ButtonSegment(value: 2, label: Text('2+')),
-                          ButtonSegment(value: 3, label: Text('3+')),
-                          ButtonSegment(value: 5, label: Text('5+')),
+                      DropdownButton<int>(
+                        value: _minAbsent,
+                        underline: const SizedBox.shrink(),
+                        items: const [
+                          DropdownMenuItem(value: 2, child: Text('2+ hari')),
+                          DropdownMenuItem(value: 3, child: Text('3+ hari')),
+                          DropdownMenuItem(value: 5, child: Text('5+ hari')),
                         ],
-                        selected: {_minAbsent},
-                        onSelectionChanged: (sel) => setState(() => _minAbsent = sel.first),
+                        onChanged: (val) {
+                          if (val != null) setState(() => _minAbsent = val);
+                        },
                       ),
                     ],
                   ),
@@ -140,13 +148,7 @@ class _RepeatAbsenceSheetState extends ConsumerState<_RepeatAbsenceSheet> {
             const Divider(height: 1),
             Expanded(
               child: listAsync.when(
-                data: (students) {
-                  final filtered = students.where((s) {
-                    if (_search.isEmpty) return true;
-                    return s.fullName.toLowerCase().contains(_search) ||
-                        s.className.toLowerCase().contains(_search);
-                  }).toList();
-
+                data: (_) {
                   if (filtered.isEmpty) {
                     return const Center(
                       child: Padding(
@@ -165,11 +167,30 @@ class _RepeatAbsenceSheetState extends ConsumerState<_RepeatAbsenceSheet> {
                       final item = filtered[index];
                       return ListTile(
                         contentPadding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                        leading: CircleAvatar(
-                          backgroundColor: Colors.red.shade100,
-                          child: Text(
-                            '${item.absentCount}',
-                            style: TextStyle(color: Colors.red.shade900, fontWeight: FontWeight.bold),
+                        leading: SizedBox(
+                          width: 48,
+                          child: Row(
+                            children: [
+                              Text(
+                                '${index + 1}.',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: CircleAvatar(
+                                  radius: 13,
+                                  backgroundColor: Colors.red.shade100,
+                                  child: Text(
+                                    '${item.absentCount}',
+                                    style: TextStyle(color: Colors.red.shade900, fontWeight: FontWeight.bold, fontSize: 11),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                         title: Text(item.fullName, style: const TextStyle(fontWeight: FontWeight.w600)),

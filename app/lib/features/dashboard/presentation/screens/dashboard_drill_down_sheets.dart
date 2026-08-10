@@ -120,6 +120,28 @@ class _DashboardAttendanceSheetState extends ConsumerState<_DashboardAttendanceS
       maxChildSize: 0.95,
       expand: false,
       builder: (context, controller) {
+        final items = listAsync.value ?? [];
+
+        final totalCount = items.length;
+        final hadirCount = items.where((i) => i.statusToday != 'tidak_hadir').length;
+        final lewatCount = items.where((i) => i.statusToday == 'lewat').length;
+        final tidakHadirCount = items.where((i) => i.statusToday == 'tidak_hadir').length;
+        final cutiSakitCount = items.where((i) => i.statusToday == 'cuti_sakit').length;
+        final urusanRasmiCount = items.where((i) => i.statusToday == 'urusan_rasmi').length;
+
+        final filtered = items.where((item) {
+          if (_statusFilter == 'hadir') {
+            if (item.statusToday == 'tidak_hadir') return false;
+          } else if (_statusFilter != null && item.statusToday != _statusFilter) {
+            return false;
+          }
+          if (_searchQuery.isNotEmpty) {
+            return item.fullName.toLowerCase().contains(_searchQuery) ||
+                item.className.toLowerCase().contains(_searchQuery);
+          }
+          return true;
+        }).toList();
+
         return Column(
           children: [
             Padding(
@@ -146,7 +168,7 @@ class _DashboardAttendanceSheetState extends ConsumerState<_DashboardAttendanceS
                               widget.title,
                               style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                             ),
-                            Text(dateStr, style: Theme.of(context).textTheme.bodySmall),
+                            Text('$dateStr • ${filtered.length} murid', style: Theme.of(context).textTheme.bodySmall),
                           ],
                         ),
                       ),
@@ -166,20 +188,47 @@ class _DashboardAttendanceSheetState extends ConsumerState<_DashboardAttendanceS
                     ),
                     onChanged: (v) => setState(() => _searchQuery = v.trim().toLowerCase()),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
-                    child: SegmentedButton<String?>(
-                      segments: const [
-                        ButtonSegment(value: null, label: Text('Semua')),
-                        ButtonSegment(value: 'hadir', label: Text('Hadir')),
-                        ButtonSegment(value: 'lewat', label: Text('Lewat')),
-                        ButtonSegment(value: 'tidak_hadir', label: Text('Tidak Hadir')),
-                        ButtonSegment(value: 'cuti_sakit', label: Text('Cuti Sakit')),
-                        ButtonSegment(value: 'urusan_rasmi', label: Text('Urusan Rasmi')),
+                    child: Row(
+                      children: [
+                        _FilterChipItem(
+                          label: 'Semua ($totalCount)',
+                          selected: _statusFilter == null,
+                          onSelected: () => setState(() => _statusFilter = null),
+                        ),
+                        const SizedBox(width: 6),
+                        _FilterChipItem(
+                          label: 'Hadir ($hadirCount)',
+                          selected: _statusFilter == 'hadir',
+                          onSelected: () => setState(() => _statusFilter = 'hadir'),
+                        ),
+                        const SizedBox(width: 6),
+                        _FilterChipItem(
+                          label: 'Lewat ($lewatCount)',
+                          selected: _statusFilter == 'lewat',
+                          onSelected: () => setState(() => _statusFilter = 'lewat'),
+                        ),
+                        const SizedBox(width: 6),
+                        _FilterChipItem(
+                          label: 'Tidak Hadir ($tidakHadirCount)',
+                          selected: _statusFilter == 'tidak_hadir',
+                          onSelected: () => setState(() => _statusFilter = 'tidak_hadir'),
+                        ),
+                        const SizedBox(width: 6),
+                        _FilterChipItem(
+                          label: 'Cuti Sakit ($cutiSakitCount)',
+                          selected: _statusFilter == 'cuti_sakit',
+                          onSelected: () => setState(() => _statusFilter = 'cuti_sakit'),
+                        ),
+                        const SizedBox(width: 6),
+                        _FilterChipItem(
+                          label: 'Urusan Rasmi ($urusanRasmiCount)',
+                          selected: _statusFilter == 'urusan_rasmi',
+                          onSelected: () => setState(() => _statusFilter = 'urusan_rasmi'),
+                        ),
                       ],
-                      selected: {_statusFilter},
-                      onSelectionChanged: (sel) => setState(() => _statusFilter = sel.first),
                     ),
                   ),
                 ],
@@ -188,20 +237,7 @@ class _DashboardAttendanceSheetState extends ConsumerState<_DashboardAttendanceS
             const Divider(height: 1),
             Expanded(
               child: listAsync.when(
-                data: (items) {
-                  final filtered = items.where((item) {
-                    if (_statusFilter == 'hadir') {
-                      if (item.statusToday == 'tidak_hadir') return false;
-                    } else if (_statusFilter != null && item.statusToday != _statusFilter) {
-                      return false;
-                    }
-                    if (_searchQuery.isNotEmpty) {
-                      return item.fullName.toLowerCase().contains(_searchQuery) ||
-                          item.className.toLowerCase().contains(_searchQuery);
-                    }
-                    return true;
-                  }).toList();
-
+                data: (_) {
                   if (filtered.isEmpty) {
                     return const Center(
                       child: Padding(
@@ -239,6 +275,17 @@ class _DashboardAttendanceSheetState extends ConsumerState<_DashboardAttendanceS
 
                       return ListTile(
                         contentPadding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                        leading: SizedBox(
+                          width: 32,
+                          child: Text(
+                            '${index + 1}.',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
                         title: Text(item.fullName, style: const TextStyle(fontWeight: FontWeight.w600)),
                         subtitle: Text('Kelas: ${item.className} • Kehadiran bulanan: ${item.attendanceRate.toStringAsFixed(1)}%'),
                         trailing: Row(
@@ -277,6 +324,39 @@ class _DashboardAttendanceSheetState extends ConsumerState<_DashboardAttendanceS
           ],
         );
       },
+    );
+  }
+}
+
+class _FilterChipItem extends StatelessWidget {
+  const _FilterChipItem({
+    required this.label,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return FilterChip(
+      label: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+          color: selected
+              ? Theme.of(context).colorScheme.onPrimaryContainer
+              : Theme.of(context).colorScheme.onSurface,
+        ),
+      ),
+      selected: selected,
+      onSelected: (_) => onSelected(),
+      showCheckmark: false,
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );
   }
 }
