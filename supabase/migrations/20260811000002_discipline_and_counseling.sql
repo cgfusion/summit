@@ -44,18 +44,22 @@ create index if not exists idx_counseling_records_date on public.counseling_reco
 alter table public.discipline_records enable row level security;
 alter table public.counseling_records enable row level security;
 
+drop policy if exists "authenticated_read_discipline" on public.discipline_records;
 create policy "authenticated_read_discipline"
   on public.discipline_records for select
   to authenticated using (true);
 
+drop policy if exists "authenticated_manage_discipline" on public.discipline_records;
 create policy "authenticated_manage_discipline"
   on public.discipline_records for all
   to authenticated using (true) with check (true);
 
+drop policy if exists "authenticated_read_counseling" on public.counseling_records;
 create policy "authenticated_read_counseling"
   on public.counseling_records for select
   to authenticated using (true);
 
+drop policy if exists "authenticated_manage_counseling" on public.counseling_records;
 create policy "authenticated_manage_counseling"
   on public.counseling_records for all
   to authenticated using (true) with check (true);

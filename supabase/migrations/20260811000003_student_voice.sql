@@ -27,14 +27,17 @@ create index if not exists idx_student_voice_date on public.student_voice_submis
 -- RLS
 alter table public.student_voice_submissions enable row level security;
 
+drop policy if exists "public_read_voice" on public.student_voice_submissions;
 create policy "public_read_voice"
   on public.student_voice_submissions for select
   to authenticated, anon using (true);
 
+drop policy if exists "public_insert_voice" on public.student_voice_submissions;
 create policy "public_insert_voice"
   on public.student_voice_submissions for insert
   to authenticated, anon with check (true);
 
+drop policy if exists "authenticated_update_voice" on public.student_voice_submissions;
 create policy "authenticated_update_voice"
   on public.student_voice_submissions for update
   to authenticated using (true) with check (true);
