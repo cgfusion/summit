@@ -431,7 +431,42 @@ $$;
 
 grant execute on function public.fn_attendance_period_summary(date) to authenticated, anon;
 
--- 7. Parent Portal lookup functions
+-- 7. fn_attendance_day_summary: updated present_count to include cuti_sakit & urusan_rasmi, plus detailed counts
+drop function if exists public.fn_attendance_day_summary(date);
+create or replace function public.fn_attendance_day_summary(p_date date)
+returns table (
+  present_count bigint,
+  hadir_count bigint,
+  late_count bigint,
+  absent_count bigint,
+  mc_count bigint,
+  rasmi_count bigint,
+  recorded_count bigint,
+  merit_points bigint,
+  rewards_issued bigint
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select
+    count(*) filter (where ad.status in ('hadir', 'lewat', 'cuti_sakit', 'urusan_rasmi')) as present_count,
+    count(*) filter (where ad.status = 'hadir') as hadir_count,
+    count(*) filter (where ad.status = 'lewat') as late_count,
+    count(*) filter (where ad.status = 'tidak_hadir') as absent_count,
+    count(*) filter (where ad.status = 'cuti_sakit') as mc_count,
+    count(*) filter (where ad.status = 'urusan_rasmi') as rasmi_count,
+    count(*) as recorded_count,
+    coalesce((select sum(msd.total_points) from public.merit_student_daily msd where msd.school_date = p_date), 0) as merit_points,
+    coalesce((select count(*) from public.merit_awards ma where ma.awarded_at::date = p_date), 0) as rewards_issued
+  from public.attendance_days ad
+  where ad.school_date = p_date;
+$$;
+
+grant execute on function public.fn_attendance_day_summary(date) to authenticated, anon;
+
+-- 8. Parent Portal lookup functions
 drop function if exists public.fn_parent_portal_data_by_ic(text);
 create or replace function public.fn_parent_portal_data_by_ic(p_ic_number text)
 returns jsonb

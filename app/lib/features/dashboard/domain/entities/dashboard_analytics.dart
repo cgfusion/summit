@@ -3,27 +3,33 @@
 class AttendanceDaySummary {
   const AttendanceDaySummary({
     required this.presentCount,
+    required this.hadirCount,
     required this.lateCount,
     required this.absentCount,
     required this.mcCount,
+    required this.rasmiCount,
     required this.recordedCount,
     required this.meritPoints,
     required this.rewardsIssued,
   });
 
-  final int presentCount;
+  final int presentCount;  // Total present = hadir + lewat + cuti_sakit + urusan_rasmi
+  final int hadirCount;    // Physical hadir count
   final int lateCount;
   final int absentCount;
-  final int mcCount;
+  final int mcCount;       // Cuti sakit count
+  final int rasmiCount;    // Urusan rasmi count
   final int recordedCount;
   final int meritPoints;
   final int rewardsIssued;
 
   static const zero = AttendanceDaySummary(
     presentCount: 0,
+    hadirCount: 0,
     lateCount: 0,
     absentCount: 0,
     mcCount: 0,
+    rasmiCount: 0,
     recordedCount: 0,
     meritPoints: 0,
     rewardsIssued: 0,
@@ -32,9 +38,11 @@ class AttendanceDaySummary {
   factory AttendanceDaySummary.fromMap(Map<String, dynamic> map) {
     return AttendanceDaySummary(
       presentCount: (map['present_count'] as num).toInt(),
+      hadirCount: ((map['hadir_count'] ?? map['present_count']) as num).toInt(),
       lateCount: (map['late_count'] as num).toInt(),
       absentCount: (map['absent_count'] as num).toInt(),
       mcCount: (map['mc_count'] as num).toInt(),
+      rasmiCount: ((map['rasmi_count'] ?? 0) as num).toInt(),
       recordedCount: (map['recorded_count'] as num).toInt(),
       meritPoints: (map['merit_points'] as num).toInt(),
       rewardsIssued: (map['rewards_issued'] as num).toInt(),

@@ -586,6 +586,7 @@ class _TopStatsRow extends ConsumerWidget {
         color: Colors.blue,
         label: 'Present',
         value: '${t.presentCount}',
+        subtitle: '${t.hadirCount} Hadir • ${t.mcCount} MC • ${t.rasmiCount} Rasmi',
         delta: (t.presentCount - y.presentCount).toDouble(),
         loading: loading,
         onTap: () => showDashboardAttendanceDrillDown(
@@ -688,6 +689,7 @@ class _StatCard extends StatelessWidget {
     required this.label,
     required this.value,
     required this.delta,
+    this.subtitle,
     this.deltaSuffix = '',
     this.lowerIsBetter = false,
     this.loading = false,
@@ -699,6 +701,7 @@ class _StatCard extends StatelessWidget {
   final String label;
   final String value;
   final double delta;
+  final String? subtitle;
   final String deltaSuffix;
   final bool lowerIsBetter;
   final bool loading;
@@ -740,6 +743,16 @@ class _StatCard extends StatelessWidget {
               loading
                   ? const SizedBox(height: 28, width: 28, child: CircularProgressIndicator(strokeWidth: 2))
                   : Text(value, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+              if (!loading && subtitle != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  subtitle!,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontSize: 11,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                ),
+              ],
               const SizedBox(height: 4),
               if (!loading)
                 Row(
