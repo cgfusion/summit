@@ -26,6 +26,8 @@ import '../layout/app_shell.dart';
 import '../providers/supabase_provider.dart';
 import 'hash_change_listenable.dart';
 
+import '../../features/student_portal/presentation/screens/student_portal_screen.dart';
+
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authRefresh = GoRouterRefreshStream(ref.watch(supabaseClientProvider).auth.onAuthStateChange);
   ref.onDispose(authRefresh.dispose);
@@ -35,9 +37,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     initialLocation: '/',
     refreshListenable: authRefresh,
     redirect: (context, state) {
-      // The parent portal is unauthenticated by design -- never bounce it to
+      // The parent & student portals are unauthenticated by design -- never bounce them to
       // /sign-in, regardless of whether staff is signed in.
-      if (state.matchedLocation == '/parent' || state.matchedLocation.startsWith('/parent/')) return null;
+      if (state.matchedLocation == '/parent' ||
+          state.matchedLocation.startsWith('/parent/') ||
+          state.matchedLocation == '/student' ||
+          state.matchedLocation.startsWith('/student/')) {
+        return null;
+      }
       // Already on set-password -- let it render.
       if (state.matchedLocation == '/set-password') return null;
 
@@ -63,6 +70,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/parent/:token',
         builder: (context, state) => ParentPortalScreen(token: state.pathParameters['token']!),
+      ),
+      GoRoute(path: '/student', builder: (context, state) => const StudentPortalScreen()),
+      GoRoute(
+        path: '/student/:token',
+        builder: (context, state) => StudentPortalScreen(initialToken: state.pathParameters['token']),
       ),
       ShellRoute(
         builder: (context, state, child) => AppShell(currentPath: state.matchedLocation, child: child),

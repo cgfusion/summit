@@ -123,6 +123,15 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                             minimumSize: const Size.fromHeight(42),
                           ),
                         ),
+                        const SizedBox(height: 8),
+                        OutlinedButton.icon(
+                          onPressed: () => context.go('/student'),
+                          icon: const Icon(Icons.qr_code_scanner),
+                          label: const Text('Portal Murid (Imbas Kad QR)'),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(42),
+                          ),
+                        ),
                       ],
                     ),
                   ),

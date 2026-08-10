@@ -8,6 +8,8 @@ import '../../../settings/presentation/providers/settings_providers.dart';
 import '../../../student/domain/entities/student.dart';
 import '../../../student/presentation/providers/student_providers.dart';
 import '../../../student/presentation/screens/student_detail_sheet.dart';
+import '../../../student_portal/domain/entities/student_voice_submission.dart';
+import '../../../student_portal/presentation/providers/student_portal_providers.dart';
 import '../providers/discipline_counseling_providers.dart';
 
 class DisciplineCounselingScreen extends ConsumerStatefulWidget {
@@ -27,7 +29,7 @@ class _DisciplineCounselingScreenState extends ConsumerState<DisciplineCounselin
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
   }
 
   @override
@@ -55,6 +57,7 @@ class _DisciplineCounselingScreenState extends ConsumerState<DisciplineCounselin
           tabs: const [
             Tab(icon: Icon(Icons.gavel), text: 'Kes Disiplin (SSDOP)'),
             Tab(icon: Icon(Icons.psychology), text: 'Sesi Kaunseling (UBK)'),
+            Tab(icon: Icon(Icons.record_voice_over), text: 'Peti Suara Murid'),
             Tab(icon: Icon(Icons.analytics), text: 'Ringkasan & Analisis'),
           ],
         ),
@@ -104,6 +107,10 @@ class _DisciplineCounselingScreenState extends ConsumerState<DisciplineCounselin
                       searchQuery: _searchQuery,
                       statusFilter: _counselingStatus,
                       onStatusChanged: (st) => setState(() => _counselingStatus = st),
+                    ),
+                    _StudentVoiceInboxTab(
+                      searchQuery: _searchQuery,
+                      profile: profile!,
                     ),
                     _AnalyticsTab(
                       searchQuery: _searchQuery,
@@ -970,5 +977,195 @@ class _StudentSelectorState extends ConsumerState<_StudentSelector> {
         ],
       ],
     );
+  }
+}
+
+class _StudentVoiceInboxTab extends ConsumerWidget {
+  const _StudentVoiceInboxTab({required this.searchQuery, required this.profile});
+
+  final String searchQuery;
+  final StaffProfile profile;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final listAsync = ref.watch(allStudentVoiceSubmissionsProvider((statusFilter: null, categoryFilter: null)));
+    final dateFormat = DateFormat('d MMM yyyy, h:mm a');
+
+    return listAsync.when(
+      data: (submissions) {
+        final filtered = submissions.where((s) {
+          if (searchQuery.trim().isEmpty) return true;
+          final q = searchQuery.trim().toLowerCase();
+          return s.subject.toLowerCase().contains(q) ||
+              s.message.toLowerCase().contains(q) ||
+              (s.studentName?.toLowerCase().contains(q) ?? false);
+        }).toList();
+
+        if (filtered.isEmpty) {
+          return const Center(child: Text('Tiada hantaran Suara Murid ditemui.'));
+        }
+
+        return ListView.separated(
+          padding: const EdgeInsets.all(16),
+          itemCount: filtered.length,
+          separatorBuilder: (_, _) => const Divider(),
+          itemBuilder: (context, index) {
+            final item = filtered[index];
+            final statusColor = switch (item.status) {
+              'selesai' => Colors.green,
+              'dalam_tindakan' => Colors.orange,
+              _ => Colors.blue,
+            };
+
+            return ListTile(
+              leading: CircleAvatar(
+                backgroundColor: item.isAnonymous ? Colors.purple.shade100 : Colors.blue.shade100,
+                child: Icon(item.isAnonymous ? Icons.visibility_off : Icons.person, color: item.isAnonymous ? Colors.purple.shade900 : Colors.blue.shade900),
+              ),
+              title: Row(
+                children: [
+                  Expanded(child: Text(item.subject, style: const TextStyle(fontWeight: FontWeight.bold))),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: statusColor.withValues(alpha: 0.5)),
+                    ),
+                    child: Text(item.status.replaceAll('_', ' ').toUpperCase(), style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 4),
+                  Text('Murid: ${item.isAnonymous ? "SULIT / RAHSIA (ANONYMOUS)" : "${item.studentName ?? 'Murid'} (${item.className ?? '-'})"}'),
+                  Text('Kategori: ${StudentVoiceSubmission.categoryLabel(item.category)}'),
+                  Text('Mesej: ${item.message}'),
+                  Text('Tarikh: ${dateFormat.format(item.createdAt)}', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                  if (item.responseNotes != null && item.responseNotes!.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text('Maklum Balas Terakhir: ${item.responseNotes}', style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.green)),
+                    ),
+                ],
+              ),
+              trailing: IconButton(
+                icon: const Icon(Icons.reply),
+                tooltip: 'Maklum Balas / Kemaskini Status',
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (_) => _RespondVoiceDialog(submission: item, profile: profile),
+                  );
+                },
+              ),
+            );
+          },
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, st) => Center(child: Text('Ralat: $err')),
+    );
+  }
+}
+
+class _RespondVoiceDialog extends ConsumerStatefulWidget {
+  const _RespondVoiceDialog({required this.submission, required this.profile});
+
+  final StudentVoiceSubmission submission;
+  final StaffProfile profile;
+
+  @override
+  ConsumerState<_RespondVoiceDialog> createState() => _RespondVoiceDialogState();
+}
+
+class _RespondVoiceDialogState extends ConsumerState<_RespondVoiceDialog> {
+  late String _status;
+  final _responseController = TextEditingController();
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _status = widget.submission.status;
+    _responseController.text = widget.submission.responseNotes ?? '';
+  }
+
+  @override
+  void dispose() {
+    _responseController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Maklum Balas Suara Murid'),
+      content: SizedBox(
+        width: 440,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Perkara: ${widget.submission.subject}', style: const TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text('Mesej: ${widget.submission.message}'),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              initialValue: _status,
+              decoration: const InputDecoration(labelText: 'Status Tindakan'),
+              items: const [
+                DropdownMenuItem(value: 'baru', child: Text('Baru Diterima')),
+                DropdownMenuItem(value: 'dalam_tindakan', child: Text('Dalam Tindakan UBK / Disiplin')),
+                DropdownMenuItem(value: 'selesai', child: Text('Selesai')),
+              ],
+              onChanged: (v) => setState(() => _status = v!),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _responseController,
+              decoration: const InputDecoration(
+                labelText: 'Nota Maklum Balas Kepada Murid',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: _saving ? null : () => Navigator.pop(context), child: const Text('Batal')),
+        ElevatedButton(
+          onPressed: _saving ? null : _submit,
+          child: _saving ? const CircularProgressIndicator() : const Text('Simpan Maklum Balas'),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _submit() async {
+    setState(() => _saving = true);
+    try {
+      await ref.read(studentPortalRepositoryProvider).respondToVoiceSubmission(
+            submissionId: widget.submission.id,
+            status: _status,
+            responseNotes: _responseController.text.trim(),
+            responderId: widget.profile.id,
+          );
+
+      ref.invalidate(allStudentVoiceSubmissionsProvider);
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Maklum balas berjaya disimpan.')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal menyimpan: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 }
