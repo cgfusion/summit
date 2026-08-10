@@ -80,3 +80,6 @@
 - Repo Settings → Pages custom domain and DNS were already configured by the user before this change; this commit only updates the app build/deploy config and the docs that hardcoded the old URL (`PROJECT.md`, `NEXT_SESSION.md`, `AI_RULES.md`).
 - **Not done, needs dashboard access**: the hosted Supabase project's Auth → URL Configuration (Site URL / Redirect URLs allowlist) still needs `https://d2csummit.online` added, or the invite-staff (T-039) and set-password (T-040) magic-link/invite flows will redirect to the old `github.io` URL or be rejected outright. This repo's Supabase CLI access token was dead (401) as of this session, so it couldn't be done via CLI either — needs to be done from the Supabase Dashboard directly, or a fresh CLI token supplied.
 
+## 2026-08-12 (decision) — T-025 (real parent/student login) reconfirmed not-now
+- No code change. Raizal explicitly reconfirmed T-025 stays deferred for now — still no SMS-provider budget decision or parent-email collection step chosen. See `TASKS.md` T-025.
+

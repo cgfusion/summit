@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/providers/supabase_provider.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -109,6 +110,17 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                             child: _submitting
                                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                                 : const Text('Sign in'),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        const Divider(),
+                        const SizedBox(height: 8),
+                        OutlinedButton.icon(
+                          onPressed: () => context.go('/parent'),
+                          icon: const Icon(Icons.family_restroom),
+                          label: const Text('Portal Ibu Bapa (Semakan IC)'),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(42),
                           ),
                         ),
                       ],

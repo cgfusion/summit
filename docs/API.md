@@ -286,3 +286,18 @@ await ref.read(dashboardRepositoryProvider).saveDashboardLayout(
   }
   ```
 - **Rate limiting / abuse**: **none implemented.** Any caller with a valid `apikey` header (the public anon key, embedded in the client build) can call this function as fast as they like for any token they can guess/obtain. See `KNOWN_ISSUES.md`.
+
+---
+
+## Future / informational — Attendance Export API (not implemented)
+
+> Draft only. See `ATTENDANCE.md` §6. Do not build unless explicitly requested.
+
+D2C may later expose **resolved** `attendance_days` to authorized external systems (idMe/MOEIS/partners) while keeping today's exception-based capture. Suggested shape (conceptual — not present in this codebase):
+
+- `GET /v1/attendance?school_date=...&class_id=...`
+- `GET /v1/attendance/exceptions?school_date=...`
+- `GET /v1/students/{student_id}/attendance?from=...&to=...`
+- `GET /v1/exports/attendance?from=...&to=...`
+
+Until then, the live attendance API remains the Supabase table ops + RPCs documented in §Attendance above.

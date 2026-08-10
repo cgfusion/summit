@@ -10,6 +10,8 @@
 
 **None in flight.** All 5 recommended next steps are completed and verified with zero static analysis issues and clean unit test suite execution.
 
+**Docs note (2026-08-11):** Added informational attendance product notes in `ATTENDANCE.md` (exception-based capture stays current; MOEIS/export API/assembly QR are future options only). Cross-linked from `PROJECT.md` and `API.md`. No code changes.
+
 ## Files Currently Being Edited
 
 None.

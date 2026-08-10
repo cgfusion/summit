@@ -46,7 +46,7 @@
 
 | ID | Title | Priority | Blocked on | Complexity |
 |---|---|---|---|---|
-| T-025 | Real parent/student login (replace magic-link Parent Portal) | P3 | **Product decision + budget**: needs either an SMS provider account (Twilio/similar, has per-message cost) for phone OTP, or a parent-email data-collection step (XEA4402 has no email field) for email/password. Do not start without the user choosing one — see `PROJECT.md` §7 design decision #7 for why this was deliberately deferred | XL |
+| T-025 | Real parent/student login (replace magic-link Parent Portal) | P3 | **Product decision + budget**: needs either an SMS provider account (Twilio/similar, has per-message cost) for phone OTP, or a parent-email data-collection step (XEA4402 has no email field) for email/password. Do not start without the user choosing one — see `PROJECT.md` §7 design decision #7 for why this was deliberately deferred. **Reconfirmed not-now on 2026-08-12** — explicitly not being picked up yet, still no SMS budget or email-collection decision made. | XL |
 | T-026 | Mentor/PRS assignment + case-tracking module (2 of 5 official program KPIs) | P3 | **Requires new domain modeling** — no existing table models "mentor," "case," or "escalation." Needs a scoping conversation before any migration is written; do not infer a schema from `attendance_day_exceptions`, it's the wrong shape | XL |
 
 ## Next (near-term, natural continuations of shipped work)
