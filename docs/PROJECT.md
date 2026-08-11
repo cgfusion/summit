@@ -31,7 +31,10 @@ For a school administrator or teacher, D2C answers:
 | **Dashboard** | `features/dashboard` | Analytics home screen: stat cards, charts, leaderboards, heatmap, KPI gauges, user-customizable layout |
 | **Reports** | `features/reports` | KPI trend dashboard (attendance rate, repeat absence, at-risk students, chronic latecomers, leave-type breakdown) per the program's own KPI section |
 | **Settings** | `features/settings` | Program period, merit component toggles, session cutoff times, staff account management |
-| **Parent Portal** | `features/parent_portal` | Unauthenticated, token-gated read-only view of one student's status, for parents/guardians |
+| **Discipline & Counseling** | `features/discipline_counseling` | SSDOP case tracking, UBK counseling sessions, RBAC for `disiplin` & `kaunselor` roles, Peti Suara Murid inbox — see `DISCIPLINE_AND_COUNSELING.md` |
+| **Parent Portal** | `features/parent_portal` | Unauthenticated, token-gated IC lookup view of student status for parents — see `PARENT_PORTAL.md` |
+| **Student Portal & Suara Murid** | `features/student_portal` | Student QR Name Tag login, personal attendance/merit progress, and Suara Murid feedback/bullying reports box — see `STUDENT_PORTAL_AND_VOICE.md` |
+| **Public Web Landing Page** | `features/landing` | High-tech futuristic school landing page highlighting the D2C initiative for whole school T1–T5 — see `LANDING_PAGE.md` |
 | **Auth** | `features/auth` | Staff sign-in (Supabase Auth, email/password) |
 
 ## 4. Technology Stack

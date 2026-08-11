@@ -37,6 +37,10 @@
 | T-031 | Enforce "at most one primary guardian per student" via partial unique index `student_guardians_one_primary_per_student` | P2 | T-020 | S |
 | T-032 | Automated unit test suite covering `date_utils`, `EnrollmentStatus`, and `AttendanceStatus` enums | P2 | none | M |
 | T-038 | Parent IC Lookup option (`/parent` route, `fn_parent_portal_data_by_ic` RPC with rate limiting & multi-sibling tab bar) | P1 | T-022, T-030 | M |
+| T-039 | Discipline & Counseling (SSDOP/UBK) module — `discipline_records`, `counseling_records`, `DisciplineCounselingScreen`, RBAC for `disiplin` & `kaunselor` roles | P1 | T-001 | L |
+| T-040 | Student Portal & Student Voice (Suara Murid) module — QR Name Tag auth (`/student`), `student_voice_submissions`, `fn_student_portal_data_by_qr`, anonymous protection | P1 | T-001 | L |
+| T-041 | Peti Suara Murid (Teacher Inbox) — integrated into `DisciplineCounselingScreen` for UBK & Disiplin staff to read & respond to student voice entries | P1 | T-039, T-040 | M |
+| T-042 | SMK Sungai Damit & D2C Project Public Web Landing Page — `SchoolLandingScreen` (`/` & `/landing`), high-tech theme, T1-T5 scope, motto, subtle portal launchpad | P1 | T-022, T-040 | L |
 
 ## In Progress
 

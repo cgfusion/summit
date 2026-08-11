@@ -1,12 +1,12 @@
 # DATABASE.md — Dare to Change (D2C)
 
-> Full schema reference. Source of truth is `supabase/migrations/*.sql`, applied chronologically — this document is a synthesized snapshot of the schema **after all 20 migrations** (`20260728000001` through `20260811000001`). If you add a migration, update this file in the same commit.
+> Full schema reference. Source of truth is `supabase/migrations/*.sql`, applied chronologically — this document is a synthesized snapshot of the schema **after all migrations** (`20260728000001` through `20260811000006`). If you add a migration, update this file in the same commit.
 
 No local Postgres/Docker is used in this project. Every migration is applied with `supabase db push` (targets the linked production project directly) and verified with `supabase db query --linked "<sql>"`. There is no staging database.
 
 ## Table of Contents
 - [Entity-Relationship Overview](#entity-relationship-overview)
-- Tables: [profiles](#profiles) · [classes](#classes) · [students](#students) · [qr_tokens](#qr_tokens) · [attendance_settings](#attendance_settings) · [attendance_logs](#attendance_logs) · [attendance_days](#attendance_days) · [audit_log](#audit_log) · [attendance_day_exceptions](#attendance_day_exceptions) · [merit_bonus_points](#merit_bonus_points) · [merit_awards](#merit_awards) · [session_cutoff_times](#session_cutoff_times) · [student_guardians](#student_guardians)
+- Tables: [profiles](#profiles) · [classes](#classes) · [students](#students) · [qr_tokens](#qr_tokens) · [attendance_settings](#attendance_settings) · [attendance_logs](#attendance_logs) · [attendance_days](#attendance_days) · [audit_log](#audit_log) · [attendance_day_exceptions](#attendance_day_exceptions) · [merit_bonus_points](#merit_bonus_points) · [merit_awards](#merit_awards) · [session_cutoff_times](#session_cutoff_times) · [student_guardians](#student_guardians) · [discipline_records](#discipline_records) · [counseling_records](#counseling_records) · [student_voice_submissions](#student_voice_submissions)
 - [Views](#views)
 - [Functions](#functions-fn_-and-helpers)
 - [Triggers](#triggers)
