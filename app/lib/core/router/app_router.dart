@@ -26,6 +26,7 @@ import '../layout/app_shell.dart';
 import '../providers/supabase_provider.dart';
 import 'hash_change_listenable.dart';
 
+import '../../features/landing/presentation/screens/school_landing_screen.dart';
 import '../../features/student_portal/presentation/screens/student_portal_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -37,9 +38,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     initialLocation: '/',
     refreshListenable: authRefresh,
     redirect: (context, state) {
-      // The parent & student portals are unauthenticated by design -- never bounce them to
+      // Public landing page, parent & student portals are unauthenticated by design -- never bounce them to
       // /sign-in, regardless of whether staff is signed in.
-      if (state.matchedLocation == '/parent' ||
+      if (state.matchedLocation == '/' ||
+          state.matchedLocation == '/landing' ||
+          state.matchedLocation == '/parent' ||
           state.matchedLocation.startsWith('/parent/') ||
           state.matchedLocation == '/student' ||
           state.matchedLocation.startsWith('/student/')) {
@@ -60,10 +63,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         if (fragment.contains('type=invite')) return '/set-password';
       }
 
-      if (isSignedIn && isSigningIn) return '/';
+      if (isSignedIn && isSigningIn) return '/dashboard';
       return null;
     },
     routes: [
+      GoRoute(path: '/', builder: (context, state) => const SchoolLandingScreen()),
+      GoRoute(path: '/landing', builder: (context, state) => const SchoolLandingScreen()),
       GoRoute(path: '/sign-in', builder: (context, state) => const SignInScreen()),
       GoRoute(path: '/set-password', builder: (context, state) => const SetPasswordScreen()),
       GoRoute(path: '/parent', builder: (context, state) => const ParentIcLookupScreen()),
@@ -79,7 +84,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ShellRoute(
         builder: (context, state, child) => AppShell(currentPath: state.matchedLocation, child: child),
         routes: [
-          GoRoute(path: '/', builder: (context, state) => const DashboardScreen()),
+          GoRoute(path: '/dashboard', builder: (context, state) => const DashboardScreen()),
           GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
           GoRoute(path: '/classes', builder: (context, state) => const ClassListScreen()),
           GoRoute(path: '/students', builder: (context, state) => const StudentListScreen()),

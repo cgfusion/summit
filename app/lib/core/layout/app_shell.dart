@@ -24,7 +24,7 @@ class _NavItem {
 }
 
 const _navItems = [
-  _NavItem(Icons.dashboard_outlined, 'Dashboard', '/'),
+  _NavItem(Icons.dashboard_outlined, 'Dashboard', '/dashboard'),
   _NavItem(Icons.home_outlined, 'Home', '/home'),
   _NavItem(Icons.groups_outlined, 'Classes', '/classes'),
   _NavItem(Icons.people_outline, 'Students', '/students'),
@@ -43,8 +43,7 @@ const _navItems = [
 /// AppBar `leading` for every non-Dashboard/non-Home screen. In mobile mode
 /// (no persistent sidebar) these screens are the only way back to Home, so
 /// this always navigates there instead of relying on the default back
-/// button, which silently disappears whenever there's nothing left to pop
-/// (deep link, page reload, etc).
+/// button popping to somewhere unexpected (like /sign-in).
 class HomeBackButton extends StatelessWidget {
   const HomeBackButton({super.key});
 
@@ -53,7 +52,7 @@ class HomeBackButton extends StatelessWidget {
     return IconButton(
       icon: const Icon(Icons.arrow_back),
       tooltip: 'Home',
-      onPressed: () => context.canPop() ? context.pop() : context.go('/home'),
+      onPressed: () => context.canPop() ? context.pop() : context.go('/dashboard'),
     );
   }
 }

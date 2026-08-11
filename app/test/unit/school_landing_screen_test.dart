@@ -1,0 +1,20 @@
+import 'package:app/features/landing/presentation/screens/school_landing_screen.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+void main() {
+  group('SchoolLandingScreen Test', () {
+    testWidgets('renders D2C hero spotlight and school title', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: SchoolLandingScreen(),
+        ),
+      );
+
+      expect(find.text('SMK SUNGAI DAMIT'), findsOneWidget);
+      expect(find.text('DARE TO CHANGE (D2C)'), findsOneWidget);
+      expect(find.text('"Hadir Hari Ini, Menang Esok Hari"'), findsOneWidget);
+      expect(find.text('Saya Hadir, Saya Kekal, Saya Berjaya!'), findsOneWidget);
+    });
+  });
+}

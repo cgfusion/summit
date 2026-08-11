@@ -69,6 +69,15 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: TextButton.icon(
+                            onPressed: () => context.go('/'),
+                            icon: const Icon(Icons.arrow_back, size: 16),
+                            label: const Text('Laman Utama D2C', style: TextStyle(fontSize: 12)),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
                         ClipOval(
                           child: Image.asset('assets/images/crest.png', width: 72, height: 72, fit: BoxFit.cover),
                         ),
