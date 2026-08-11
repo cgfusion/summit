@@ -304,7 +304,7 @@ class _SchoolLandingScreenState extends State<SchoolLandingScreen> {
                       Container(width: 80, height: 4, color: Colors.amber.shade600),
                       const SizedBox(height: 24),
                       Text(
-                        'Program Dare to Change (D2C) merupakan inisiatif menyeluruh Unit Bimbingan & Kaunseling (UBK) dengan kerjasama Jawatankuasa HEM dan Pentadbiran SMK Sungai Damit. Program ini bukan sekadar kempen kesedaran, malah sistem tindakan harian menyeluruh yang menghubungkan data kehadiran real-time, intervensi mentor, sokongan Pembimbing Rakan Sebaya (PRS), penglibatan ibu bapa, serta pengiktirafan merit sahsiah murid.',
+                        'Program Dare to Change (D2C) dirancang sebagai program menyeluruh bagi semua murid SMK Sungai Damit. Program ini bukan sekadar kempen kesedaran, tetapi satu sistem tindakan harian yang menghubungkan data kehadiran real-time, intervensi mentor, sokongan Pembimbing Rakan Sebaya (PRS), penglibatan penjaga, serta ganjaran berasaskan usaha dan peningkatan sahsiah murid.',
                         textAlign: TextAlign.center,
                         style: theme.textTheme.bodyLarge?.copyWith(height: 1.6),
                       ),
