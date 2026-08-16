@@ -305,7 +305,7 @@ class _CyberHeroSpotlight extends StatelessWidget {
         image: DecorationImage(
           image: AssetImage('assets/images/school_front.jpg'),
           fit: BoxFit.cover,
-          opacity: 0.18, // Overlay school front photo subtly behind dark cyber grid
+          opacity: 0.28, // Real SMK Sungai Damit school building photo reference background
         ),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 56),
