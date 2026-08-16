@@ -1,5 +1,6 @@
 import '../entities/counseling_record.dart';
 import '../entities/discipline_record.dart';
+import '../entities/school_announcement.dart';
 
 abstract interface class DisciplineCounselingRepository {
   Future<List<DisciplineRecord>> getDisciplineRecords({
@@ -37,4 +38,14 @@ abstract interface class DisciplineCounselingRepository {
   });
 
   Future<Map<String, dynamic>> getStudentDisciplineSummary(String studentId);
+
+  Future<List<SchoolAnnouncement>> getSchoolAnnouncements({String? category});
+
+  Future<void> createSchoolAnnouncement({
+    required String category, // 'disiplin' or 'kaunseling'
+    required String title,
+    required String content,
+    String? authorId,
+    String? targetStudentId,
+  });
 }

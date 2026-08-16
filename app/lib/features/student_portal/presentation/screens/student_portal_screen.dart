@@ -6,6 +6,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import '../providers/student_portal_providers.dart';
 import '../../domain/entities/student_portal_data.dart';
 import '../../domain/entities/student_voice_submission.dart';
+import 'package:app/features/discipline_counseling/domain/entities/school_announcement.dart';
 
 class StudentPortalScreen extends ConsumerStatefulWidget {
   const StudentPortalScreen({super.key, this.initialToken});
@@ -279,7 +280,7 @@ class _StudentDashboardView extends ConsumerWidget {
         }
 
         return DefaultTabController(
-          length: 3,
+          length: 4,
           child: Column(
             children: [
               Container(
@@ -317,6 +318,7 @@ class _StudentDashboardView extends ConsumerWidget {
               ),
               const TabBar(
                 tabs: [
+                  Tab(icon: Icon(Icons.campaign), text: 'Pengumuman'),
                   Tab(icon: Icon(Icons.trending_up), text: 'Kemajuan Saya'),
                   Tab(icon: Icon(Icons.record_voice_over), text: 'Suara Murid'),
                   Tab(icon: Icon(Icons.auto_awesome), text: 'Inspirasi'),
@@ -325,6 +327,7 @@ class _StudentDashboardView extends ConsumerWidget {
               Expanded(
                 child: TabBarView(
                   children: [
+                    _AnnouncementsTab(announcements: data.announcements),
                     _MyProgressTab(data: data),
                     _StudentVoiceTab(data: data, qrToken: qrToken),
                     const _InspirationTab(),
@@ -691,6 +694,134 @@ class _InspirationTab extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _AnnouncementsTab extends StatelessWidget {
+  const _AnnouncementsTab({required this.announcements});
+
+  final List<SchoolAnnouncement> announcements;
+
+  @override
+  Widget build(BuildContext context) {
+    final dateFormat = DateFormat('d MMM yyyy, h:mm a');
+
+    if (announcements.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.campaign_outlined, size: 64, color: Colors.grey.shade400),
+              const SizedBox(height: 16),
+              Text(
+                'Tiada Pengumuman Baru',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Pengumuman rasmi daripada Guru Disiplin dan UBK akan dipaparkan di sini.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey.shade600),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.all(16),
+      itemCount: announcements.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final ann = announcements[index];
+        final isDiscipline = ann.category.toLowerCase() == 'disiplin';
+        final catColor = isDiscipline ? Colors.amber.shade900 : Colors.purple.shade700;
+        final catLabel = isDiscipline ? 'Pengumuman Disiplin' : 'Pengumuman Kaunseling UBK';
+
+        return Card(
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: catColor.withValues(alpha: 0.3)),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: catColor.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: catColor.withValues(alpha: 0.5)),
+                      ),
+                      child: Text(
+                        catLabel,
+                        style: TextStyle(color: catColor, fontWeight: FontWeight.bold, fontSize: 11),
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      dateFormat.format(ann.createdAt),
+                      style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  ann.title,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  ann.content,
+                  style: const TextStyle(fontSize: 14, height: 1.5),
+                ),
+                if (ann.targetStudentName != null && ann.targetStudentName!.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.person, size: 16, color: Colors.blue.shade800),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'Murid Terlibat: ${ann.targetStudentName}',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blue.shade900),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(Icons.account_circle, size: 14, color: Colors.grey.shade600),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Daripada: ${ann.authorName ?? "Pengurusan Sekolah"}',
+                      style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

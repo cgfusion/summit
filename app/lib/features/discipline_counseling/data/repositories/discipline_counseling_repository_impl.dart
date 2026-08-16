@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/utils/date_utils.dart';
 import '../../domain/entities/counseling_record.dart';
 import '../../domain/entities/discipline_record.dart';
+import '../../domain/entities/school_announcement.dart';
 import '../../domain/repositories/discipline_counseling_repository.dart';
 
 class DisciplineCounselingRepositoryImpl implements DisciplineCounselingRepository {
@@ -167,5 +168,50 @@ class DisciplineCounselingRepositoryImpl implements DisciplineCounselingReposito
   Future<Map<String, dynamic>> getStudentDisciplineSummary(String studentId) async {
     final result = await _client.rpc('fn_student_discipline_summary', params: {'p_student_id': studentId});
     return (result as Map<String, dynamic>?) ?? {};
+  }
+
+  @override
+  Future<List<SchoolAnnouncement>> getSchoolAnnouncements({String? category}) async {
+    var query = _client.from('school_announcements').select('''
+          id,
+          author_id,
+          category,
+          title,
+          content,
+          target_student_id,
+          is_published,
+          created_at,
+          profiles (
+            full_name
+          ),
+          students (
+            full_name
+          )
+        ''').eq('is_published', true);
+
+    if (category != null && category.isNotEmpty) {
+      query = query.eq('category', category);
+    }
+
+    final rows = await query.order('created_at', ascending: false);
+    return (rows as List).map((r) => SchoolAnnouncement.fromMap(r as Map<String, dynamic>)).toList();
+  }
+
+  @override
+  Future<void> createSchoolAnnouncement({
+    required String category,
+    required String title,
+    required String content,
+    String? authorId,
+    String? targetStudentId,
+  }) async {
+    await _client.from('school_announcements').insert({
+      'category': category,
+      'title': title,
+      'content': content,
+      'author_id': authorId,
+      'target_student_id': targetStudentId,
+      'is_published': true,
+    });
   }
 }

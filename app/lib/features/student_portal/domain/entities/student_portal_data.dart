@@ -1,4 +1,5 @@
 import 'student_voice_submission.dart';
+import 'package:app/features/discipline_counseling/domain/entities/school_announcement.dart';
 
 class StudentPortalData {
   const StudentPortalData({
@@ -12,6 +13,7 @@ class StudentPortalData {
     required this.totalMeritPoints,
     required this.recentAttendance,
     required this.submissions,
+    required this.announcements,
   });
 
   final String studentId;
@@ -24,6 +26,7 @@ class StudentPortalData {
   final int totalMeritPoints;
   final List<Map<String, dynamic>> recentAttendance;
   final List<StudentVoiceSubmission> submissions;
+  final List<SchoolAnnouncement> announcements;
 
   factory StudentPortalData.fromMap(Map<String, dynamic> map) {
     final sMap = map['student'] as Map<String, dynamic>? ?? {};
@@ -32,6 +35,10 @@ class StudentPortalData {
     final recentList = (map['recent_attendance'] as List?)?.cast<Map<String, dynamic>>() ?? [];
     final subList = (map['submissions'] as List?)
             ?.map((e) => StudentVoiceSubmission.fromMap(e as Map<String, dynamic>))
+            .toList() ??
+        [];
+    final annList = (map['announcements'] as List?)
+            ?.map((e) => SchoolAnnouncement.fromMap(e as Map<String, dynamic>))
             .toList() ??
         [];
 
@@ -46,6 +53,7 @@ class StudentPortalData {
       totalMeritPoints: (mMap['total_points'] as num? ?? 0).toInt(),
       recentAttendance: recentList,
       submissions: subList,
+      announcements: annList,
     );
   }
 }

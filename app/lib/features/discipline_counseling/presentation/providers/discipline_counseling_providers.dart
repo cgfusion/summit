@@ -4,6 +4,7 @@ import '../../../../core/providers/supabase_provider.dart';
 import '../../data/repositories/discipline_counseling_repository_impl.dart';
 import '../../domain/entities/counseling_record.dart';
 import '../../domain/entities/discipline_record.dart';
+import '../../domain/entities/school_announcement.dart';
 import '../../domain/repositories/discipline_counseling_repository.dart';
 
 final disciplineCounselingRepositoryProvider = Provider<DisciplineCounselingRepository>((ref) {
@@ -35,4 +36,9 @@ final counselingRecordsProvider = FutureProvider.autoDispose
 final studentDisciplineSummaryProvider = FutureProvider.autoDispose
     .family<Map<String, dynamic>, String>((ref, studentId) {
   return ref.watch(disciplineCounselingRepositoryProvider).getStudentDisciplineSummary(studentId);
+});
+
+final schoolAnnouncementsProvider = FutureProvider.autoDispose
+    .family<List<SchoolAnnouncement>, String?>((ref, category) {
+  return ref.watch(disciplineCounselingRepositoryProvider).getSchoolAnnouncements(category: category);
 });

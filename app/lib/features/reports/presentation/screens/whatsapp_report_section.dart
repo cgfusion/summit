@@ -225,8 +225,6 @@ class _WhatsAppReportSectionState extends ConsumerState<WhatsAppReportSection> {
               ),
               error: (error, stackTrace) => Text('Failed to load: $error'),
             ),
-            const SizedBox(height: 12),
-            const _AnnouncementCard(),
           ],
         ),
       ),
@@ -291,104 +289,14 @@ class _SessionReportCard extends StatelessWidget {
   }
 }
 
-class _AnnouncementCard extends ConsumerStatefulWidget {
-  const _AnnouncementCard();
+class AttachStudentDialog extends ConsumerStatefulWidget {
+  const AttachStudentDialog({super.key});
 
   @override
-  ConsumerState<_AnnouncementCard> createState() => _AnnouncementCardState();
+  ConsumerState<AttachStudentDialog> createState() => _AttachStudentDialogState();
 }
 
-class _AnnouncementCardState extends ConsumerState<_AnnouncementCard> {
-  final _bodyController = TextEditingController();
-
-  @override
-  void dispose() {
-    _bodyController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _attachStudent() async {
-    final student = await showDialog<Student>(
-      context: context,
-      builder: (dialogContext) => const _AttachStudentDialog(),
-    );
-    if (student != null) {
-      _bodyController.text = 'Nama: ${student.fullName}\nKelas: ${student.className ?? '-'}\n\n${_bodyController.text}';
-      setState(() {});
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.campaign_outlined, color: Colors.orange.shade700),
-              const SizedBox(width: 8),
-              const Expanded(child: Text('Special Announcement (Discipline)', style: TextStyle(fontWeight: FontWeight.bold))),
-            ],
-          ),
-          Text(
-            'Ad hoc -- only when needed, not part of the daily attendance report.',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            icon: const Icon(Icons.person_search, size: 18),
-            label: const Text('Attach Student (optional)'),
-            onPressed: _attachStudent,
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _bodyController,
-            maxLines: 6,
-            minLines: 3,
-            decoration: const InputDecoration(
-              hintText: 'Type the announcement here...',
-              border: OutlineInputBorder(),
-            ),
-            onChanged: (_) => setState(() {}),
-          ),
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerRight,
-            child: FilledButton.icon(
-              icon: const Icon(Icons.copy_outlined, size: 18),
-              label: const Text('Copy'),
-              onPressed: _bodyController.text.trim().isEmpty
-                  ? null
-                  : () async {
-                      await Clipboard.setData(ClipboardData(text: _bodyController.text));
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Announcement copied. Paste it into WhatsApp.')),
-                        );
-                      }
-                    },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AttachStudentDialog extends ConsumerStatefulWidget {
-  const _AttachStudentDialog();
-
-  @override
-  ConsumerState<_AttachStudentDialog> createState() => _AttachStudentDialogState();
-}
-
-class _AttachStudentDialogState extends ConsumerState<_AttachStudentDialog> {
+class _AttachStudentDialogState extends ConsumerState<AttachStudentDialog> {
   final _searchController = TextEditingController();
   List<Student> _results = [];
   bool _searching = false;

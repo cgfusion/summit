@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import 'package:flutter/services.dart';
 import '../../../../core/layout/app_shell.dart';
+import '../../../reports/presentation/screens/whatsapp_report_section.dart' show AttachStudentDialog;
 import '../../../settings/domain/entities/staff_profile.dart';
 import '../../../settings/presentation/providers/settings_providers.dart';
 import '../../../student/domain/entities/student.dart';
@@ -202,6 +204,14 @@ class _DisciplineTab extends ConsumerWidget {
 
     return Column(
       children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: _AnnouncementComposerWidget(
+            category: 'disiplin',
+            title: 'Special Announcement (Discipline)',
+            color: Colors.amber.shade900,
+          ),
+        ),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -339,6 +349,14 @@ class _CounselingTab extends ConsumerWidget {
 
     return Column(
       children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: _AnnouncementComposerWidget(
+            category: 'kaunseling',
+            title: 'Special Announcement (Kaunseling UBK)',
+            color: Colors.purple.shade700,
+          ),
+        ),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -1167,5 +1185,205 @@ class _RespondVoiceDialogState extends ConsumerState<_RespondVoiceDialog> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+}
+
+class _AnnouncementComposerWidget extends ConsumerStatefulWidget {
+  const _AnnouncementComposerWidget({
+    required this.category,
+    required this.title,
+    required this.color,
+  });
+
+  final String category; // 'disiplin' or 'kaunseling'
+  final String title;
+  final Color color;
+
+  @override
+  ConsumerState<_AnnouncementComposerWidget> createState() => _AnnouncementComposerWidgetState();
+}
+
+class _AnnouncementComposerWidgetState extends ConsumerState<_AnnouncementComposerWidget> {
+  final _titleController = TextEditingController();
+  final _bodyController = TextEditingController();
+  Student? _attachedStudent;
+  bool _submitting = false;
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _bodyController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _attachStudent() async {
+    final student = await showDialog<Student>(
+      context: context,
+      builder: (dialogContext) => const AttachStudentDialog(),
+    );
+    if (student != null) {
+      setState(() => _attachedStudent = student);
+    }
+  }
+
+  Future<void> _publish() async {
+    final title = _titleController.text.trim();
+    final body = _bodyController.text.trim();
+    if (title.isEmpty || body.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sila isi tajuk dan kandungan pengumuman.')),
+      );
+      return;
+    }
+
+    setState(() => _submitting = true);
+    try {
+      final profile = ref.read(currentProfileProvider).value;
+      await ref.read(disciplineCounselingRepositoryProvider).createSchoolAnnouncement(
+            category: widget.category,
+            title: title,
+            content: body,
+            authorId: profile?.id,
+            targetStudentId: _attachedStudent?.id,
+          );
+
+      if (mounted) {
+        _titleController.clear();
+        _bodyController.clear();
+        setState(() => _attachedStudent = null);
+        ref.invalidate(schoolAnnouncementsProvider(widget.category));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Pengumuman ${widget.category == 'disiplin' ? 'Disiplin' : 'Kaunseling'} berjaya diterbitkan ke Portal Murid!'),
+            backgroundColor: Colors.green.shade800,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal menerbitkan pengumuman: $e'), backgroundColor: Colors.red.shade800),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: widget.color.withValues(alpha: 0.4), width: 1.5),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.campaign, color: widget.color, size: 24),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    widget.title,
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: widget.color),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: widget.color.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'Siaran Portal Murid',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: widget.color),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Pengumuman ini akan dipaparkan secara langsung di Tab Pengumuman Portal Murid.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _titleController,
+              decoration: const InputDecoration(
+                labelText: 'Tajuk Pengumuman',
+                hintText: 'Contoh: Peringatan Sahsiah / Sesi Motivasi Bimbingan',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _bodyController,
+              maxLines: 4,
+              minLines: 2,
+              decoration: const InputDecoration(
+                labelText: 'Kandungan Pengumuman',
+                hintText: 'Taip kandungan pengumuman di sini...',
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.person_search, size: 18),
+                  label: Text(_attachedStudent == null
+                      ? 'Lampirkan Murid (Pilihan)'
+                      : 'Murid: ${_attachedStudent!.fullName} (${_attachedStudent!.className ?? '-'})'),
+                  onPressed: _attachStudent,
+                ),
+                if (_attachedStudent != null) ...[
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 18),
+                    onPressed: () => setState(() => _attachedStudent = null),
+                  ),
+                ],
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.copy, size: 16),
+                  label: const Text('Salin WA'),
+                  onPressed: (_titleController.text.trim().isEmpty && _bodyController.text.trim().isEmpty)
+                      ? null
+                      : () async {
+                          final text = '📢 *${_titleController.text.trim()}*\n\n${_bodyController.text.trim()}${_attachedStudent != null ? '\n\nMurid: ${_attachedStudent!.fullName} (${_attachedStudent!.className ?? '-'})' : ''}';
+                          await Clipboard.setData(ClipboardData(text: text));
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Teks disalin ke papan klip untuk WhatsApp!')),
+                            );
+                          }
+                        },
+                ),
+                ElevatedButton.icon(
+                  icon: _submitting
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Icon(Icons.send, size: 16),
+                  label: const Text('TERBITKAN'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: widget.color,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: _submitting ? null : _publish,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
