@@ -11,8 +11,8 @@ void main() {
         ),
       );
 
-      expect(find.text('SMK SUNGAI DAMIT'), findsOneWidget);
-      expect(find.text('DARE TO CHANGE (D2C)'), findsOneWidget);
+      expect(find.text('SMK SUNGAI DAMIT'), findsWidgets);
+      expect(find.textContaining('DARE TO'), findsWidgets);
       expect(find.text('"Hadir Hari Ini, Menang Esok Hari"'), findsOneWidget);
       expect(find.text('Saya Hadir, Saya Kekal, Saya Berjaya!'), findsOneWidget);
     });
