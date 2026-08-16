@@ -59228,7 +59228,7 @@ p=A.o(a).ok.w
 o=t.p
 p=A.aG(A.b([s,B.ev,new A.eq(1,B.b1,A.r("DARE TO CHANGE (D2C)",1,B.as,n,n,p==null?n:p.dv(B.v),n,n,n),n)],o),B.i,B.f,B.h,0,n)
 p=A.hD(A.b([A.d5(n,n,n,n,B.W0,n,n,n,new A.aqg(a),n,n,n,n,"Rearrange Dashboard"),A.d5(n,n,n,n,A.cb(A.biN(l),n,n,n),n,n,n,new A.aqh(b,l),n,n,n,n,"Theme: "+A.biO(l)),A.d5(n,n,n,n,A.cb(A.biL(m),n,n,n),n,n,n,new A.aqi(b,m),n,n,n,n,"Layout: "+m.b),new A.a7f(r,n),B.hF],o),n,n,n,n,n,B.ct,n,p,16)
-i=i.ax.a===B.aH?B.Lq:n
+i=i.ax.a===B.aH?B.Lr:n
 return A.fy(p,n,A.b2(n,A.ko(new A.aqj(r,h,q,k,b,g,f,e,d)),B.m,n,n,i,n,n,n,n,n,n,n,n))}}
 A.aqg.prototype={
 $0(){return A.B3(new A.aqf(),this.a,!0,t.H)},
@@ -60971,7 +60971,7 @@ B(a){var s=this,r=null,q=A.at(a,r,t.w).w,p=B.dU.b4(0.18),o=A.bH(30),n=t.p
 o=A.b([A.b2(r,B.a82,B.m,r,r,new A.bh(p,r,A.e4(B.ar.b4(0.6),1),o,A.b([new A.c0(0,B.a2,B.dU.b4(0.35),B.k,18)],t.V),r,B.I),r,r,r,r,B.Tv,r,r,r),B.fv],n)
 if(q.a.a>980)o.push(A.aG(A.b([A.aM(s.ZM(a),6),B.aau,A.aM(s.ZU(a),4)],n),B.y,B.f,B.h,0,r))
 else o.push(A.ac(A.b([s.ZM(a),B.fv,s.ZU(a)],n),B.i,B.f,B.h,0,B.l))
-return A.b2(r,A.ch(new A.d3(B.Lm,A.ac(o,B.i,B.f,B.h,0,B.l),r),r,r),B.m,r,r,B.Ls,r,r,r,r,B.TA,r,r,1/0)},
+return A.b2(r,A.ch(new A.d3(B.Lm,A.ac(o,B.i,B.f,B.h,0,B.l),r),r,r),B.m,r,r,B.Lp,r,r,r,r,B.TA,r,r,1/0)},
 ZM(a){var s,r,q,p,o=null,n=A.aHP(o,o,o,B.bE,o,o,!0,o,B.ac6,B.a9,o,o,B.Y,B.ao),m=A.bH(24)
 m=A.b2(o,B.ait,B.m,o,o,new A.bh(B.R1,o,A.e4(B.On,1.2),m,A.b([new A.c0(0,B.a2,B.cb.b4(0.15),B.k,12)],t.V),o,B.I),o,o,o,o,B.Tw,o,o,o)
 s=B.n.b4(0.06)
@@ -61001,7 +61001,7 @@ A.a9F.prototype={
 B(a){var s=null,r=A.bH(24),q=A.e4(B.ar.b4(0.35),1),p=t.p,o=A.b([],p)
 if(A.at(a,s,t.w).w.a.a>680)B.b.M(o,A.b([A.b2(s,B.WV,B.m,s,s,new A.bh(B.dU.b4(0.15),s,A.e4(B.ar.b4(0.5),1),s,s,s,B.b7),s,s,s,s,B.ab,s,s,s),B.aat],p))
 o.push(A.aM(A.ac(A.b([B.ahh,B.aU,B.ajJ,B.a_,A.b2(s,s,B.m,B.cb,s,s,s,3,s,s,s,s,s,60),B.bX,B.aij],p),B.i,B.f,B.h,0,B.l),1))
-return A.b2(s,A.ch(new A.d3(B.k3,A.ac(A.b([A.b2(s,A.aG(o,B.y,B.f,B.h,0,s),B.m,s,s,new A.bh(B.ku,s,q,r,s,s,B.I),s,s,s,s,B.ej,s,s,s),B.fv,A.o7(B.mN,B.a_Z,B.da,16,16)],p),B.i,B.f,B.h,0,B.l),s),s,s),B.m,s,s,B.Lr,s,s,s,s,B.h9,s,s,1/0)}}
+return A.b2(s,A.ch(new A.d3(B.k3,A.ac(A.b([A.b2(s,A.aG(o,B.y,B.f,B.h,0,s),B.m,s,s,new A.bh(B.ku,s,q,r,s,s,B.I),s,s,s,s,B.ej,s,s,s),B.fv,A.o7(B.mN,B.a_Z,B.da,16,16)],p),B.i,B.f,B.h,0,B.l),s),s,s),B.m,s,s,B.Ls,s,s,s,s,B.h9,s,s,1/0)}}
 A.zX.prototype={
 B(a){var s=this,r=null,q=A.bH(20),p=s.r,o=A.e4(p.b4(0.4),1.5),n=A.b([new A.c0(0,B.a2,p.b4(0.15),B.k,16)],t.V),m=p.b4(0.15),l=A.e4(p.b4(0.5),1)
 return A.b2(r,A.ac(A.b([A.b2(r,A.cb(s.c,p,r,28),B.m,r,r,new A.bh(m,r,l,r,r,r,B.b7),r,r,r,r,B.aI,r,r,r),B.a7,A.r(s.d,r,r,r,r,A.bL(r,r,p,r,r,r,r,r,r,r,r,30,r,r,B.bm,r,r,!0,r,r,r,r,r,r,r,r),r,r,r),B.aU,A.r(s.e,r,r,r,r,B.rj,B.a9,r,r),B.fu,A.r(s.f,r,r,r,r,A.bL(r,r,B.dR,r,r,r,r,r,r,r,r,11,r,r,r,r,r,!0,r,r,r,r,r,r,r,r),B.a9,r,r)],t.p),B.i,B.f,B.h,0,B.l),B.m,r,r,new A.bh(B.iw,r,o,q,n,r,B.I),r,r,r,r,B.bk,r,r,230)}}
@@ -78248,7 +78248,7 @@ a5=A.i8(new A.aO(a3,q,new A.aa(m,A.aG(h,B.i,B.cJ,B.L,0,a3),a3),a3),a3,a3,B.bE,!0
 if(a6.a_(t.U2)==null){a4=a2.a
 g=a4.ch||a4.cx==null?0:8
 a4=a4.Q
-a5=new A.et(B.bc,a3,B.b4,B.r,A.b([a5,A.uF(g,a4==null?A.b2(a3,a3,B.m,a3,a3,B.Lp,a3,1,a3,a3,a3,a3,a3,a3):a4,a3,a3,0,0,a3,a3)],l),a3)}a2.a.toString
+a5=new A.et(B.bc,a3,B.b4,B.r,A.b([a5,A.uF(g,a4==null?A.b2(a3,a3,B.m,a3,a3,B.Lq,a3,1,a3,a3,a3,a3,a3,a3):a4,a3,a3,0,0,a3,a3)],l),a3)}a2.a.toString
 a4=A.aK(t.C)
 if(!a2.goe())a4.F(0,B.u)
 f=A.ce(B.de,a4,t.Pb)
@@ -137815,18 +137815,25 @@ B.b7=new A.Y8(1,"circle")
 B.tD=new A.bh(B.ar,null,null,null,null,null,B.b7)
 B.iz=new A.q(1,0.06274509803921569,0.7254901960784313,0.5058823529411764,B.e)
 B.Lo=new A.bh(B.iz,null,null,null,null,null,B.b7)
+B.uY=new A.q(1,0.03137254901960784,0.050980392156862744,0.10196078431372549,B.e)
+B.Kq=new A.Bk("assets/images/school_front.jpg",null,null)
+B.cS=new A.Y6(2,"cover")
+B.dY=new A.CY(3,"noRepeat")
+B.dr=new A.x3(2,"medium")
+B.RO=new A.Cg(B.Kq,null,B.cS,0.28)
+B.I=new A.Y8(0,"rectangle")
+B.Lp=new A.bh(B.uY,B.RO,null,null,null,null,B.I)
 B.dR=new A.q(1,0.7411764705882353,0.7411764705882353,0.7411764705882353,B.e)
 B.L4=new A.aW(B.dR,0,B.z,-1)
 B.L9=new A.el(B.t,B.t,B.L4,B.t)
-B.I=new A.Y8(0,"rectangle")
-B.Lp=new A.bh(null,null,B.L9,null,null,null,B.I)
+B.Lq=new A.bh(null,null,B.L9,null,null,null,B.I)
 B.dF=new A.P9(0,"clamp")
 B.v3=new A.q(1,0.043137254901960784,0.058823529411764705,0.11372549019607843,B.e)
 B.Pa=new A.q(1,0.07058823529411765,0.10196078431372549,0.1803921568627451,B.e)
 B.Qd=new A.q(1,0.09019607843137255,0.07058823529411765,0.16862745098039217,B.e)
 B.a15=s([B.v3,B.Pa,B.Qd],t.t_)
 B.YU=new A.oU(B.ef,B.ni,B.dF,B.a15,null,null)
-B.Lq=new A.bh(null,null,null,null,null,B.YU,B.I)
+B.Lr=new A.bh(null,null,null,null,null,B.YU,B.I)
 B.on=new A.q(1,0.023529411764705882,0.03529411764705882,0.07450980392156863,B.e)
 B.Q_=new A.q(0.12156862745098039,0.2196078431372549,0.7411764705882353,0.9725490196078431,B.e)
 B.nB=new A.aW(B.Q_,1,B.z,-1)
@@ -137837,16 +137844,9 @@ B.ON=new A.q(1,0.058823529411764705,0.3607843137254902,0.22745098039215686,B.e)
 B.a1p=s([B.om,B.ON],t.t_)
 B.x9=new A.oU(B.ef,B.ni,B.dF,B.a1p,null,null)
 B.nC=new A.bh(null,null,null,null,null,B.x9,B.I)
-B.uY=new A.q(1,0.03137254901960784,0.050980392156862744,0.10196078431372549,B.e)
 B.nD=new A.bh(B.uY,null,null,null,null,null,B.I)
 B.L7=new A.el(B.nB,B.t,B.nB,B.t)
-B.Lr=new A.bh(B.on,null,B.L7,null,null,null,B.I)
-B.Kq=new A.Bk("assets/images/school_front.jpg",null,null)
-B.cS=new A.Y6(2,"cover")
-B.dY=new A.CY(3,"noRepeat")
-B.dr=new A.x3(2,"medium")
-B.RO=new A.Cg(B.Kq,null,B.cS,0.18)
-B.Ls=new A.bh(B.uY,B.RO,null,null,null,null,B.I)
+B.Ls=new A.bh(B.on,null,B.L7,null,null,null,B.I)
 B.tF=new A.Y6(6,"scaleDown")
 B.k5=new A.IN(0,"tight")
 B.nE=new A.IN(1,"max")
