@@ -94,6 +94,54 @@ Sentiasa jawab dengan sopan, mesra, bersemangat, profesional, dan dalam Bahasa M
   String _generateSmartLocalResponse(String prompt) {
     final lower = prompt.toLowerCase();
 
+    if (lower.contains('tingkatan') ||
+        lower.contains('terlibat') ||
+        lower.contains('sasaran') ||
+        lower.contains('kelas') ||
+        lower.contains('siapa') ||
+        lower.contains('sesi')) {
+      return '''
+🏫 **Tingkatan & Kumpulan Terlibat dalam Program D2C (SMK Sungai Damit)**:
+
+Program **Dare to Change (D2C)** melibatkan **SEMUA murid dari Tingkatan 1 hingga Tingkatan 5**:
+
+- ☀️ **Sesi Pagi (Tingkatan 3, 4, dan 5)**:
+  - Waktu Sesi: Sebelum 7:00 AM hingga 1:00 PM.
+  - Penandaan Kehadiran oleh Guru Tingkatan pada 7:30 AM.
+
+- 🌙 **Sesi Petang (Tingkatan 1 dan 2)**:
+  - Waktu Sesi: Sebelum 1:00 PM hingga 6:00 PM.
+  - Penandaan Kehadiran oleh Guru Tingkatan pada 1:30 PM.
+
+Semua murid (Tingkatan 1-5) mengumpul sehingga **4 Mata Merit Harian** secara automatik setiap hari! 🌟''';
+    }
+
+    if (lower.contains('maksud d2c') ||
+        lower.contains('apa itu d2c') ||
+        lower.contains('definisi d2c') ||
+        lower.contains('objektif d2c') ||
+        lower.contains('matlamat d2c')) {
+      return '''
+🚀 **Maksud & Matlamat Program Dare to Change (D2C)**:
+
+D2C ialah program transformasi kehadiran digital dan sahsiah murid di **SMK Sungai Damit, Tamparuli, Sabah** di bawah tema *"Hadir Hari Ini, Menang Esok Hari"* dan slogan *"Saya Hadir, Saya Kekal, Saya Berjaya!"*.
+
+**Matlamat Utama D2C**:
+1. 📈 Meningkatkan peratus kehadiran murid sekolah ke sasaran **95%+**.
+2. ⏱️ Mengurangkan kes murid lewat dan ponteng kelas.
+3. 🏆 Memberikan pengiktirafan harian & mingguan melalui **4 Mata Merit Harian**.
+4. 🛡️ Melaksanakan **3 Aras Intervensi** (Universal, UBK/PRS, Ziarah Cakna).''';
+    }
+
+    if (lower.contains('slogan') || lower.contains('motto') || lower.contains('tagline') || lower.contains('tema')) {
+      return '''
+🌟 **Motto & Tagline Rasmi D2C SMK Sungai Damit**:
+
+- 🏫 **Motto Sekolah**: *"ONE TEAM ONE DREAM, TERUS MARA MENAWAN 7SUMMITs"*
+- ⚡ **Tema Utama D2C**: *"Hadir Hari Ini, Menang Esok Hari"*
+- 🎯 **Tagline Murid**: *"Saya Hadir, Saya Kekal, Saya Berjaya!"*''';
+    }
+
     if (lower.contains('merit') || lower.contains('mata') || lower.contains('markah')) {
       return '''
 🏆 **Sistem 4 Mata Merit Harian D2C (SMK Sungai Damit)**:
@@ -149,6 +197,15 @@ Mata merit dikumpul secara automatik untuk **Merit Individu** dan **Merit Kelas*
 - **Bagi Murid**: Pengumuman rasmi daripada guru akan dipaparkan secara **Live Sync** di **Tab 1: 📢 Pengumuman** dalam Portal Murid (`/#/student`)! ⚡''';
     }
 
+    if (lower.contains('sudut info') || lower.contains('hebahan') || lower.contains('makluman')) {
+      return '''
+ℹ️ **Sudut Info Disiplin & Kaunseling (D2C)**:
+
+Sudut Info dipaparkan secara langsung pada Halaman Utama (Landing Page) & Portal Murid.
+- Guru Disiplin & Guru Kaunselor (UBK) boleh memasukkan pengumuman, jadual program, dan tips sahsiah di tab **Sudut Info** (`/#/discipline-counseling`).
+- Tempoh paparan boleh dijadualkan mengikut masa mula dan masa tamat yang ditetapkan oleh guru!''';
+    }
+
     if (lower.contains('jadual') || lower.contains('tarikh') || lower.contains('pelancaran') || lower.contains('penilaian')) {
       return '''
 📅 **Jadual Pelaksanaan D2C 2026**:
@@ -171,17 +228,19 @@ Mata merit dikumpul secara automatik untuk **Merit Individu** dan **Merit Kelas*
     }
 
     return '''
-🤖 **Selamat datang ke Pembantu AI D2C!**
+🤖 **Maklumat Program D2C (SMK Sungai Damit)**:
 
-Saya sedia membantu anda berkaitan Program **Dare to Change (D2C) SMK Sungai Damit**. 
+Mengenai pertanyaan anda (*"$prompt"*):
 
-Anda boleh bertanya mengenai:
-- 🏆 **Mata Merit**: Cara 4 mata merit harian dikira.
-- 🛡️ **3 Aras Intervensi**: Model tindakan harian murid.
-- 📣 **Suara Murid Rahsia**: Panduan hantar aduan buli/cadangan.
-- 👨‍👩‍👧‍👦 **Portal Ibu Bapa**: Cara semak kehadiran guna No. IC.
-- 📢 **Pengumuman Disiplin & UBK**: Hebahan rasmi sekolah.
+Program **Dare to Change (D2C)** merangkumi seluruh warga sekolah (Tingkatan 1 hingga 5).
 
-*Sila taip soalan anda atau pilih cadangan soalan di bawah!* ⚡''';
+Berikut ialah jawapan ringkas bagi topik berkaitan:
+- 🏫 **Tingkatan Terlibat**: Semua murid Tingkatan 1, 2, 3, 4 & 5 (Sesi Pagi: T3-T5, Sesi Petang: T1-T2).
+- 🏆 **4 Mata Merit**: (+1 Hadir, +1 Tepat Masa, +1 Kembali Rehat, +1 Tamat Sesi).
+- 🛡️ **3 Aras Intervensi**: Aras 1 (Universal), Aras 2 (Mentor UBK/PRS), Aras 3 (Ziarah Cakna Pengetua).
+- 👨‍👩‍👧‍👦 **Portal Ibu Bapa**: Semakan kehadiran anak guna No. IC Penjaga di `/#/parent`.
+- 📣 **Suara Murid Rahsia**: Aduan buli & cadangan rahsia di `/#/student`.
+
+*Sila taip soalan anda atau pilih butang cadangan di bawah!* ⚡''';
   }
 }

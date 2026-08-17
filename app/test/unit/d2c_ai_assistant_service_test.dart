@@ -35,5 +35,13 @@ void main() {
       expect(reply, contains('Portal Ibu Bapa'));
       expect(reply, contains('No. IC / MyKad Penjaga'));
     });
+
+    test('generates smart local response for tingkatan berapakah terlibat question', () async {
+      final reply = await service.askAi('tingkatan berapakah terlibat', []);
+
+      expect(reply, contains('Tingkatan 1 hingga Tingkatan 5'));
+      expect(reply, contains('Sesi Pagi'));
+      expect(reply, contains('Sesi Petang'));
+    });
   });
 }
