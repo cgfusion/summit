@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/settings/presentation/providers/settings_providers.dart';
 import '../providers/supabase_provider.dart';
 import '../theme/app_theme.dart';
+import '../widgets/d2c_ai_assistant_dialog.dart';
 
 enum LayoutMode { auto, sidebar, compact }
 
@@ -148,6 +149,13 @@ class _Sidebar extends ConsumerWidget {
                       ),
                     ],
                   ),
+                ),
+                IconButton(
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                  icon: const Icon(Icons.smart_toy_rounded, color: Color(0xFF38BDF8), size: 20),
+                  tooltip: 'Pembantu AI D2C',
+                  onPressed: () => D2CAiAssistantDialog.show(context),
                 ),
                 IconButton(
                   padding: EdgeInsets.zero,

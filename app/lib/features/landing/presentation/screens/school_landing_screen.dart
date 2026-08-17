@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/widgets/d2c_ai_assistant_dialog.dart';
 
 class SchoolLandingScreen extends StatefulWidget {
   const SchoolLandingScreen({super.key});
@@ -100,6 +101,16 @@ class _SchoolLandingScreenState extends State<SchoolLandingScreen> {
             ),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => D2CAiAssistantDialog.show(context),
+        icon: const Icon(Icons.smart_toy_rounded, color: Colors.black),
+        label: const Text(
+          'PEMBANTU AI',
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, letterSpacing: 0.8, fontSize: 12),
+        ),
+        backgroundColor: const Color(0xFF38BDF8),
+        elevation: 8,
       ),
     );
   }
