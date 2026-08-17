@@ -4,6 +4,7 @@ import '../../../../core/utils/date_utils.dart';
 import '../../domain/entities/counseling_record.dart';
 import '../../domain/entities/discipline_record.dart';
 import '../../domain/entities/school_announcement.dart';
+import '../../domain/entities/sudut_info_post.dart';
 import '../../domain/repositories/discipline_counseling_repository.dart';
 
 class DisciplineCounselingRepositoryImpl implements DisciplineCounselingRepository {
@@ -256,5 +257,107 @@ class DisciplineCounselingRepositoryImpl implements DisciplineCounselingReposito
   @override
   Future<void> deleteSchoolAnnouncement(String id) async {
     await _client.from('school_announcements').delete().eq('id', id);
+  }
+
+  // Sudut Info Implementation
+  @override
+  Future<List<SudutInfoPost>> getSudutInfoPosts({
+    String? category,
+    bool onlyActive = false,
+  }) async {
+    var query = _client.from('sudut_info_posts').select('''
+          id,
+          author_id,
+          category,
+          title,
+          content,
+          managed_by,
+          is_published,
+          valid_from,
+          valid_until,
+          created_at,
+          profiles (
+            full_name
+          )
+        ''');
+
+    if (onlyActive) {
+      final nowStr = DateTime.now().toIso8601String();
+      query = query
+          .eq('is_published', true)
+          .lte('valid_from', nowStr)
+          .or('valid_until.is.null,valid_until.gte.$nowStr');
+    }
+
+    if (category != null && category.isNotEmpty) {
+      query = query.eq('category', category);
+    }
+
+    final rows = await query.order('created_at', ascending: false);
+    return (rows as List).map((r) => SudutInfoPost.fromMap(r as Map<String, dynamic>)).toList();
+  }
+
+  @override
+  Future<void> createSudutInfoPost({
+    required String category,
+    required String title,
+    required String content,
+    String? managedBy,
+    String? authorId,
+    required DateTime validFrom,
+    DateTime? validUntil,
+  }) async {
+    await _client.from('sudut_info_posts').insert({
+      'category': category,
+      'title': title,
+      'content': content,
+      'managed_by': managedBy ?? 'Unit Disiplin & Kaunseling',
+      'author_id': authorId,
+      'is_published': true,
+      'valid_from': validFrom.toIso8601String(),
+      'valid_until': validUntil?.toIso8601String(),
+    });
+  }
+
+  @override
+  Future<void> updateSudutInfoPost({
+    required String id,
+    required String category,
+    required String title,
+    required String content,
+    String? managedBy,
+    required DateTime validFrom,
+    DateTime? validUntil,
+    bool? isPublished,
+  }) async {
+    final updateData = <String, dynamic>{
+      'category': category,
+      'title': title,
+      'content': content,
+      'managed_by': managedBy ?? 'Unit Disiplin & Kaunseling',
+      'valid_from': validFrom.toIso8601String(),
+      'valid_until': validUntil?.toIso8601String(),
+      'updated_at': DateTime.now().toIso8601String(),
+    };
+    if (isPublished != null) {
+      updateData['is_published'] = isPublished;
+    }
+    await _client.from('sudut_info_posts').update(updateData).eq('id', id);
+  }
+
+  @override
+  Future<void> toggleSudutInfoPublishStatus({
+    required String id,
+    required bool isPublished,
+  }) async {
+    await _client.from('sudut_info_posts').update({
+      'is_published': isPublished,
+      'updated_at': DateTime.now().toIso8601String(),
+    }).eq('id', id);
+  }
+
+  @override
+  Future<void> deleteSudutInfoPost(String id) async {
+    await _client.from('sudut_info_posts').delete().eq('id', id);
   }
 }

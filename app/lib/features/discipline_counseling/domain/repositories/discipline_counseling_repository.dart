@@ -1,6 +1,7 @@
 import '../entities/counseling_record.dart';
 import '../entities/discipline_record.dart';
 import '../entities/school_announcement.dart';
+import '../entities/sudut_info_post.dart';
 
 abstract interface class DisciplineCounselingRepository {
   Future<List<DisciplineRecord>> getDisciplineRecords({
@@ -66,4 +67,38 @@ abstract interface class DisciplineCounselingRepository {
   });
 
   Future<void> deleteSchoolAnnouncement(String id);
+
+  // Sudut Info Management
+  Future<List<SudutInfoPost>> getSudutInfoPosts({
+    String? category,
+    bool onlyActive = false,
+  });
+
+  Future<void> createSudutInfoPost({
+    required String category,
+    required String title,
+    required String content,
+    String? managedBy,
+    String? authorId,
+    required DateTime validFrom,
+    DateTime? validUntil,
+  });
+
+  Future<void> updateSudutInfoPost({
+    required String id,
+    required String category,
+    required String title,
+    required String content,
+    String? managedBy,
+    required DateTime validFrom,
+    DateTime? validUntil,
+    bool? isPublished,
+  });
+
+  Future<void> toggleSudutInfoPublishStatus({
+    required String id,
+    required bool isPublished,
+  });
+
+  Future<void> deleteSudutInfoPost(String id);
 }

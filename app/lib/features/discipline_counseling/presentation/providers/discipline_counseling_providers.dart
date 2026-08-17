@@ -5,6 +5,7 @@ import '../../data/repositories/discipline_counseling_repository_impl.dart';
 import '../../domain/entities/counseling_record.dart';
 import '../../domain/entities/discipline_record.dart';
 import '../../domain/entities/school_announcement.dart';
+import '../../domain/entities/sudut_info_post.dart';
 import '../../domain/repositories/discipline_counseling_repository.dart';
 
 final disciplineCounselingRepositoryProvider = Provider<DisciplineCounselingRepository>((ref) {
@@ -51,5 +52,21 @@ final allSchoolAnnouncementsProvider = FutureProvider.autoDispose
   return ref.watch(disciplineCounselingRepositoryProvider).getSchoolAnnouncements(
         category: category,
         onlyPublished: false,
+      );
+});
+
+final allSudutInfoPostsProvider = FutureProvider.autoDispose
+    .family<List<SudutInfoPost>, String?>((ref, category) {
+  return ref.watch(disciplineCounselingRepositoryProvider).getSudutInfoPosts(
+        category: category,
+        onlyActive: false,
+      );
+});
+
+final activeSudutInfoPostsProvider = FutureProvider.autoDispose
+    .family<List<SudutInfoPost>, String?>((ref, category) {
+  return ref.watch(disciplineCounselingRepositoryProvider).getSudutInfoPosts(
+        category: category,
+        onlyActive: true,
       );
 });

@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import 'package:flutter/services.dart';
 import '../../../../core/layout/app_shell.dart';
+import '../../../../core/widgets/rich_text_toolbar_widget.dart';
 import '../../../reports/presentation/screens/whatsapp_report_section.dart' show AttachStudentDialog;
 import '../../../settings/domain/entities/staff_profile.dart';
 import '../../../settings/presentation/providers/settings_providers.dart';
@@ -13,7 +14,8 @@ import '../../../student/presentation/screens/student_detail_sheet.dart';
 import '../../../student_portal/domain/entities/student_voice_submission.dart';
 import '../../../student_portal/presentation/providers/student_portal_providers.dart';
 import 'package:app/features/discipline_counseling/domain/entities/school_announcement.dart';
-import '../providers/discipline_counseling_providers.dart';
+import 'package:app/features/discipline_counseling/domain/entities/sudut_info_post.dart';
+import 'package:app/features/discipline_counseling/presentation/providers/discipline_counseling_providers.dart';
 
 class DisciplineCounselingScreen extends ConsumerStatefulWidget {
   const DisciplineCounselingScreen({super.key});
@@ -32,7 +34,7 @@ class _DisciplineCounselingScreenState extends ConsumerState<DisciplineCounselin
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -43,8 +45,8 @@ class _DisciplineCounselingScreenState extends ConsumerState<DisciplineCounselin
 
   bool _hasAccess(StaffProfile? profile) {
     if (profile == null) return false;
-    final role = profile.role.toLowerCase();
-    return role == 'admin' || role == 'disiplin' || role == 'kaunselor';
+    final r = profile.role.toLowerCase();
+    return r == 'admin' || r == 'disiplin' || r == 'kaunselor' || r == 'guru';
   }
 
   @override
@@ -61,6 +63,7 @@ class _DisciplineCounselingScreenState extends ConsumerState<DisciplineCounselin
             Tab(icon: Icon(Icons.gavel), text: 'Kes Disiplin (SSDOP)'),
             Tab(icon: Icon(Icons.psychology), text: 'Sesi Kaunseling (UBK)'),
             Tab(icon: Icon(Icons.record_voice_over), text: 'Peti Suara Murid'),
+            Tab(icon: Icon(Icons.info_outline), text: 'Sudut Info'),
             Tab(icon: Icon(Icons.analytics), text: 'Ringkasan & Analisis'),
           ],
         ),
@@ -114,6 +117,9 @@ class _DisciplineCounselingScreenState extends ConsumerState<DisciplineCounselin
                     _StudentVoiceInboxTab(
                       searchQuery: _searchQuery,
                       profile: profile!,
+                    ),
+                    _SudutInfoTab(
+                      profile: profile,
                     ),
                     _AnalyticsTab(
                       searchQuery: _searchQuery,
@@ -1403,6 +1409,7 @@ class _AnnouncementComposerWidgetState extends ConsumerState<_AnnouncementCompos
               onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 10),
+            RichTextToolbarWidget(controller: _bodyController),
             TextField(
               controller: _bodyController,
               maxLines: 4,
@@ -1765,6 +1772,746 @@ class _EditAnnouncementDialogState extends ConsumerState<_EditAnnouncementDialog
           onPressed: _saving ? null : () => Navigator.pop(context, false),
           child: const Text('BATAL'),
         ),
+        ElevatedButton.icon(
+          icon: _saving
+              ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+              : const Icon(Icons.save, size: 16),
+          label: const Text('SIMPAN'),
+          onPressed: _saving ? null : _save,
+        ),
+      ],
+    );
+  }
+}
+
+class _SudutInfoTab extends ConsumerStatefulWidget {
+  const _SudutInfoTab({required this.profile});
+  final StaffProfile profile;
+
+  @override
+  ConsumerState<_SudutInfoTab> createState() => _SudutInfoTabState();
+}
+
+class _SudutInfoTabState extends ConsumerState<_SudutInfoTab> {
+  final _titleController = TextEditingController();
+  final _contentController = TextEditingController();
+  final _managedByController = TextEditingController(text: 'Unit Disiplin & Kaunseling');
+  String _selectedCategory = 'disiplin';
+  DateTime _validFrom = DateTime.now();
+  DateTime? _validUntil;
+  bool _submitting = false;
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _contentController.dispose();
+    _managedByController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDateTime({required bool isValidFrom}) async {
+    final initialDate = isValidFrom ? _validFrom : (_validUntil ?? DateTime.now().add(const Duration(days: 7)));
+    final date = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(2025),
+      lastDate: DateTime(2030),
+    );
+    if (date == null) return;
+
+    if (!mounted) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(initialDate),
+    );
+    if (time == null) return;
+
+    final selected = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+    setState(() {
+      if (isValidFrom) {
+        _validFrom = selected;
+      } else {
+        _validUntil = selected;
+      }
+    });
+  }
+
+  Future<void> _createPost() async {
+    final title = _titleController.text.trim();
+    final content = _contentController.text.trim();
+    if (title.isEmpty || content.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sila isi tajuk dan kandungan Sudut Info.')),
+      );
+      return;
+    }
+
+    setState(() => _submitting = true);
+    try {
+      await ref.read(disciplineCounselingRepositoryProvider).createSudutInfoPost(
+            category: _selectedCategory,
+            title: title,
+            content: content,
+            managedBy: _managedByController.text.trim().isEmpty ? 'Unit Disiplin & Kaunseling' : _managedByController.text.trim(),
+            authorId: widget.profile.id,
+            validFrom: _validFrom,
+            validUntil: _validUntil,
+          );
+
+      if (mounted) {
+        _titleController.clear();
+        _contentController.clear();
+        setState(() {
+          _validFrom = DateTime.now();
+          _validUntil = null;
+        });
+        ref.invalidate(allSudutInfoPostsProvider(null));
+        ref.invalidate(activeSudutInfoPostsProvider(null));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Sudut Info berjaya diterbitkan!'),
+            backgroundColor: Colors.green.shade800,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal menerbitkan Sudut Info: $e'), backgroundColor: Colors.red.shade800),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  Future<void> _togglePublishStatus(SudutInfoPost post) async {
+    final newStatus = !post.isPublished;
+    try {
+      await ref.read(disciplineCounselingRepositoryProvider).toggleSudutInfoPublishStatus(
+            id: post.id,
+            isPublished: newStatus,
+          );
+      ref.invalidate(allSudutInfoPostsProvider(null));
+      ref.invalidate(activeSudutInfoPostsProvider(null));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(newStatus
+                ? 'Sudut Info telah diterbitkan secara Live.'
+                : 'Sudut Info telah dinyahterbitkan (disembunyikan).'),
+            backgroundColor: newStatus ? Colors.green.shade800 : Colors.orange.shade800,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal mengubah status: $e'), backgroundColor: Colors.red.shade800),
+        );
+      }
+    }
+  }
+
+  Future<void> _deletePost(SudutInfoPost post) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Padam Sudut Info?'),
+        content: Text('Adakah anda pasti mahu memadam info "${post.title}" secara kekal?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('BATAL')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('PADAM'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await ref.read(disciplineCounselingRepositoryProvider).deleteSudutInfoPost(post.id);
+        ref.invalidate(allSudutInfoPostsProvider(null));
+        ref.invalidate(activeSudutInfoPostsProvider(null));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Sudut Info berjaya dipadam.')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Gagal memadam: $e'), backgroundColor: Colors.red.shade800),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _openEditDialog(SudutInfoPost post) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => _EditSudutInfoDialog(post: post),
+    );
+    if (result == true) {
+      ref.invalidate(allSudutInfoPostsProvider(null));
+      ref.invalidate(activeSudutInfoPostsProvider(null));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final allPostsAsync = ref.watch(allSudutInfoPostsProvider(null));
+    final dateFormat = DateFormat('d MMM yyyy, h:mm a');
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // COMPOSER CARD
+          Card(
+            elevation: 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: Colors.blue.shade300),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.info, color: Colors.blue.shade800, size: 24),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Tambah Info Baharu Ke Sudut Info',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Pengumuman Sudut Info akan dipaparkan pada Halaman Utama (Landing Page) & Portal Murid mengikut tempoh masa yang ditetapkan.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          initialValue: _selectedCategory,
+                          decoration: const InputDecoration(
+                            labelText: 'Kategori Info',
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                          ),
+                          items: const [
+                            DropdownMenuItem(value: 'disiplin', child: Text('📢 Pengumuman Disiplin')),
+                            DropdownMenuItem(value: 'kaunseling', child: Text('💜 Bimbingan & Kaunseling (UBK)')),
+                            DropdownMenuItem(value: 'sahsiah', child: Text('🌟 Pengiktirafan Sahsiah')),
+                            DropdownMenuItem(value: 'sekolah', child: Text('🏫 Hebahan Sekolah')),
+                            DropdownMenuItem(value: 'umum', child: Text('ℹ️ Info Umum')),
+                          ],
+                          onChanged: (val) {
+                            if (val != null) setState(() => _selectedCategory = val);
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: _managedByController,
+                          decoration: const InputDecoration(
+                            labelText: 'Unit / Agensi Pengendali',
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _titleController,
+                    decoration: const InputDecoration(
+                      labelText: 'Tajuk Sudut Info',
+                      hintText: 'Contoh: Kempen Sahsiah Terpuji / Minggu Kaunseling UBK',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // HTML FORMATTING TOOLBAR
+                  RichTextToolbarWidget(controller: _contentController),
+                  TextField(
+                    controller: _contentController,
+                    maxLines: 5,
+                    minLines: 3,
+                    decoration: const InputDecoration(
+                      labelText: 'Kandungan Sudut Info (Format HTML/Teks)',
+                      hintText: 'Gunakan butang di atas untuk memasukkan teks Tebal, Condong, Garis Bawah, Bullet, Nombor...',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // TEMPOH MASA PAPARAN (VALIDITY PERIOD)
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.blue.shade200),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.schedule, size: 18, color: Colors.blue.shade900),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Tetapan Tempoh Paparan (Masa Mula & Masa Tamat)',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.blue.shade900),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 8,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            // VALID FROM PICKER
+                            OutlinedButton.icon(
+                              icon: const Icon(Icons.event, size: 16),
+                              label: Text('Masa Mula: ${dateFormat.format(_validFrom)}'),
+                              onPressed: () => _pickDateTime(isValidFrom: true),
+                            ),
+                            // VALID UNTIL PICKER
+                            OutlinedButton.icon(
+                              icon: Icon(Icons.event_busy, size: 16, color: _validUntil == null ? Colors.grey : Colors.red.shade700),
+                              label: Text(_validUntil == null
+                                  ? 'Masa Tamat: Selamanya (Tiada Tamat)'
+                                  : 'Masa Tamat: ${dateFormat.format(_validUntil!)}'),
+                              onPressed: () => _pickDateTime(isValidFrom: false),
+                            ),
+                            if (_validUntil != null) ...[
+                              IconButton(
+                                icon: const Icon(Icons.clear, size: 18, color: Colors.red),
+                                tooltip: 'Buang Tarikh Tamat (Paparkan Selamanya)',
+                                onPressed: () => setState(() => _validUntil = null),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: ElevatedButton.icon(
+                      icon: _submitting
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Icon(Icons.send),
+                      label: const Text('TERBITKAN KE SUDUT INFO'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue.shade800,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      ),
+                      onPressed: _submitting ? null : _createPost,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // SENARAI PENGURUSAN SUDUT INFO
+          Row(
+            children: [
+              Icon(Icons.list_alt, color: Colors.blue.shade900, size: 22),
+              const SizedBox(width: 8),
+              Text(
+                'Senarai Pengurusan Sudut Info',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.blue.shade900),
+              ),
+              const Spacer(),
+              IconButton(
+                icon: const Icon(Icons.refresh, size: 20),
+                tooltip: 'Muat Semula',
+                onPressed: () {
+                  ref.invalidate(allSudutInfoPostsProvider(null));
+                  ref.invalidate(activeSudutInfoPostsProvider(null));
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          allPostsAsync.when(
+            data: (posts) {
+              if (posts.isEmpty) {
+                return Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Center(
+                    child: Text('Tiada pos Sudut Info ditemui. Sila tambah info baharu di atas.', style: TextStyle(color: Colors.grey)),
+                  ),
+                );
+              }
+
+              return ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: posts.length,
+                itemBuilder: (context, index) {
+                  final post = posts[index];
+                  final statusColor = post.statusColor;
+
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    elevation: 1,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(color: statusColor.withValues(alpha: 0.4), width: 1.5),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              // STATUS BADGE
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: statusColor.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: statusColor),
+                                ),
+                                child: Text(
+                                  post.statusLabel,
+                                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: statusColor),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade200,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  post.category.toUpperCase(),
+                                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black87),
+                                ),
+                              ),
+                              const Spacer(),
+                              Text(
+                                dateFormat.format(post.createdAt),
+                                style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            post.title,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            post.content,
+                            style: const TextStyle(fontSize: 13, height: 1.4),
+                          ),
+                          const SizedBox(height: 10),
+                          // VALIDITY DATES BADGE
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.grey.shade300),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.timer_outlined, size: 14, color: Colors.black54),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    'Paparan: ${dateFormat.format(post.validFrom)}  ➜  ${post.validUntil == null ? "Selamanya (Tiada Tamat)" : dateFormat.format(post.validUntil!)}',
+                                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          const Divider(height: 1),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Text(
+                                'Pengendali: ${post.managedBy} (${post.authorName ?? "Staf"})',
+                                style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
+                              ),
+                              const Spacer(),
+                              // TOGGLE PUBLISH BUTTON
+                              TextButton.icon(
+                                icon: Icon(
+                                  post.isPublished ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                  size: 16,
+                                  color: post.isPublished ? Colors.orange.shade800 : Colors.green.shade800,
+                                ),
+                                label: Text(
+                                  post.isPublished ? 'Nyahterbit' : 'Terbit',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: post.isPublished ? Colors.orange.shade800 : Colors.green.shade800,
+                                  ),
+                                ),
+                                onPressed: () => _togglePublishStatus(post),
+                              ),
+                              // EDIT BUTTON
+                              IconButton(
+                                icon: const Icon(Icons.edit_outlined, size: 18, color: Colors.blue),
+                                tooltip: 'Edit Sudut Info',
+                                onPressed: () => _openEditDialog(post),
+                              ),
+                              // DELETE BUTTON
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                                tooltip: 'Padam Sudut Info',
+                                onPressed: () => _deletePost(post),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+            loading: () => const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator())),
+            error: (err, _) => Text('Gagal memuatkan Sudut Info: $err', style: const TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EditSudutInfoDialog extends ConsumerStatefulWidget {
+  const _EditSudutInfoDialog({required this.post});
+  final SudutInfoPost post;
+
+  @override
+  ConsumerState<_EditSudutInfoDialog> createState() => _EditSudutInfoDialogState();
+}
+
+class _EditSudutInfoDialogState extends ConsumerState<_EditSudutInfoDialog> {
+  late final TextEditingController _titleController;
+  late final TextEditingController _contentController;
+  late final TextEditingController _managedByController;
+  late String _category;
+  late bool _isPublished;
+  late DateTime _validFrom;
+  DateTime? _validUntil;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(text: widget.post.title);
+    _contentController = TextEditingController(text: widget.post.content);
+    _managedByController = TextEditingController(text: widget.post.managedBy);
+    _category = widget.post.category;
+    _isPublished = widget.post.isPublished;
+    _validFrom = widget.post.validFrom;
+    _validUntil = widget.post.validUntil;
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _contentController.dispose();
+    _managedByController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDateTime({required bool isValidFrom}) async {
+    final initialDate = isValidFrom ? _validFrom : (_validUntil ?? DateTime.now().add(const Duration(days: 7)));
+    final date = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(2025),
+      lastDate: DateTime(2030),
+    );
+    if (date == null) return;
+
+    if (!mounted) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(initialDate),
+    );
+    if (time == null) return;
+
+    final selected = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+    setState(() {
+      if (isValidFrom) {
+        _validFrom = selected;
+      } else {
+        _validUntil = selected;
+      }
+    });
+  }
+
+  Future<void> _save() async {
+    final title = _titleController.text.trim();
+    final content = _contentController.text.trim();
+    if (title.isEmpty || content.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Tajuk dan kandungan tidak boleh kosong.')),
+      );
+      return;
+    }
+
+    setState(() => _saving = true);
+    try {
+      await ref.read(disciplineCounselingRepositoryProvider).updateSudutInfoPost(
+            id: widget.post.id,
+            category: _category,
+            title: title,
+            content: content,
+            managedBy: _managedByController.text.trim().isEmpty ? 'Unit Disiplin & Kaunseling' : _managedByController.text.trim(),
+            validFrom: _validFrom,
+            validUntil: _validUntil,
+            isPublished: _isPublished,
+          );
+
+      if (mounted) {
+        Navigator.pop(context, true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Sudut Info berjaya dikemaskini!'), backgroundColor: Colors.green),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal mengemaskini: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dateFormat = DateFormat('d MMM yyyy, h:mm a');
+
+    return AlertDialog(
+      title: const Row(
+        children: [
+          Icon(Icons.edit, color: Colors.blue),
+          SizedBox(width: 8),
+          Expanded(child: Text('Edit Sudut Info', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18))),
+        ],
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    initialValue: _category,
+                    decoration: const InputDecoration(labelText: 'Kategori', border: OutlineInputBorder(), isDense: true),
+                    items: const [
+                      DropdownMenuItem(value: 'disiplin', child: Text('Disiplin')),
+                      DropdownMenuItem(value: 'kaunseling', child: Text('Kaunseling UBK')),
+                      DropdownMenuItem(value: 'sahsiah', child: Text('Sahsiah')),
+                      DropdownMenuItem(value: 'sekolah', child: Text('Sekolah')),
+                      DropdownMenuItem(value: 'umum', child: Text('Umum')),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) setState(() => _category = val);
+                    },
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    controller: _managedByController,
+                    decoration: const InputDecoration(labelText: 'Pengendali', border: OutlineInputBorder(), isDense: true),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _titleController,
+              decoration: const InputDecoration(labelText: 'Tajuk Info', border: OutlineInputBorder(), isDense: true),
+            ),
+            const SizedBox(height: 12),
+            RichTextToolbarWidget(controller: _contentController),
+            TextField(
+              controller: _contentController,
+              maxLines: 4,
+              decoration: const InputDecoration(labelText: 'Kandungan Info', border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 12),
+            const Text('Tempoh Masa Paparan:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+            const SizedBox(height: 6),
+            OutlinedButton.icon(
+              icon: const Icon(Icons.event, size: 16),
+              label: Text('Masa Mula: ${dateFormat.format(_validFrom)}'),
+              onPressed: () => _pickDateTime(isValidFrom: true),
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: Icon(Icons.event_busy, size: 16, color: _validUntil == null ? Colors.grey : Colors.red),
+                    label: Text(_validUntil == null ? 'Tamat: Selamanya' : 'Tamat: ${dateFormat.format(_validUntil!)}'),
+                    onPressed: () => _pickDateTime(isValidFrom: false),
+                  ),
+                ),
+                if (_validUntil != null) ...[
+                  IconButton(
+                    icon: const Icon(Icons.clear, size: 16, color: Colors.red),
+                    onPressed: () => setState(() => _validUntil = null),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 12),
+            SwitchListTile(
+              title: const Text('Status Penerbitan (Live)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+              subtitle: Text(_isPublished ? 'Terbit secara Live' : 'Nyahterbit (Disembunyikan)'),
+              value: _isPublished,
+              onChanged: (val) => setState(() => _isPublished = val),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: _saving ? null : () => Navigator.pop(context, false), child: const Text('BATAL')),
         ElevatedButton.icon(
           icon: _saving
               ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
