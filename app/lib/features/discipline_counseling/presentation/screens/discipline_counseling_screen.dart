@@ -12,6 +12,7 @@ import '../../../student/presentation/providers/student_providers.dart';
 import '../../../student/presentation/screens/student_detail_sheet.dart';
 import '../../../student_portal/domain/entities/student_voice_submission.dart';
 import '../../../student_portal/presentation/providers/student_portal_providers.dart';
+import 'package:app/features/discipline_counseling/domain/entities/school_announcement.dart';
 import '../providers/discipline_counseling_providers.dart';
 
 class DisciplineCounselingScreen extends ConsumerStatefulWidget {
@@ -1270,8 +1271,87 @@ class _AnnouncementComposerWidgetState extends ConsumerState<_AnnouncementCompos
     }
   }
 
+  Future<void> _togglePublish(SchoolAnnouncement ann) async {
+    final newStatus = !ann.isPublished;
+    try {
+      await ref.read(disciplineCounselingRepositoryProvider).toggleAnnouncementPublishedStatus(
+            id: ann.id,
+            isPublished: newStatus,
+          );
+      ref.invalidate(allSchoolAnnouncementsProvider(widget.category));
+      ref.invalidate(schoolAnnouncementsProvider(widget.category));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(newStatus
+                ? 'Pengumuman telah diterbitkan ke Portal Murid.'
+                : 'Pengumuman telah dinyahterbitkan (disembunyikan daripada Portal Murid).'),
+            backgroundColor: newStatus ? Colors.green.shade800 : Colors.orange.shade800,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal mengubah status: $e'), backgroundColor: Colors.red.shade800),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteAnnouncement(SchoolAnnouncement ann) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Padam Pengumuman?'),
+        content: Text('Adakah anda pasti mahu memadam pengumuman "${ann.title}" secara kekal?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('BATAL')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('PADAM'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await ref.read(disciplineCounselingRepositoryProvider).deleteSchoolAnnouncement(ann.id);
+        ref.invalidate(allSchoolAnnouncementsProvider(widget.category));
+        ref.invalidate(schoolAnnouncementsProvider(widget.category));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Pengumuman berjaya dipadam.')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Gagal memadam pengumuman: $e'), backgroundColor: Colors.red.shade800),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _openEditDialog(SchoolAnnouncement ann) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => _EditAnnouncementDialog(announcement: ann),
+    );
+    if (result == true) {
+      ref.invalidate(allSchoolAnnouncementsProvider(widget.category));
+      ref.invalidate(schoolAnnouncementsProvider(widget.category));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final allAnnouncementsAsync = ref.watch(allSchoolAnnouncementsProvider(widget.category));
+    final dateFormat = DateFormat('d MMM yyyy, h:mm a');
+
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(
@@ -1381,9 +1461,318 @@ class _AnnouncementComposerWidgetState extends ConsumerState<_AnnouncementCompos
                 ),
               ],
             ),
+            const Divider(height: 32),
+
+            // MANAGEMENT SECTION: SENARAI PENGUMUMAN (EDIT, DELETE, UNPUBLISH)
+            allAnnouncementsAsync.when(
+              data: (announcements) {
+                if (announcements.isEmpty) {
+                  return Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.info_outline, size: 18, color: Colors.grey),
+                        SizedBox(width: 8),
+                        Text('Tiada rekod pengumuman sebelum ini.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                      ],
+                    ),
+                  );
+                }
+
+                return Theme(
+                  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                  child: ExpansionTile(
+                    initiallyExpanded: true,
+                    tilePadding: EdgeInsets.zero,
+                    leading: Icon(Icons.list_alt, color: widget.color),
+                    title: Text(
+                      'Senarai Pengumuman (${announcements.length})',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: widget.color),
+                    ),
+                    subtitle: const Text('Uruskan pengumuman: Edit, Padam, atau Nyahterbit daripada Portal Murid', style: TextStyle(fontSize: 11)),
+                    children: announcements.map((ann) {
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        elevation: 1,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: BorderSide(
+                            color: ann.isPublished ? widget.color.withValues(alpha: 0.3) : Colors.grey.shade400,
+                          ),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  // PUBLISHED STATUS BADGE
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: ann.isPublished
+                                          ? Colors.green.shade100
+                                          : Colors.grey.shade200,
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: ann.isPublished ? Colors.green.shade700 : Colors.grey.shade600,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          ann.isPublished ? Icons.visibility : Icons.visibility_off,
+                                          size: 12,
+                                          color: ann.isPublished ? Colors.green.shade900 : Colors.grey.shade800,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          ann.isPublished ? 'DITERBITKAN (LIVE)' : 'NYAHTERBIT / DRAF',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            color: ann.isPublished ? Colors.green.shade900 : Colors.grey.shade800,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  Text(
+                                    dateFormat.format(ann.createdAt),
+                                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(ann.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                              const SizedBox(height: 4),
+                              Text(ann.content, style: const TextStyle(fontSize: 13, height: 1.4)),
+                              if (ann.targetStudentName != null && ann.targetStudentName!.isNotEmpty) ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Murid Terlibat: ${ann.targetStudentName}',
+                                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blue.shade900),
+                                ),
+                              ],
+                              const SizedBox(height: 10),
+                              const Divider(height: 1),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  Text(
+                                    'Penulis: ${ann.authorName ?? "Staf Sekolah"}',
+                                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
+                                  ),
+                                  const Spacer(),
+                                  // TOGGLE PUBLISH BUTTON
+                                  TextButton.icon(
+                                    icon: Icon(
+                                      ann.isPublished ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                      size: 16,
+                                      color: ann.isPublished ? Colors.orange.shade800 : Colors.green.shade800,
+                                    ),
+                                    label: Text(
+                                      ann.isPublished ? 'Nyahterbit' : 'Terbit',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: ann.isPublished ? Colors.orange.shade800 : Colors.green.shade800,
+                                      ),
+                                    ),
+                                    onPressed: () => _togglePublish(ann),
+                                  ),
+                                  // EDIT BUTTON
+                                  IconButton(
+                                    icon: const Icon(Icons.edit_outlined, size: 18, color: Colors.blue),
+                                    tooltip: 'Edit Pengumuman',
+                                    onPressed: () => _openEditDialog(ann),
+                                  ),
+                                  // DELETE BUTTON
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                                    tooltip: 'Padam Pengumuman',
+                                    onPressed: () => _deleteAnnouncement(ann),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                );
+              },
+              loading: () => const Padding(padding: EdgeInsets.all(8), child: Center(child: CircularProgressIndicator())),
+              error: (err, _) => Text('Gagal memuatkan senarai pengumuman: $err', style: const TextStyle(color: Colors.red, fontSize: 12)),
+            ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _EditAnnouncementDialog extends ConsumerStatefulWidget {
+  const _EditAnnouncementDialog({required this.announcement});
+
+  final SchoolAnnouncement announcement;
+
+  @override
+  ConsumerState<_EditAnnouncementDialog> createState() => _EditAnnouncementDialogState();
+}
+
+class _EditAnnouncementDialogState extends ConsumerState<_EditAnnouncementDialog> {
+  late final TextEditingController _titleController;
+  late final TextEditingController _contentController;
+  late bool _isPublished;
+  Student? _attachedStudent;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(text: widget.announcement.title);
+    _contentController = TextEditingController(text: widget.announcement.content);
+    _isPublished = widget.announcement.isPublished;
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _contentController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _attachStudent() async {
+    final student = await showDialog<Student>(
+      context: context,
+      builder: (dialogContext) => const AttachStudentDialog(),
+    );
+    if (student != null) {
+      setState(() => _attachedStudent = student);
+    }
+  }
+
+  Future<void> _save() async {
+    final title = _titleController.text.trim();
+    final content = _contentController.text.trim();
+    if (title.isEmpty || content.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Tajuk dan kandungan tidak boleh dibiarkan kosong.')),
+      );
+      return;
+    }
+
+    setState(() => _saving = true);
+    try {
+      await ref.read(disciplineCounselingRepositoryProvider).updateSchoolAnnouncement(
+            id: widget.announcement.id,
+            title: title,
+            content: content,
+            targetStudentId: _attachedStudent?.id ?? widget.announcement.targetStudentId,
+            isPublished: _isPublished,
+          );
+
+      if (mounted) {
+        Navigator.pop(context, true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Pengumuman berjaya dikemaskini!'), backgroundColor: Colors.green),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal mengemaskini: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDiscipline = widget.announcement.category.toLowerCase() == 'disiplin';
+
+    return AlertDialog(
+      title: Row(
+        children: [
+          Icon(Icons.edit_note, color: isDiscipline ? Colors.amber.shade900 : Colors.purple.shade700),
+          const SizedBox(width: 8),
+          const Expanded(child: Text('Edit Pengumuman', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18))),
+        ],
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: _titleController,
+              decoration: const InputDecoration(
+                labelText: 'Tajuk Pengumuman',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _contentController,
+              maxLines: 4,
+              decoration: const InputDecoration(
+                labelText: 'Kandungan Pengumuman',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.person_search, size: 16),
+                  label: Text(_attachedStudent != null
+                      ? 'Murid: ${_attachedStudent!.fullName}'
+                      : widget.announcement.targetStudentName != null
+                          ? 'Murid: ${widget.announcement.targetStudentName}'
+                          : 'Lampirkan Murid (Pilihan)'),
+                  onPressed: _attachStudent,
+                ),
+                if (_attachedStudent != null) ...[
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 16),
+                    onPressed: () => setState(() => _attachedStudent = null),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 12),
+            SwitchListTile(
+              title: const Text('Status Penerbitan (Live di Portal)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+              subtitle: Text(_isPublished ? 'Terbit di Portal Murid' : 'Nyahterbit (Disembunyikan)'),
+              value: _isPublished,
+              onChanged: (val) => setState(() => _isPublished = val),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _saving ? null : () => Navigator.pop(context, false),
+          child: const Text('BATAL'),
+        ),
+        ElevatedButton.icon(
+          icon: _saving
+              ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+              : const Icon(Icons.save, size: 16),
+          label: const Text('SIMPAN'),
+          onPressed: _saving ? null : _save,
+        ),
+      ],
     );
   }
 }

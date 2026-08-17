@@ -39,7 +39,10 @@ abstract interface class DisciplineCounselingRepository {
 
   Future<Map<String, dynamic>> getStudentDisciplineSummary(String studentId);
 
-  Future<List<SchoolAnnouncement>> getSchoolAnnouncements({String? category});
+  Future<List<SchoolAnnouncement>> getSchoolAnnouncements({
+    String? category,
+    bool onlyPublished = false,
+  });
 
   Future<void> createSchoolAnnouncement({
     required String category, // 'disiplin' or 'kaunseling'
@@ -48,4 +51,19 @@ abstract interface class DisciplineCounselingRepository {
     String? authorId,
     String? targetStudentId,
   });
+
+  Future<void> updateSchoolAnnouncement({
+    required String id,
+    required String title,
+    required String content,
+    String? targetStudentId,
+    bool? isPublished,
+  });
+
+  Future<void> toggleAnnouncementPublishedStatus({
+    required String id,
+    required bool isPublished,
+  });
+
+  Future<void> deleteSchoolAnnouncement(String id);
 }

@@ -40,5 +40,16 @@ final studentDisciplineSummaryProvider = FutureProvider.autoDispose
 
 final schoolAnnouncementsProvider = FutureProvider.autoDispose
     .family<List<SchoolAnnouncement>, String?>((ref, category) {
-  return ref.watch(disciplineCounselingRepositoryProvider).getSchoolAnnouncements(category: category);
+  return ref.watch(disciplineCounselingRepositoryProvider).getSchoolAnnouncements(
+        category: category,
+        onlyPublished: true,
+      );
+});
+
+final allSchoolAnnouncementsProvider = FutureProvider.autoDispose
+    .family<List<SchoolAnnouncement>, String?>((ref, category) {
+  return ref.watch(disciplineCounselingRepositoryProvider).getSchoolAnnouncements(
+        category: category,
+        onlyPublished: false,
+      );
 });

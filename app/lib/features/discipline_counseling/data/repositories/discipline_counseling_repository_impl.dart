@@ -171,7 +171,10 @@ class DisciplineCounselingRepositoryImpl implements DisciplineCounselingReposito
   }
 
   @override
-  Future<List<SchoolAnnouncement>> getSchoolAnnouncements({String? category}) async {
+  Future<List<SchoolAnnouncement>> getSchoolAnnouncements({
+    String? category,
+    bool onlyPublished = false,
+  }) async {
     var query = _client.from('school_announcements').select('''
           id,
           author_id,
@@ -187,7 +190,11 @@ class DisciplineCounselingRepositoryImpl implements DisciplineCounselingReposito
           students (
             full_name
           )
-        ''').eq('is_published', true);
+        ''');
+
+    if (onlyPublished) {
+      query = query.eq('is_published', true);
+    }
 
     if (category != null && category.isNotEmpty) {
       query = query.eq('category', category);
@@ -213,5 +220,41 @@ class DisciplineCounselingRepositoryImpl implements DisciplineCounselingReposito
       'target_student_id': targetStudentId,
       'is_published': true,
     });
+  }
+
+  @override
+  Future<void> updateSchoolAnnouncement({
+    required String id,
+    required String title,
+    required String content,
+    String? targetStudentId,
+    bool? isPublished,
+  }) async {
+    final updateData = <String, dynamic>{
+      'title': title,
+      'content': content,
+      'target_student_id': targetStudentId,
+      'updated_at': DateTime.now().toIso8601String(),
+    };
+    if (isPublished != null) {
+      updateData['is_published'] = isPublished;
+    }
+    await _client.from('school_announcements').update(updateData).eq('id', id);
+  }
+
+  @override
+  Future<void> toggleAnnouncementPublishedStatus({
+    required String id,
+    required bool isPublished,
+  }) async {
+    await _client.from('school_announcements').update({
+      'is_published': isPublished,
+      'updated_at': DateTime.now().toIso8601String(),
+    }).eq('id', id);
+  }
+
+  @override
+  Future<void> deleteSchoolAnnouncement(String id) async {
+    await _client.from('school_announcements').delete().eq('id', id);
   }
 }
