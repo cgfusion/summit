@@ -8,6 +8,7 @@ class SudutInfoPost {
     required this.category,
     required this.title,
     required this.content,
+    this.imageUrl,
     required this.managedBy,
     required this.isPublished,
     required this.validFrom,
@@ -21,6 +22,7 @@ class SudutInfoPost {
   final String category; // 'disiplin', 'kaunseling', 'sahsiah', 'sekolah', 'umum'
   final String title;
   final String content;
+  final String? imageUrl;
   final String managedBy;
   final bool isPublished;
   final DateTime validFrom;
@@ -77,6 +79,7 @@ class SudutInfoPost {
       category: map['category'] as String? ?? 'umum',
       title: map['title'] as String? ?? '',
       content: map['content'] as String? ?? '',
+      imageUrl: map['image_url'] as String?,
       managedBy: map['managed_by'] as String? ?? 'Unit Disiplin & Kaunseling',
       isPublished: map['is_published'] as bool? ?? true,
       validFrom: map['valid_from'] != null

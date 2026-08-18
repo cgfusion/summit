@@ -611,6 +611,27 @@ class _CyberHeroSpotlightState extends ConsumerState<_CyberHeroSpotlight> {
                     textAlign: TextAlign.center,
                     style: const TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.w600, fontSize: 12),
                   ),
+                  if (currentPost.imageUrl != null && currentPost.imageUrl!.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: const Color(0xFF38BDF8).withValues(alpha: 0.4), width: 1.5),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: currentPost.imageUrl!.startsWith('assets/')
+                            ? Image.asset(currentPost.imageUrl!, height: 160, width: double.infinity, fit: BoxFit.cover)
+                            : Image.network(
+                                currentPost.imageUrl!,
+                                height: 160,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                              ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   Text(
                     currentPost.content,

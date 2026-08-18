@@ -64,6 +64,7 @@ void main() {
         'category': 'sahsiah',
         'title': 'Anugerah Sahsiah Terpuji',
         'content': 'Tahniah kepada semua pemenang.',
+        'image_url': 'https://example.com/poster.jpg',
         'managed_by': 'Unit Disiplin & Kaunseling',
         'is_published': true,
         'valid_from': '2026-08-01T00:00:00.000Z',
@@ -75,6 +76,7 @@ void main() {
       expect(post.id, equals('post-100'));
       expect(post.authorName, equals('Cikgu Ahmad'));
       expect(post.category, equals('sahsiah'));
+      expect(post.imageUrl, equals('https://example.com/poster.jpg'));
       expect(post.validUntil, isNull);
     });
   });

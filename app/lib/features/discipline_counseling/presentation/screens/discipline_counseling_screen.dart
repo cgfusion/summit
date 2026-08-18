@@ -1795,6 +1795,7 @@ class _SudutInfoTab extends ConsumerStatefulWidget {
 class _SudutInfoTabState extends ConsumerState<_SudutInfoTab> {
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
+  final _imageUrlController = TextEditingController();
   final _managedByController = TextEditingController(text: 'Unit Disiplin & Kaunseling');
   String _selectedCategory = 'disiplin';
   DateTime _validFrom = DateTime.now();
@@ -1805,6 +1806,7 @@ class _SudutInfoTabState extends ConsumerState<_SudutInfoTab> {
   void dispose() {
     _titleController.dispose();
     _contentController.dispose();
+    _imageUrlController.dispose();
     _managedByController.dispose();
     super.dispose();
   }
@@ -1852,6 +1854,7 @@ class _SudutInfoTabState extends ConsumerState<_SudutInfoTab> {
             category: _selectedCategory,
             title: title,
             content: content,
+            imageUrl: _imageUrlController.text.trim().isEmpty ? null : _imageUrlController.text.trim(),
             managedBy: _managedByController.text.trim().isEmpty ? 'Unit Disiplin & Kaunseling' : _managedByController.text.trim(),
             authorId: widget.profile.id,
             validFrom: _validFrom,
@@ -1861,6 +1864,7 @@ class _SudutInfoTabState extends ConsumerState<_SudutInfoTab> {
       if (mounted) {
         _titleController.clear();
         _contentController.clear();
+        _imageUrlController.clear();
         setState(() {
           _validFrom = DateTime.now();
           _validUntil = null;
@@ -1869,7 +1873,7 @@ class _SudutInfoTabState extends ConsumerState<_SudutInfoTab> {
         ref.invalidate(activeSudutInfoPostsProvider(null));
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Sudut Info berjaya diterbitkan!'),
+            content: const Text('Sudut Info (beserta Grafik Poster) berjaya diterbitkan!'),
             backgroundColor: Colors.green.shade800,
           ),
         );
@@ -2045,6 +2049,94 @@ class _SudutInfoTabState extends ConsumerState<_SudutInfoTab> {
                     ),
                   ),
                   const SizedBox(height: 12),
+
+                  // POSTER / BANNER GRAPHIC SECTION
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.purple.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.purple.shade200),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.image, size: 18, color: Colors.purple.shade900),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Grafik Poster & Banner (Pilihan Guru / Kaunselor)',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.purple.shade900),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _imageUrlController,
+                          decoration: InputDecoration(
+                            labelText: 'Pautan Gambar Poster / Banner (URL)',
+                            hintText: 'Tampal pautan poster (Canva, Drive, Supabase Storage, dsb.)',
+                            border: const OutlineInputBorder(),
+                            isDense: true,
+                            suffixIcon: _imageUrlController.text.isNotEmpty
+                                ? IconButton(
+                                    icon: const Icon(Icons.clear, size: 18),
+                                    onPressed: () => setState(() => _imageUrlController.clear()),
+                                  )
+                                : null,
+                          ),
+                          onChanged: (_) => setState(() {}),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text('Templat Grafik D2C (Tekan untuk Pilih):', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 4),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            ActionChip(
+                              avatar: const Icon(Icons.school, size: 14),
+                              label: const Text('Bangunan SMK Sungai Damit', style: TextStyle(fontSize: 10)),
+                              onPressed: () => setState(() => _imageUrlController.text = 'assets/images/school_front.jpg'),
+                            ),
+                            ActionChip(
+                              avatar: const Icon(Icons.psychology, size: 14),
+                              label: const Text('Poster Kaunseling UBK', style: TextStyle(fontSize: 10)),
+                              onPressed: () => setState(() => _imageUrlController.text = 'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=800&q=80'),
+                            ),
+                            ActionChip(
+                              avatar: const Icon(Icons.gavel, size: 14),
+                              label: const Text('Banner Disiplin & Sahsiah', style: TextStyle(fontSize: 10)),
+                              onPressed: () => setState(() => _imageUrlController.text = 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=800&q=80'),
+                            ),
+                          ],
+                        ),
+                        if (_imageUrlController.text.trim().isNotEmpty) ...[
+                          const SizedBox(height: 10),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: _imageUrlController.text.startsWith('assets/')
+                                ? Image.asset(_imageUrlController.text, height: 120, width: double.infinity, fit: BoxFit.cover)
+                                : Image.network(
+                                    _imageUrlController.text.trim(),
+                                    height: 120,
+                                    width: double.infinity,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) => Container(
+                                      height: 60,
+                                      color: Colors.grey.shade200,
+                                      alignment: Alignment.center,
+                                      child: const Text('Pratonton Gambar Tidak Tersedia', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                                    ),
+                                  ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
                   // HTML FORMATTING TOOLBAR
                   RichTextToolbarWidget(controller: _contentController),
                   TextField(
@@ -2058,6 +2150,7 @@ class _SudutInfoTabState extends ConsumerState<_SudutInfoTab> {
                     ),
                   ),
                   const SizedBox(height: 16),
+
                   // TEMPOH MASA PAPARAN (VALIDITY PERIOD)
                   Container(
                     padding: const EdgeInsets.all(12),
@@ -2085,13 +2178,11 @@ class _SudutInfoTabState extends ConsumerState<_SudutInfoTab> {
                           runSpacing: 8,
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
-                            // VALID FROM PICKER
                             OutlinedButton.icon(
                               icon: const Icon(Icons.event, size: 16),
                               label: Text('Masa Mula: ${dateFormat.format(_validFrom)}'),
                               onPressed: () => _pickDateTime(isValidFrom: true),
                             ),
-                            // VALID UNTIL PICKER
                             OutlinedButton.icon(
                               icon: Icon(Icons.event_busy, size: 16, color: _validUntil == null ? Colors.grey : Colors.red.shade700),
                               label: Text(_validUntil == null
@@ -2193,7 +2284,6 @@ class _SudutInfoTabState extends ConsumerState<_SudutInfoTab> {
                         children: [
                           Row(
                             children: [
-                              // STATUS BADGE
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
@@ -2226,6 +2316,21 @@ class _SudutInfoTabState extends ConsumerState<_SudutInfoTab> {
                             ],
                           ),
                           const SizedBox(height: 10),
+                          if (post.imageUrl != null && post.imageUrl!.isNotEmpty) ...[
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: post.imageUrl!.startsWith('assets/')
+                                  ? Image.asset(post.imageUrl!, height: 120, width: double.infinity, fit: BoxFit.cover)
+                                  : Image.network(
+                                      post.imageUrl!,
+                                      height: 120,
+                                      width: double.infinity,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                                    ),
+                            ),
+                            const SizedBox(height: 10),
+                          ],
                           Text(
                             post.title,
                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
@@ -2236,7 +2341,6 @@ class _SudutInfoTabState extends ConsumerState<_SudutInfoTab> {
                             style: const TextStyle(fontSize: 13, height: 1.4),
                           ),
                           const SizedBox(height: 10),
-                          // VALIDITY DATES BADGE
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
@@ -2267,7 +2371,6 @@ class _SudutInfoTabState extends ConsumerState<_SudutInfoTab> {
                                 style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
                               ),
                               const Spacer(),
-                              // TOGGLE PUBLISH BUTTON
                               TextButton.icon(
                                 icon: Icon(
                                   post.isPublished ? Icons.visibility_off_outlined : Icons.visibility_outlined,
@@ -2283,13 +2386,11 @@ class _SudutInfoTabState extends ConsumerState<_SudutInfoTab> {
                                 ),
                                 onPressed: () => _togglePublishStatus(post),
                               ),
-                              // EDIT BUTTON
                               IconButton(
                                 icon: const Icon(Icons.edit_outlined, size: 18, color: Colors.blue),
                                 tooltip: 'Edit Sudut Info',
                                 onPressed: () => _openEditDialog(post),
                               ),
-                              // DELETE BUTTON
                               IconButton(
                                 icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
                                 tooltip: 'Padam Sudut Info',
@@ -2324,6 +2425,7 @@ class _EditSudutInfoDialog extends ConsumerStatefulWidget {
 class _EditSudutInfoDialogState extends ConsumerState<_EditSudutInfoDialog> {
   late final TextEditingController _titleController;
   late final TextEditingController _contentController;
+  late final TextEditingController _imageUrlController;
   late final TextEditingController _managedByController;
   late String _category;
   late bool _isPublished;
@@ -2336,6 +2438,7 @@ class _EditSudutInfoDialogState extends ConsumerState<_EditSudutInfoDialog> {
     super.initState();
     _titleController = TextEditingController(text: widget.post.title);
     _contentController = TextEditingController(text: widget.post.content);
+    _imageUrlController = TextEditingController(text: widget.post.imageUrl ?? '');
     _managedByController = TextEditingController(text: widget.post.managedBy);
     _category = widget.post.category;
     _isPublished = widget.post.isPublished;
@@ -2347,6 +2450,7 @@ class _EditSudutInfoDialogState extends ConsumerState<_EditSudutInfoDialog> {
   void dispose() {
     _titleController.dispose();
     _contentController.dispose();
+    _imageUrlController.dispose();
     _managedByController.dispose();
     super.dispose();
   }
@@ -2395,6 +2499,7 @@ class _EditSudutInfoDialogState extends ConsumerState<_EditSudutInfoDialog> {
             category: _category,
             title: title,
             content: content,
+            imageUrl: _imageUrlController.text.trim().isEmpty ? null : _imageUrlController.text.trim(),
             managedBy: _managedByController.text.trim().isEmpty ? 'Unit Disiplin & Kaunseling' : _managedByController.text.trim(),
             validFrom: _validFrom,
             validUntil: _validUntil,
@@ -2467,6 +2572,37 @@ class _EditSudutInfoDialogState extends ConsumerState<_EditSudutInfoDialog> {
               controller: _titleController,
               decoration: const InputDecoration(labelText: 'Tajuk Info', border: OutlineInputBorder(), isDense: true),
             ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _imageUrlController,
+              decoration: InputDecoration(
+                labelText: 'Pautan Gambar Poster / Banner (URL)',
+                border: const OutlineInputBorder(),
+                isDense: true,
+                suffixIcon: _imageUrlController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 16),
+                        onPressed: () => setState(() => _imageUrlController.clear()),
+                      )
+                    : null,
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+            if (_imageUrlController.text.trim().isNotEmpty) ...[
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: _imageUrlController.text.startsWith('assets/')
+                    ? Image.asset(_imageUrlController.text, height: 100, width: double.infinity, fit: BoxFit.cover)
+                    : Image.network(
+                        _imageUrlController.text.trim(),
+                        height: 100,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                      ),
+              ),
+            ],
             const SizedBox(height: 12),
             RichTextToolbarWidget(controller: _contentController),
             TextField(
