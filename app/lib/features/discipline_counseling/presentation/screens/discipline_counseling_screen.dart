@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import 'package:file_picker/file_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import 'package:flutter/services.dart';
 import '../../../../core/layout/app_shell.dart';
 import '../../../../core/widgets/rich_text_toolbar_widget.dart';
@@ -1412,8 +1415,8 @@ class _AnnouncementComposerWidgetState extends ConsumerState<_AnnouncementCompos
             RichTextToolbarWidget(controller: _bodyController),
             TextField(
               controller: _bodyController,
-              maxLines: 4,
-              minLines: 2,
+              minLines: 8,
+              maxLines: 15,
               decoration: const InputDecoration(
                 labelText: 'Kandungan Pengumuman',
                 hintText: 'Taip kandungan pengumuman di sini...',
@@ -1731,7 +1734,8 @@ class _EditAnnouncementDialogState extends ConsumerState<_EditAnnouncementDialog
             const SizedBox(height: 12),
             TextField(
               controller: _contentController,
-              maxLines: 4,
+              minLines: 8,
+              maxLines: 15,
               decoration: const InputDecoration(
                 labelText: 'Kandungan Pengumuman',
                 border: OutlineInputBorder(),
@@ -1809,6 +1813,57 @@ class _SudutInfoTabState extends ConsumerState<_SudutInfoTab> {
     _imageUrlController.dispose();
     _managedByController.dispose();
     super.dispose();
+  }
+
+  bool _uploadingImage = false;
+
+  Future<void> _pickAndUploadImage() async {
+    try {
+      final files = await FilePicker.pickFiles(
+        type: FileType.image,
+      );
+      if (files.isEmpty) return;
+
+      final file = files.first;
+      final bytes = await file.readAsBytes();
+
+      setState(() => _uploadingImage = true);
+
+      final ext = file.name.contains('.') ? file.name.split('.').last : 'jpg';
+      final fileName = 'sudut_info_${DateTime.now().millisecondsSinceEpoch}.$ext';
+      final supabase = Supabase.instance.client;
+
+      await supabase.storage.from('sudut-info-banners').uploadBinary(
+            fileName,
+            bytes,
+            fileOptions: FileOptions(contentType: 'image/$ext', upsert: true),
+          );
+
+      final publicUrl = supabase.storage.from('sudut-info-banners').getPublicUrl(fileName);
+
+      if (mounted) {
+        setState(() {
+          _imageUrlController.text = publicUrl;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Gambar poster berjaya dimuat naik ke Supabase Storage!'),
+            backgroundColor: Colors.green.shade800,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal memuat naik gambar: $e'),
+            backgroundColor: Colors.red.shade800,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _uploadingImage = false);
+    }
   }
 
   Future<void> _pickDateTime({required bool isValidFrom}) async {
@@ -2072,21 +2127,40 @@ class _SudutInfoTabState extends ConsumerState<_SudutInfoTab> {
                           ],
                         ),
                         const SizedBox(height: 8),
-                        TextField(
-                          controller: _imageUrlController,
-                          decoration: InputDecoration(
-                            labelText: 'Pautan Gambar Poster / Banner (URL)',
-                            hintText: 'Tampal pautan poster (Canva, Drive, Supabase Storage, dsb.)',
-                            border: const OutlineInputBorder(),
-                            isDense: true,
-                            suffixIcon: _imageUrlController.text.isNotEmpty
-                                ? IconButton(
-                                    icon: const Icon(Icons.clear, size: 18),
-                                    onPressed: () => setState(() => _imageUrlController.clear()),
-                                  )
-                                : null,
-                          ),
-                          onChanged: (_) => setState(() {}),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _imageUrlController,
+                                decoration: InputDecoration(
+                                  labelText: 'Pautan Gambar Poster / Banner (URL)',
+                                  hintText: 'Tampal pautan poster (Canva, Drive, Supabase, dsb.)',
+                                  border: const OutlineInputBorder(),
+                                  isDense: true,
+                                  suffixIcon: _imageUrlController.text.isNotEmpty
+                                      ? IconButton(
+                                          icon: const Icon(Icons.clear, size: 18),
+                                          onPressed: () => setState(() => _imageUrlController.clear()),
+                                        )
+                                      : null,
+                                ),
+                                onChanged: (_) => setState(() {}),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            ElevatedButton.icon(
+                              icon: _uploadingImage
+                                  ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                  : const Icon(Icons.upload_file, size: 16),
+                              label: const Text('Muat Naik Fail'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.purple.shade700,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                              ),
+                              onPressed: _uploadingImage ? null : _pickAndUploadImage,
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 8),
                         const Text('Templat Grafik D2C (Tekan untuk Pilih):', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
@@ -2141,8 +2215,8 @@ class _SudutInfoTabState extends ConsumerState<_SudutInfoTab> {
                   RichTextToolbarWidget(controller: _contentController),
                   TextField(
                     controller: _contentController,
-                    maxLines: 5,
-                    minLines: 3,
+                    minLines: 8,
+                    maxLines: 16,
                     decoration: const InputDecoration(
                       labelText: 'Kandungan Sudut Info (Format HTML/Teks)',
                       hintText: 'Gunakan butang di atas untuk memasukkan teks Tebal, Condong, Garis Bawah, Bullet, Nombor...',
@@ -2455,6 +2529,57 @@ class _EditSudutInfoDialogState extends ConsumerState<_EditSudutInfoDialog> {
     super.dispose();
   }
 
+  bool _uploadingImage = false;
+
+  Future<void> _pickAndUploadImage() async {
+    try {
+      final files = await FilePicker.pickFiles(
+        type: FileType.image,
+      );
+      if (files.isEmpty) return;
+
+      final file = files.first;
+      final bytes = await file.readAsBytes();
+
+      setState(() => _uploadingImage = true);
+
+      final ext = file.name.contains('.') ? file.name.split('.').last : 'jpg';
+      final fileName = 'sudut_info_${DateTime.now().millisecondsSinceEpoch}.$ext';
+      final supabase = Supabase.instance.client;
+
+      await supabase.storage.from('sudut-info-banners').uploadBinary(
+            fileName,
+            bytes,
+            fileOptions: FileOptions(contentType: 'image/$ext', upsert: true),
+          );
+
+      final publicUrl = supabase.storage.from('sudut-info-banners').getPublicUrl(fileName);
+
+      if (mounted) {
+        setState(() {
+          _imageUrlController.text = publicUrl;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Gambar poster berjaya dimuat naik ke Supabase Storage!'),
+            backgroundColor: Colors.green.shade800,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal memuat naik gambar: $e'),
+            backgroundColor: Colors.red.shade800,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _uploadingImage = false);
+    }
+  }
+
   Future<void> _pickDateTime({required bool isValidFrom}) async {
     final initialDate = isValidFrom ? _validFrom : (_validUntil ?? DateTime.now().add(const Duration(days: 7)));
     final date = await showDatePicker(
@@ -2573,20 +2698,39 @@ class _EditSudutInfoDialogState extends ConsumerState<_EditSudutInfoDialog> {
               decoration: const InputDecoration(labelText: 'Tajuk Info', border: OutlineInputBorder(), isDense: true),
             ),
             const SizedBox(height: 12),
-            TextField(
-              controller: _imageUrlController,
-              decoration: InputDecoration(
-                labelText: 'Pautan Gambar Poster / Banner (URL)',
-                border: const OutlineInputBorder(),
-                isDense: true,
-                suffixIcon: _imageUrlController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, size: 16),
-                        onPressed: () => setState(() => _imageUrlController.clear()),
-                      )
-                    : null,
-              ),
-              onChanged: (_) => setState(() {}),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _imageUrlController,
+                    decoration: InputDecoration(
+                      labelText: 'Pautan Gambar Poster / Banner (URL)',
+                      border: const OutlineInputBorder(),
+                      isDense: true,
+                      suffixIcon: _imageUrlController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 16),
+                              onPressed: () => setState(() => _imageUrlController.clear()),
+                            )
+                          : null,
+                    ),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton.icon(
+                  icon: _uploadingImage
+                      ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Icon(Icons.upload_file, size: 16),
+                  label: const Text('Muat Naik'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.purple.shade700,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                  ),
+                  onPressed: _uploadingImage ? null : _pickAndUploadImage,
+                ),
+              ],
             ),
             if (_imageUrlController.text.trim().isNotEmpty) ...[
               const SizedBox(height: 8),
@@ -2607,7 +2751,8 @@ class _EditSudutInfoDialogState extends ConsumerState<_EditSudutInfoDialog> {
             RichTextToolbarWidget(controller: _contentController),
             TextField(
               controller: _contentController,
-              maxLines: 4,
+              minLines: 8,
+              maxLines: 15,
               decoration: const InputDecoration(labelText: 'Kandungan Info', border: OutlineInputBorder()),
             ),
             const SizedBox(height: 12),
