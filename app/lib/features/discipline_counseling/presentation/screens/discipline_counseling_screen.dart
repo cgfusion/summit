@@ -1972,6 +1972,21 @@ class _SudutInfoTabState extends ConsumerState<_SudutInfoTab> {
     }
   }
 
+  Future<void> _deleteStorageImage(String? url) async {
+    if (url == null || url.trim().isEmpty) return;
+    final trimmed = url.trim();
+    if (trimmed.contains('sudut-info-banners/')) {
+      final fileName = trimmed.split('sudut-info-banners/').last.split('?').first;
+      if (fileName.isNotEmpty) {
+        try {
+          await Supabase.instance.client.storage
+              .from('sudut-info-banners')
+              .remove([fileName]);
+        } catch (_) {}
+      }
+    }
+  }
+
   Future<void> _deletePost(SudutInfoPost post) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -1992,6 +2007,7 @@ class _SudutInfoTabState extends ConsumerState<_SudutInfoTab> {
     if (confirm == true) {
       try {
         await ref.read(disciplineCounselingRepositoryProvider).deleteSudutInfoPost(post.id);
+        await _deleteStorageImage(post.imageUrl);
         ref.invalidate(allSudutInfoPostsProvider(null));
         ref.invalidate(activeSudutInfoPostsProvider(null));
         if (mounted) {
@@ -2140,7 +2156,13 @@ class _SudutInfoTabState extends ConsumerState<_SudutInfoTab> {
                                   suffixIcon: _imageUrlController.text.isNotEmpty
                                       ? IconButton(
                                           icon: const Icon(Icons.clear, size: 18),
-                                          onPressed: () => setState(() => _imageUrlController.clear()),
+                                          tooltip: 'Buang Gambar',
+                                          onPressed: () async {
+                                            final currentUrl = _imageUrlController.text;
+                                            _imageUrlController.clear();
+                                            setState(() {});
+                                            await _deleteStorageImage(currentUrl);
+                                          },
                                         )
                                       : null,
                                 ),
@@ -2648,6 +2670,21 @@ class _EditSudutInfoDialogState extends ConsumerState<_EditSudutInfoDialog> {
     }
   }
 
+  Future<void> _deleteStorageImage(String? url) async {
+    if (url == null || url.trim().isEmpty) return;
+    final trimmed = url.trim();
+    if (trimmed.contains('sudut-info-banners/')) {
+      final fileName = trimmed.split('sudut-info-banners/').last.split('?').first;
+      if (fileName.isNotEmpty) {
+        try {
+          await Supabase.instance.client.storage
+              .from('sudut-info-banners')
+              .remove([fileName]);
+        } catch (_) {}
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('d MMM yyyy, h:mm a');
@@ -2710,7 +2747,13 @@ class _EditSudutInfoDialogState extends ConsumerState<_EditSudutInfoDialog> {
                       suffixIcon: _imageUrlController.text.isNotEmpty
                           ? IconButton(
                               icon: const Icon(Icons.clear, size: 16),
-                              onPressed: () => setState(() => _imageUrlController.clear()),
+                              tooltip: 'Buang Gambar',
+                              onPressed: () async {
+                                final currentUrl = _imageUrlController.text;
+                                _imageUrlController.clear();
+                                setState(() {});
+                                await _deleteStorageImage(currentUrl);
+                              },
                             )
                           : null,
                     ),
