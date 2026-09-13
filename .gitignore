@@ -110,6 +110,9 @@ coverage/
 # Symbols
 app.*.symbols
 
+# Supabase CLI credentials (SUPABASE_ACCESS_TOKEN) -- never commit
+supabase/.env
+
 # Exceptions to above rules.
 !**/ios/**/default.mode1v3
 !**/ios/**/default.mode2v3
