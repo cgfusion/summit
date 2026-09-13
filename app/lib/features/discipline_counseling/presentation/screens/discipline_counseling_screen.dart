@@ -2072,7 +2072,7 @@ class _SudutInfoTabState extends ConsumerState<_SudutInfoTab> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Pengumuman Sudut Info akan dipaparkan pada Halaman Utama (Landing Page) & Portal Murid mengikut tempoh masa yang ditetapkan.',
+                    'Pengumuman Sudut Info akan dipaparkan di Portal Murid dan/atau Portal Ibu Bapa mengikut sasaran "Untuk Siapa" dan tempoh masa yang ditetapkan di bawah.',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   const SizedBox(height: 16),
