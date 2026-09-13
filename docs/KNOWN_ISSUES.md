@@ -4,7 +4,13 @@
 
 ## Bugs (genuinely broken, not yet fixed)
 
-*(None currently tracked as open at time of writing. Every specific bug found during development — the iPad Safari drag-handle failure, the heatmap `StateError` crash, the chart x-axis label repeat, the y-axis interval overlap, the field-rename breakage after `AttendancePeriodSummary` rework — was fixed in the same session it was found; see `CHANGELOG.md` for the fix history. If you find a new one, add it here with repro steps before fixing, so the fix can be verified against a written-down symptom.)*
+### KI-014: `student_voice_submissions` is publicly readable via the anon key — confidential/anonymous bullying reports are not actually confidential from anyone with network access
+- **What**: `public_read_voice` (added `20260811000003`) grants `select` `to authenticated, anon using (true)` — no filter at all. Any HTTP client with the project's public anon key (embedded in every deployed client build, trivially extractable) can `GET {SUPABASE_URL}/rest/v1/student_voice_submissions?select=*` and read every submission ever made, including the `subject`/`message` text of reports marked `is_anonymous = true`. The anonymity mechanism only nulls `student_id` — it does not restrict *who can read the row*.
+- **Why this is a bug, not an accepted trade-off**: the Student Portal UI explicitly promises "Sulit / Rahsia (Anonymous)" for bullying/safety reports (see `STUDENT_PORTAL_AND_VOICE.md`). That promise is false as currently implemented. Unlike the Parent Portal's token model (KI-001, a deliberately reviewed exposure), this looks like an oversight — `to authenticated, anon` was very likely copy-pasted from the Parent Portal's anon-read pattern without considering that *this* table's rows are meant to be confidential, not meant-to-be-shared-via-link.
+- **Fix**: a follow-up migration dropping `anon` from the `select` policy (keep it on the `insert` policy — students submit unauthenticated via QR-tag login, which never establishes a Supabase Auth session). See `DATABASE.md` Future Migration Notes #6.
+- **Do not treat this as low-priority docs cleanup — flag it to a human before doing unrelated work nearby, and consider whether existing anon-key holders may have already scraped this table.**
+
+*(Other specific bugs found during development — the iPad Safari drag-handle failure, the heatmap `StateError` crash, the chart x-axis label repeat, the y-axis interval overlap, the field-rename breakage after `AttendancePeriodSummary` rework, the Parent IC Lookup silent-render bug — were fixed in the same session they were found; see `CHANGELOG.md` for the fix history.)*
 
 ## Accepted Trade-offs (not bugs — do not "fix" without a product conversation)
 
@@ -50,6 +56,10 @@
 - **Where**: `app/test/widget_test.dart` only, checks `MissingConfigApp` renders.
 - **Impact**: real — every feature ships on `flutter analyze` + manual live-browser verification alone. A regression in an untouched screen from an unrelated change would not be caught automatically. See `CODING_STANDARDS.md` §Testing Expectations and `TASKS.md` T-032.
 
+### KI-017: Sudut Info image upload/delete bypasses the repository layer
+- **Where**: `discipline_counseling_screen.dart` calls `Supabase.instance.client.storage.from('sudut-info-banners')` directly (upload + remove) rather than going through `DisciplineCounselingRepository`, which has no storage-related methods at all. Every other Supabase interaction in the app goes through a repository — this is the one exception.
+- **Impact**: low today (it works), but if `DisciplineCounselingRepositoryImpl` is ever swapped/mocked for testing, storage calls won't be captured by that seam. Worth folding into the repository if this feature gets touched again.
+
 ### KI-010: Theme mode selection is not persisted
 - **Where**: `themeModeProvider` (`StateProvider<ThemeMode>`, default `system`) has no `shared_preferences`/localStorage backing.
 - **Impact**: a user who explicitly picks Dark mode has it reset to `system` (following OS/browser preference) on every page reload. Minor UX papercut, not a data-integrity issue. See `TASKS.md` T-029.
@@ -69,6 +79,16 @@
 - **What**: `recordScan()` (the `attendance_logs` insert behind a QR scan) has **no server-side enrollment-status check** — only the Dart client checks `student.enrollmentStatus == EnrollmentStatus.active` before calling it. Contrast with manual entry, where `fn_manual_attendance_set` enforces this server-side and cannot be bypassed.
 - **Risk**: a modified/malicious client (or a future code path that calls `recordScan` without going through `qr_scan_screen.dart`'s guard) could record a scan for an inactive student.
 - **If asked to harden**: this would need either a new trigger-level check on `attendance_logs` insert, or moving the check into `handle_attendance_scan()` (reject/no-op the derived `attendance_days` write when the student isn't active) — the latter is probably cleaner since it keeps `attendance_logs` a pure append-only log while stopping the *derived* effect.
+
+### KI-015: Discipline & Counseling, Announcements, and Sudut Info RLS is staff-wide, not role-gated to `disiplin`/`kaunselor`
+- **What**: `discipline_records`, `counseling_records`, `school_announcements`, and `sudut_info_posts` all use `for all ... to authenticated using (true) with check (true)` write policies. `DISCIPLINE_AND_COUNSELING.md` describes a specific RBAC model (`disiplin`, `kaunselor`, `admin` roles with distinct permissions), but nothing in the database — or, as far as verified, the route/screen layer — actually enforces it. Any signed-in staff member (any `profiles.role`) can read/write any discipline case, private counseling outcome note, announcement, or Sudut Info post.
+- **Why accepted for now, not flagged as urgent like KI-014**: this matches the existing "any staff" pattern already used for `student_guardians` and `attendance_day_exceptions` — it's permissive-by-default, not exposed to the public internet (`anon` has no write access to any of these four tables). The gap is between the *documented* RBAC story and the *enforced* one, not a public-facing leak.
+- **If asked to harden**: would need `profiles.role` widened beyond `admin`/`teacher`/`staff` to include `disiplin`/`kaunselor` (or a separate roles table), plus RLS policies keyed on it — this is a real schema change, not a one-line fix. Counseling `outcome_notes` in particular (private clinical-style notes) is the column most worth restricting first if this is ever prioritized.
+
+### KI-016: The "D2C AI Assistant" is 100% local rule-based in production — its Gemini integration has never been wired up
+- **What**: `D2CAiAssistantService.askAi()` (`core/services/d2c_ai_assistant_service.dart`) calls Google's Gemini API only `if (apiKey != null && apiKey!.isNotEmpty)`. `D2CAiAssistantDialog` instantiates the service as `D2CAiAssistantService()` — **no `apiKey` argument, ever** — and `.github/workflows/deploy-web.yml` passes no `GEMINI_API_KEY`/similar `--dart-define`. Every response the assistant gives, in production, comes from `_generateSmartLocalResponse()`, a keyword-matching lookup table over ~10 known topics.
+- **Why this matters**: the dialog's own header UI reads "GEMINI INTELLIGENCE • ONLINE," which overstates what's actually happening — it's not calling any LLM, and cannot answer anything outside its hardcoded keyword branches (falls back to a generic "here's an overview" response otherwise). Not a security issue, but a documentation/expectations issue: don't assume "the AI assistant" can handle novel questions the way a real LLM integration would.
+- **If asked to wire up real Gemini**: needs an actual API key threaded through as a `--dart-define` secret (same pattern as `SUPABASE_ANON_KEY`) and passed to `D2CAiAssistantDialog`'s `D2CAiAssistantService(apiKey: ...)` constructor call — currently that plumbing simply doesn't exist end-to-end.
 
 ### KI-013: Supabase Auth Site URL / Redirect URLs allowlist not yet updated for the d2csummit.online domain
 - **What**: Hosting moved from `https://cgfusion.github.io/summit/` to `https://d2csummit.online/` (see `CHANGELOG.md` "Custom domain: d2csummit.online"). The app-side build/deploy config was updated, but the **hosted Supabase project's** Auth → URL Configuration (Site URL and Redirect URLs allowlist) is dashboard-only config, not stored in this repo, and was not updated in the same session.

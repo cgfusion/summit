@@ -1,12 +1,12 @@
 # DATABASE.md — Dare to Change (D2C)
 
-> Full schema reference. Source of truth is `supabase/migrations/*.sql`, applied chronologically — this document is a synthesized snapshot of the schema **after all migrations** (`20260728000001` through `20260811000006`). If you add a migration, update this file in the same commit.
+> Full schema reference. Source of truth is `supabase/migrations/*.sql`, applied chronologically — this document is a synthesized snapshot of the schema **after all migrations** (`20260728000001` through `20260818000002`). If you add a migration, update this file in the same commit.
 
 No local Postgres/Docker is used in this project. Every migration is applied with `supabase db push` (targets the linked production project directly) and verified with `supabase db query --linked "<sql>"`. There is no staging database.
 
 ## Table of Contents
 - [Entity-Relationship Overview](#entity-relationship-overview)
-- Tables: [profiles](#profiles) · [classes](#classes) · [students](#students) · [qr_tokens](#qr_tokens) · [attendance_settings](#attendance_settings) · [attendance_logs](#attendance_logs) · [attendance_days](#attendance_days) · [audit_log](#audit_log) · [attendance_day_exceptions](#attendance_day_exceptions) · [merit_bonus_points](#merit_bonus_points) · [merit_awards](#merit_awards) · [session_cutoff_times](#session_cutoff_times) · [student_guardians](#student_guardians) · [discipline_records](#discipline_records) · [counseling_records](#counseling_records) · [student_voice_submissions](#student_voice_submissions)
+- Tables: [profiles](#profiles) · [classes](#classes) · [students](#students) · [qr_tokens](#qr_tokens) · [attendance_settings](#attendance_settings) · [attendance_logs](#attendance_logs) · [attendance_days](#attendance_days) · [audit_log](#audit_log) · [attendance_day_exceptions](#attendance_day_exceptions) · [merit_bonus_points](#merit_bonus_points) · [merit_awards](#merit_awards) · [session_cutoff_times](#session_cutoff_times) · [student_guardians](#student_guardians) · [discipline_records](#discipline_records) · [counseling_records](#counseling_records) · [student_voice_submissions](#student_voice_submissions) · [school_announcements](#school_announcements) · [sudut_info_posts](#sudut_info_posts)
 - [Views](#views)
 - [Functions](#functions-fn_-and-helpers)
 - [Triggers](#triggers)
@@ -38,6 +38,8 @@ erDiagram
 ```
 
 `merit_student_daily` (a view, not a table) is not shown above — it has no FK relationships of its own; it's a live computed join of `attendance_days` + `students` + `attendance_day_exceptions` + `merit_bonus_points` + `attendance_settings`.
+
+**Not drawn above** (added `20260811000002` onward, omitted from the diagram for space — see their full entries below): `discipline_records` and `counseling_records` (both `student_id → students(id)`, plus `reporter_id`/`counselor_id → profiles(id)`; `counseling_records.discipline_record_id → discipline_records(id)`, nullable), `student_voice_submissions` (`student_id → students(id)`, nullable — null when `is_anonymous = true`), `school_announcements` (`author_id → profiles(id)`, `target_student_id → students(id)`, both nullable), `sudut_info_posts` (`author_id → profiles(id)`, nullable).
 
 ---
 
@@ -310,6 +312,110 @@ Seeded values: `petang` Mon-Thu `12:05:00`, Fri `13:30:00`; `pagi` Mon-Fri `07:0
 
 ---
 
+### `discipline_records`
+**Purpose**: SSDOP disciplinary case log (one row per incident). Added `20260811000002` alongside `counseling_records` as the schema behind the **Discipline & Counseling** module (`/discipline-counseling`, Tab "Kes Disiplin (SSDOP)") — see `DISCIPLINE_AND_COUNSELING.md`.
+
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `id` | uuid | PK | |
+| `student_id` | uuid | not null, `references students(id) on delete cascade` | |
+| `reporter_id` | uuid | not null, `references profiles(id)` | The staff member who logged the case |
+| `incident_date` | date | not null, default `current_date` | |
+| `category` | text | not null | Free text in practice, UI offers: Ponteng Sekolah/Kelas, Tingkah Laku Kurang Sopan, Kekemasan Diri, Buli, Vandalism, Rokok/Vape, Lain-lain (no DB `check` constraint) |
+| `severity` | text | not null, default `'ringan'` | Free text, UI offers `ringan`/`sederhana`/`berat` (no DB `check` constraint) |
+| `action_taken` | text | nullable | Free text, UI offers Nasihat/Amaran Lisan/Surat Amaran 1-3/Denda/Gantung Sekolah/Rujukan UBK. `fn_student_discipline_summary` pattern-matches `'Surat Amaran%'` on this column to compute "active warning" — **do not rename this convention without updating that function** |
+| `status` | text | not null, default `'dalam_siasatan'` | Free text: `dalam_siasatan`/`dirujuk_ubk`/`selesai` (no DB `check` constraint) |
+| `description` | text | nullable | |
+| `created_at`, `updated_at` | timestamptz | not null | No `touch_updated_at` trigger wired to this table — `updated_at` only reflects the insert-time default unless a future migration adds one |
+
+**Indexes**: `idx_discipline_records_student`, `idx_discipline_records_date`.
+**RLS**: enabled, but **staff-wide, not role-gated**: `authenticated_read_discipline` (`select`, `to authenticated using (true)`) and `authenticated_manage_discipline` (`for all`, `to authenticated using (true) with check (true)`). **Any signed-in staff member can read/insert/update/delete any discipline record** — there is no DB-level distinction between the `disiplin`/`kaunselor`/`admin` roles described in `DISCIPLINE_AND_COUNSELING.md`; that RBAC table is a UI/process convention, not an enforced Postgres policy. See `KNOWN_ISSUES.md` KI-015.
+
+---
+
+### `counseling_records`
+**Purpose**: UBK counseling session log. Added `20260811000002` in the same migration as `discipline_records`; a session can optionally link back to the disciplinary case that triggered it.
+
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `id` | uuid | PK | |
+| `student_id` | uuid | not null, `references students(id) on delete cascade` | |
+| `counselor_id` | uuid | not null, `references profiles(id)` | |
+| `discipline_record_id` | uuid | nullable, `references discipline_records(id) on delete set null` | Set when the session is a "Rujukan UBK" follow-up from a discipline case |
+| `session_date` | date | not null, default `current_date` | |
+| `session_type` | text | not null, default `'individu'` | Free text: `individu`/`kelompok`/`ibu_bapa` (no `check`) |
+| `focus_area` | text | not null, default `'sahsiah_disiplin'` | Free text: `sahsiah_disiplin`/`akademik`/`kerjaya`/`psikososial` (no `check`) |
+| `outcome_notes` | text | nullable | Private counselor notes |
+| `follow_up_status` | text | not null, default `'memerlukan_susulan'` | Free text: `memerlukan_susulan`/`selesai` (no `check`) |
+| `created_at`, `updated_at` | timestamptz | not null | Same "no update trigger" caveat as `discipline_records` |
+
+**Indexes**: `idx_counseling_records_student`, `idx_counseling_records_date`.
+**RLS**: enabled, **same staff-wide pattern as `discipline_records`** — `authenticated_read_counseling`/`authenticated_manage_counseling`, both `to authenticated using (true)`. Any signed-in staff can read private counseling outcome notes for any student; not role-gated to `kaunselor`. See `KNOWN_ISSUES.md` KI-015.
+
+---
+
+### `student_voice_submissions`
+**Purpose**: "Suara Murid" — student-submitted suggestions, learning feedback, anti-bullying/safety reports, and counseling requests, with an optional-anonymity flag. Added `20260811000003` for the Student Portal (`/student`, Tab "Suara Murid").
+
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `id` | uuid | PK | |
+| `student_id` | uuid | nullable, `references students(id) on delete set null` | **Set to `null` when `is_anonymous = true`** — the anonymity mechanism is "don't record who," not "hide who from staff" |
+| `category` | text | not null | `cadangan_sekolah` / `maklum_balas_pembelajaran` / `aduan_buli_keselamatan` / `permohonan_kaunseling` (no `check`) |
+| `is_anonymous` | boolean | not null, default `false` | |
+| `subject` | text | not null | |
+| `message` | text | not null | The actual report content — **readable by `anon`, see RLS below** |
+| `status` | text | not null, default `'baru'` | `baru`/`dalam_tindakan`/`selesai` (no `check`) |
+| `response_notes` | text | nullable | Staff's reply, visible to the student in their own portal |
+| `responded_by` | uuid | nullable, `references profiles(id)` | |
+| `created_at`, `updated_at` | timestamptz | not null | |
+
+**Indexes**: `idx_student_voice_student`, `idx_student_voice_status`, `idx_student_voice_date`.
+**RLS**: enabled — **and this is a real security gap, not a reviewed trade-off**: `public_read_voice` grants `select` `to authenticated, anon using (true)`, and `public_insert_voice` grants `insert` to the same two roles `with check (true)`. **Anyone holding the public anon key (embedded in every client build) can read every row of this table via a raw PostgREST call** — including the `message`/`subject` text of anonymous bullying reports. The `is_anonymous` flag only nulls `student_id`; it does not restrict who can read the row. This directly undercuts the "Sulit/Rahsia" confidentiality promise made to students in the Student Portal UI. See `KNOWN_ISSUES.md` KI-014 — **flag this to a human before shipping any change near this table; it likely needs `select`/`update` restricted to `authenticated` only, as a follow-up migration.**
+
+---
+
+### `school_announcements`
+**Purpose**: Staff-authored announcements pushed live to the Student Portal's "Pengumuman" tab (and optionally scoped to one student). Added `20260817000001` for the Discipline & Counseling module's "Special Announcement" composer.
+
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `id` | uuid | PK | |
+| `author_id` | uuid | nullable, `references profiles(id) on delete set null` | |
+| `category` | text | not null | `disiplin` or `kaunseling` (no `check`) |
+| `title` | text | not null | |
+| `content` | text | not null | |
+| `target_student_id` | uuid | nullable, `references students(id) on delete set null` | `null` = broadcast to all students; set = only that student sees it (`fn_student_portal_data_by_qr` filters `target_student_id is null or target_student_id = <caller's student>`) |
+| `is_published` | boolean | not null, default `true` | Toggled off = "unpublish," doesn't delete the row |
+| `created_at`, `updated_at` | timestamptz | not null | |
+
+**Indexes**: `idx_school_announcements_category`, `idx_school_announcements_published`, `idx_school_announcements_date`.
+**RLS**: enabled. `public_read_published_announcements` (`select`, `to authenticated, anon using (is_published = true)` — public read of *published* announcements only, reasonable given they're meant to be broadcast). `authenticated_manage_announcements` (`for all`, `to authenticated using (true) with check (true)`) — staff-wide write, not role-gated (same pattern as `discipline_records`).
+
+---
+
+### `sudut_info_posts`
+**Purpose**: Scheduled informational posts ("Sudut Info") shown on the public Landing Page hero carousel and the Student Portal — announcements, program schedules, sahsiah tips, optionally with a poster/banner graphic. Added `20260817000002`, extended `20260818000001` (image support).
+
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `id` | uuid | PK | |
+| `author_id` | uuid | nullable, `references profiles(id) on delete set null` | |
+| `category` | text | not null, default `'umum'` | `disiplin`/`kaunseling`/`sahsiah`/`sekolah`/`umum` (no `check`) |
+| `title` | text | not null | |
+| `content` | text | not null | Rich HTML from `RichTextToolbarWidget` (bold/italic/lists/etc.) — rendered, not sanitized server-side; see `KNOWN_ISSUES.md` if this ever accepts untrusted input |
+| `image_url` | text | nullable | Added `20260818000001`. A public URL — either a manual link or an upload to the `sudut-info-banners` storage bucket (see below) |
+| `managed_by` | text | not null, default `'Unit Disiplin & Kaunseling'` | Display attribution, not a FK |
+| `is_published` | boolean | not null, default `true` | |
+| `valid_from` | timestamptz | not null, default `now()` | Post is only "active" once this passes |
+| `valid_until` | timestamptz | nullable | `null` = valid indefinitely |
+| `created_at`, `updated_at` | timestamptz | not null | |
+
+**Indexes**: `idx_sudut_info_category`, `idx_sudut_info_published`, `idx_sudut_info_validity`, `idx_sudut_info_created`.
+**RLS**: enabled. `public_read_active_sudut_info` (`select`, `to authenticated, anon using (is_published = true and valid_from <= now() and (valid_until is null or valid_until >= now()))`) — public read, but only for posts that are published *and* currently within their scheduled window (expired/future-scheduled posts are invisible to `anon`, matching the "scheduled display" feature). `authenticated_manage_sudut_info` (`for all`, staff-wide, same pattern as the other two new tables).
+
+---
+
 ## Views
 
 ### `merit_student_daily`
@@ -366,7 +472,11 @@ All functions are `language sql stable` (pure reads) unless noted `plpgsql`/`sec
 | `fn_update_dashboard_layout(layout jsonb)` | void | definer | authenticated | writes `profiles.dashboard_layout` for `auth.uid()` (bypasses admin-only profile RLS) |
 | `fn_update_student_status(student_id, status, reason?, date?)` | void | definer | authenticated | admin-only enrollment status change, records who/when |
 | `fn_regenerate_guardian_token(guardian_id)` | uuid | definer | authenticated | staff-only, issues a new `access_token`, invalidating the old parent-portal link |
-| `fn_parent_portal_data(token)` | jsonb | definer, plpgsql | **anon, authenticated** | the only function reachable without a session; returns null for an invalid token, otherwise one student's scoped status |
+| `fn_parent_portal_data(token)` | jsonb | definer, plpgsql | **anon, authenticated** | the only *token-scoped* function reachable without a session; returns null for an invalid token, otherwise one student's scoped status |
+| `fn_parent_portal_data_by_ic(parent_ic, child_ic?)` | jsonb (array) | definer, plpgsql | **anon, authenticated** | IC-based multi-sibling lookup, rate-limited (15 lookups / 5 min, global) — see `PARENT_PORTAL.md` if present, or `API.md` §Parent Portal |
+| `fn_student_discipline_summary(student_id)` | jsonb | definer, plpgsql | authenticated, **anon** | discipline/counseling case counts + latest action + active warning for one student, backing the Student Detail sheet's discipline summary card |
+| `fn_active_sudut_info_posts()` | jsonb (array) | definer, plpgsql | authenticated, **anon** | currently-active (published + within schedule window) Sudut Info posts, powering both the Landing Page hero carousel and Student Portal — the RLS on `sudut_info_posts` would already scope this correctly even via a direct table read; this RPC exists for convenience/single-round-trip, not as an additional security boundary |
+| `fn_student_portal_data_by_qr(qr_token)` | jsonb | definer, plpgsql | **anon, authenticated** | resolves a student by QR token/token id/id/IC digits, returns attendance/merit summary + that student's `student_voice_submissions` history + currently-published `school_announcements` scoped to them or broadcast-all. **Anon-reachable and unauthenticated by design** (matches the QR-tag login model), but note it embeds the caller's *own* voice-submission history in the response — separate from the KI-014 issue of the underlying table itself being directly `anon`-readable |
 
 **Note on `security invoker` (the SQL-language function default) vs `security definer`**: every read-only `fn_*` above is a plain `language sql` function, which is `security invoker` by default in Postgres — it runs under the *calling* user's RLS, meaning these functions do **not** bypass RLS; they simply package a query. Only the `plpgsql` functions explicitly marked `security definer` (`is_admin`, `is_staff`, the two trigger functions, `fn_upsert_staff_by_email`, `fn_manual_attendance_set`, `fn_update_dashboard_layout`, `fn_update_student_status`, `fn_regenerate_guardian_token`, `fn_parent_portal_data`) run with elevated privilege and therefore **must** contain their own internal authorization check (`if not is_admin()/is_staff() then raise exception`) — this is the actual security boundary for those functions, not RLS.
 
@@ -388,7 +498,18 @@ All functions are `language sql stable` (pure reads) unless noted `plpgsql`/`sec
 
 ## Storage Buckets
 
-**None.** No Supabase Storage bucket is used anywhere in this project. The one static asset (`assets/images/crest.png`, the school crest) is bundled into the Flutter web build, not stored in Supabase. If a future feature needs file uploads (e.g. attaching a document to a legacy certificate submission, or a student photo), this will be new territory — no existing bucket/RLS pattern to copy.
+### `sudut-info-banners`
+Added `20260818000001`, one bucket, **public** (`storage.buckets.public = true`). Holds poster/banner images uploaded for Sudut Info posts (via `file_picker` + direct upload from `DisciplineCounselingScreen`'s Sudut Info tab) or referenced by a manually-entered URL.
+
+| Policy | Operation | Role | Rule |
+|---|---|---|---|
+| `Public access to sudut-info-banners` | select | `public` | `bucket_id = 'sudut-info-banners'` — anyone can view any file in this bucket by URL, no auth needed (appropriate: these are public marketing graphics shown on the public Landing Page) |
+| `Authenticated insert to sudut-info-banners` | insert | `authenticated` | `bucket_id = 'sudut-info-banners'` — any signed-in staff can upload, not role-gated |
+| `Authenticated delete from sudut-info-banners` (added `20260818000002`) | delete | `authenticated` | same, any signed-in staff can delete any file in the bucket, not scoped to "files I uploaded" |
+
+Image upload/delete is called **directly from `discipline_counseling_screen.dart`** via `Supabase.instance.client.storage.from('sudut-info-banners')` — **not** through `DisciplineCounselingRepository`, which has no storage methods at all. The screen extracts the filename from a stored `image_url` (`url.split('sudut-info-banners/').last.split('?').first`) and calls `.remove([fileName])` when an image is cleared or a post is deleted, so uploads don't accumulate with no owning row. If you're looking for this logic expecting it in the repository layer (the rest of the app's convention), it isn't there — see `KNOWN_ISSUES.md` if this file-vs-repository-layer inconsistency is ever worth fixing.
+
+**This is the only Storage bucket in the project.** The static crest asset (`assets/images/crest.png`) remains bundled into the Flutter web build, not in Supabase Storage.
 
 ## RLS Policy Summary (by table)
 
@@ -407,7 +528,14 @@ All functions are `language sql stable` (pure reads) unless noted `plpgsql`/`sec
 | `merit_awards` | staff | staff | *(denied — immutable)* | admin |
 | `session_cutoff_times` | staff | admin | admin | admin |
 | `student_guardians` | staff | staff | staff | staff |
+| `discipline_records` | staff (any) | staff (any) | staff (any) | staff (any) |
+| `counseling_records` | staff (any) | staff (any) | staff (any) | staff (any) |
+| `student_voice_submissions` | **staff or anon** | **staff or anon** | staff (any) | *(denied)* |
+| `school_announcements` | staff or anon (published only) | staff (any) | staff (any) | staff (any) |
+| `sudut_info_posts` | staff or anon (published + in-window only) | staff (any) | staff (any) | staff (any) |
 | `merit_student_daily` (view) | staff (via `grant select ... to authenticated` + `security_invoker`) | n/a | n/a | n/a |
+
+Rows marked "staff (any)" are `to authenticated using (true)` — enabled but **not role-gated**; every signed-in staff account has the same access regardless of `profiles.role`. **`student_voice_submissions`'s "staff or anon" select is the one to worry about** — see KI-014, this is public unauthenticated read of potentially-confidential content, not a considered design choice like the Parent Portal's token model.
 
 "Denied" cells have no policy at all for that action — Postgres RLS default-denies any operation without an explicit permissive policy, even for a table with RLS merely *enabled*.
 
@@ -435,6 +563,15 @@ All functions are `language sql stable` (pure reads) unless noted `plpgsql`/`sec
 | `20260809000002_student_guardians.sql` | `student_guardians` table |
 | `20260810000001_student_guardians_ic_number.sql` | `ic_number` column, `(student_id, full_name)` unique constraint |
 | `20260811000001_parent_portal.sql` | `student_guardians.access_token`, `fn_regenerate_guardian_token`, `fn_parent_portal_data` (anon-reachable) |
+| `20260811000002_discipline_and_counseling.sql` | `discipline_records`, `counseling_records`, `fn_student_discipline_summary` |
+| `20260811000003_student_voice.sql` | `student_voice_submissions`, first `fn_student_portal_data_by_qr` |
+| `20260811000004_next_steps.sql` | Primary-guardian enforcement, Parent Portal access-log + rate limit, absence-cron helper (see `TASKS.md` T-027/T-030/T-031) |
+| `20260811000005_parent_ic_lookup.sql` | `fn_parent_portal_data_by_ic` (IC-based multi-sibling lookup, anon-reachable) |
+| `20260811000006_fix_student_qr_tokens.sql` | Fixes `fn_student_portal_data_by_qr`'s token lookup to correctly join `qr_tokens` |
+| `20260817000001_school_announcements.sql` | `school_announcements` table; redefines `fn_student_portal_data_by_qr` to also return live announcements scoped to the caller |
+| `20260817000002_sudut_info_posts.sql` | `sudut_info_posts` table, `fn_active_sudut_info_posts` |
+| `20260818000001_add_image_url_to_sudut_info.sql` | `sudut_info_posts.image_url`, `sudut-info-banners` public storage bucket + select/insert policies, redefines `fn_active_sudut_info_posts` to include `image_url` |
+| `20260818000002_add_storage_delete_policy.sql` | Adds the missing `delete` policy on `sudut-info-banners` (uploads were previously undeletable) |
 
 ## Future Migration Notes
 
@@ -445,3 +582,4 @@ Read `PROJECT.md` §11 (Future Roadmap) and `KNOWN_ISSUES.md` before touching th
 3. **`student_guardians` has no per-student "primary guardian" enforcement** — `is_primary` is a plain boolean per row with no unique-partial-index guaranteeing only one primary per student (unlike `qr_tokens`' `status='active'` pattern). Multiple "primary" guardians per student is currently possible; not validated anywhere.
 4. **The Parent Portal's `access_token` has no expiry, no rate limit, and no per-access audit log.** If you're asked to harden this, the schema change needed is likely a `parent_portal_access_log` table (token, accessed_at, ip — Supabase Edge Functions would be needed to capture IP, since a raw RPC call doesn't see the caller's network address) and/or an `expires_at` column on `student_guardians` or a separate `parent_portal_links` table (cleaner — would decouple "how many links can exist" from "how many guardians exist", enabling multiple/rotating links per guardian).
 5. **`isar` (installed, unused) implies an offline-cache plan that was never designed at the schema level.** If ever revived, it would live entirely client-side — no Supabase schema changes implied by itself.
+6. **`student_voice_submissions` needs a follow-up migration restricting `select`/`update` to `authenticated` only** (drop `anon` from `public_read_voice`, keep `anon` on `public_insert_voice` since students submit without a session). See `KNOWN_ISSUES.md` KI-014 — this is the highest-priority item in this file, not a "future nice-to-have."

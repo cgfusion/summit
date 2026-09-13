@@ -41,6 +41,12 @@
 | T-040 | Student Portal & Student Voice (Suara Murid) module — QR Name Tag auth (`/student`), `student_voice_submissions`, `fn_student_portal_data_by_qr`, anonymous protection | P1 | T-001 | L |
 | T-041 | Peti Suara Murid (Teacher Inbox) — integrated into `DisciplineCounselingScreen` for UBK & Disiplin staff to read & respond to student voice entries | P1 | T-039, T-040 | M |
 | T-042 | SMK Sungai Damit & D2C Project Public Web Landing Page — `SchoolLandingScreen` (`/` & `/landing`), high-tech theme, T1-T5 scope, motto, subtle portal launchpad | P1 | T-022, T-040 | L |
+| T-043 | Special Announcements: `school_announcements` table, composer + management list (view/edit/unpublish/delete) in Discipline & Counseling, live-synced to Student Portal Tab 1 "Pengumuman" | P1 | T-039, T-040 | L |
+| T-044 | D2C User Manual — `docs/MANUAL_PENGGUNA_D2C.md` + `.docx`, end-user (not developer) documentation | P2 | none | M |
+| T-045 | Landing Page "Cyber" redesign — pixel-match to a supplied reference mockup, real photo hero background (`assets/images/school_front.jpg`), Sudut Info card moved into the hero as a live carousel | P1 | T-042 | L |
+| T-046 | D2C AI Assistant — chat dialog + local rule-based knowledge engine, Gemini API path present but never wired to a key (see `KNOWN_ISSUES.md` KI-016) | P2 | T-042 | M |
+| T-047 | Sudut Info — scheduled posts (`sudut_info_posts`), rich HTML formatting toolbar (`RichTextToolbarWidget`), poster/banner image upload to Supabase Storage (`sudut-info-banners` bucket), Landing Page + Student Portal display | P1 | T-039, T-040, T-045 | L |
+| T-048 | Sudut Info storage hardening — direct image upload/delete from the screen (bypassing the repository layer, see `KNOWN_ISSUES.md` KI-017), storage delete RLS policy | P2 | T-047 | S |
 
 ## In Progress
 
@@ -52,7 +58,8 @@
 |---|---|---|---|---|
 | T-025 | Real parent/student login (replace magic-link Parent Portal) | P3 | **Product decision + budget**: needs either an SMS provider account (Twilio/similar, has per-message cost) for phone OTP, or a parent-email data-collection step (XEA4402 has no email field) for email/password. Do not start without the user choosing one — see `PROJECT.md` §7 design decision #7 for why this was deliberately deferred. **Reconfirmed not-now on 2026-08-12** — explicitly not being picked up yet, still no SMS budget or email-collection decision made. | XL |
 | T-026 | Mentor/PRS assignment + case-tracking module (2 of 5 official program KPIs) | P3 | **Requires new domain modeling** — no existing table models "mentor," "case," or "escalation." Needs a scoping conversation before any migration is written; do not infer a schema from `attendance_day_exceptions`, it's the wrong shape | XL |
-| T-041 | Disiplin & Kaunseling (SSDOP/UBK) module — infraction logging with severity levels + standard actions, counseling session logging, new `disiplin`/`kaunselor`/`admin` roles | P3 | **Requires new domain modeling**, same shape as T-026 — no existing table models infractions, severity, actions-taken, or counseling sessions; no existing role maps to `disiplin`/`kaunselor`. Reference doc is `DISCIPLINE_AND_COUNSELING.md` (RBAC, infraction categories, session types) — treat it as scoping input, not a schema. **Explicitly not being implemented yet** (Raizal, 2026-08-12) — do not start migrations/UI without a scoping conversation first | XL |
+
+> **Correction (2026-09-13)**: this table previously also listed a `T-041` "Disiplin & Kaunseling (SSDOP/UBK) module... not being implemented yet." That was a documentation error, not a real blocker — the module had already shipped as **T-039** on 2026-08-10, two days *before* that stale entry was written, because two sessions were editing this repo concurrently and neither saw the other's commits. The ID collision (a *different*, real T-041 — "Peti Suara Murid" — exists in the Completed table above) has been resolved by simply removing the stale row rather than renumbering anything already shipped. If you're an agent that ever adds a new task ID, **grep `TASKS.md` for the number first** — this collision was avoidable.
 
 ## Next (near-term, natural continuations of shipped work)
 

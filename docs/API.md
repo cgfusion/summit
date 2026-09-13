@@ -289,6 +289,58 @@ await ref.read(dashboardRepositoryProvider).saveDashboardLayout(
 
 ---
 
+## Discipline & Counseling (`features/discipline_counseling`)
+
+See `DISCIPLINE_AND_COUNSELING.md` for the module overview and the RBAC-vs-enforcement gap (`KNOWN_ISSUES.md` KI-015).
+
+### `getDisciplineRecords(...)` / `getCounselingRecords(...)`
+- **Table ops**: `SELECT` on `discipline_records` / `counseling_records`, optionally filtered by student.
+- **Auth required**: any signed-in staff (`to authenticated using (true)`) — not role-gated.
+
+### `getStudentDisciplineSummary(String studentId)`
+- **RPC**: `fn_student_discipline_summary(p_student_id uuid)`
+- **Response**: `{discipline_count, counseling_count, latest_action, active_warning}` — `active_warning` is derived by pattern-matching `action_taken like 'Surat Amaran%'` on the student's most recent discipline record.
+- **Auth required**: granted to `authenticated` **and `anon`** — technically callable without a session, though no unauthenticated caller in this codebase does so today.
+
+### Announcements — `getSchoolAnnouncements(...)` / `createSchoolAnnouncement(...)` / `updateSchoolAnnouncement(...)` / `toggleAnnouncementPublishedStatus(...)` / `deleteSchoolAnnouncement(...)`
+- **Table ops**: plain CRUD on `school_announcements`.
+- **Auth required**: staff for writes (`to authenticated`); reads of *published* rows are also `anon`-reachable (consumed by `fn_student_portal_data_by_qr`, not called directly by an unauthenticated Dart client).
+- **Fields**: `category` (`disiplin`/`kaunseling`), `title`, `content`, `targetStudentId` (null = broadcast).
+
+### Sudut Info — `getSudutInfoPosts(...)` / `createSudutInfoPost(...)` / `updateSudutInfoPost(...)` / `toggleSudutInfoPublishStatus(...)` / `deleteSudutInfoPost(...)`
+- **Table ops**: plain CRUD on `sudut_info_posts`.
+- **Auth required**: staff for writes; reads of currently-active (published + in schedule window) rows are `anon`-reachable.
+- **Image handling is NOT part of this repository** — `discipline_counseling_screen.dart` calls `Supabase.instance.client.storage.from('sudut-info-banners')` directly (`.uploadBinary(...)`, `.getPublicUrl(...)`, `.remove([...])`), bypassing `DisciplineCounselingRepository` entirely. See `COMPONENTS.md`/`KNOWN_ISSUES.md` KI-017 if you're looking for this and expecting it in the repository layer.
+- **`getActiveSudutInfoPosts()`** (the public-facing read, used by the Landing Page and Student Portal): **RPC** `fn_active_sudut_info_posts()`, no params, returns a jsonb array of currently-active posts (`is_published = true`, within `valid_from`/`valid_until`). Callable by `anon`.
+
+---
+
+## Student Portal (`features/student_portal`) — unauthenticated, QR-tag gated
+
+### `getPortalDataByQr(String qrToken)`
+- **RPC**: `fn_student_portal_data_by_qr(p_qr_token text)`
+- **Auth required**: none — granted to `anon` and `authenticated`.
+- **Request**: `p_qr_token` — matched (in order) against `qr_tokens.token`, `qr_tokens.id::text`, `students.id::text`, or a digit-normalized `students.ic_number`. Any of these forms resolves the same student.
+- **Response** (`jsonb`, `null` if nothing matches):
+  ```json
+  {
+    "student": {"id": "...", "full_name": "...", "class_name": "...", "enrollment_status": "..."},
+    "attendance": {"total_days": 0, "days_present": 0, "days_absent": 0, "attendance_rate": 100.0},
+    "merit": {"total_points": 0},
+    "recent_attendance": [{"date": "...", "status": "..."}, /* up to 30 */],
+    "submissions": [{"id": "...", "category": "...", "is_anonymous": false, "subject": "...", "message": "...", "status": "...", "response_notes": null, "created_at": "..."}, ...],
+    "announcements": [{"id": "...", "category": "...", "title": "...", "content": "...", "author_name": "...", "target_student_name": null, "created_at": "..."}, ...]
+  }
+  ```
+- **Note**: this response embeds the caller's *own* `submissions` (their voice-submission history) directly in an anon-reachable RPC — reasonable given they authenticated via their own QR token, but a reminder that this RPC itself is a second, narrower way this data is exposed, separate from the KI-014 issue of `student_voice_submissions` being directly table-readable by anyone.
+- **`attendance_rate` special case**: reads `100.0` when `total_days = 0` (a brand-new student with no history yet), not `0` or `null` — don't treat this as "the student has perfect attendance."
+
+### `submitStudentVoice({category, isAnonymous, subject, message})`
+- **Table op**: `INSERT` into `student_voice_submissions`, `student_id: null` if `isAnonymous`.
+- **Auth required**: none — `public_insert_voice` grants `insert` to `authenticated, anon`.
+
+---
+
 ## Future / informational — Attendance Export API (not implemented)
 
 > Draft only. See `ATTENDANCE.md` §6. Do not build unless explicitly requested.

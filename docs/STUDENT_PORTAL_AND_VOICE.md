@@ -8,8 +8,9 @@ This document describes the design, architecture, security model, and implementa
 
 The **Student Portal** is a student-facing interface accessible at route **`/#/student`** (and `/#/student/:token`). It allows students of SMK Sungai Damit to:
 1. **View Personal Progress**: Track personal attendance rate %, recorded days present/absent, total merit points earned, and unlocked badges.
-2. **Submit Student Voice (Suara Murid)**: Voice suggestions for school improvement, learning feedback, anti-bullying & safety reports (with optional anonymity), or request private UBK counseling sessions.
-3. **Track Submission Status**: Follow up on past submissions to read official responses from **Guru Kaunselor** and **Guru Disiplin**.
+2. **Read Live Announcements** (Tab 1, "Pengumuman", added `20260817000001`): staff-published `school_announcements` from the Discipline & Counseling module, either broadcast to the whole school or targeted at that one student — see §5 below.
+3. **Submit Student Voice (Suara Murid)**: Voice suggestions for school improvement, learning feedback, anti-bullying & safety reports (with optional anonymity), or request private UBK counseling sessions.
+4. **Track Submission Status**: Follow up on past submissions to read official responses from **Guru Kaunselor** and **Guru Disiplin**.
 
 ---
 
@@ -56,3 +57,13 @@ In the **Disiplin & Kaunseling** module (`/discipline-counseling`), authorized s
 - Teachers can read all incoming student submissions.
 - For anonymous entries, student name & class are strictly hidden as `SULIT / RAHSIA (ANONYMOUS)`.
 - Teachers can update the status (*Dalam Tindakan*, *Selesai*) and type an official response note that the student can view in their portal.
+
+**"Any staff", not role-gated**: as with the rest of the Discipline & Counseling module, this is a UI convention, not an enforced boundary — see `DISCIPLINE_AND_COUNSELING.md` §2.
+
+**Confidentiality gap (KI-014, see `KNOWN_ISSUES.md`)**: the "SULIT / RAHSIA" hiding described above happens only in this screen's UI. The underlying `student_voice_submissions` table grants `select` `to authenticated, anon using (true)` — anyone holding the project's public anon key can read every submission's full `subject`/`message` text directly via PostgREST, bypassing this screen entirely. Treat this as the highest-priority open issue in the codebase, not a documentation nuance.
+
+## 5. Live Announcements (Tab 1, "Pengumuman")
+
+Added `20260817000001` alongside `school_announcements` (see `DATABASE.md`). `fn_student_portal_data_by_qr` returns an `announcements` array in its response, filtered server-side to `is_published = true` and (`target_student_id is null` — broadcast to everyone — `or target_student_id = <the calling student>`). Each entry carries `category` (`disiplin`/`kaunseling`), `title`, `content`, `author_name`, `target_student_name` (null for broadcasts), and `created_at`. This is a **read-only, live-synced** feed — a staff member publishing a new announcement in the Discipline & Counseling composer appears here on the student's next portal load, no separate subscription/polling mechanism, just a fresh RPC call per visit.
+
+This is distinct from **Sudut Info** (`sudut_info_posts`), which is a separate, schedule-windowed content type shown on both this portal and the public Landing Page — see `DISCIPLINE_AND_COUNSELING.md` §6 and `LANDING_PAGE.md` §4. Announcements (this section) have no scheduling window and no image support; Sudut Info has both.

@@ -55,6 +55,19 @@
 - **Inputs**: `context`, `student` (`Student` entity).
 - **Outputs**: `Future<void>` (resolves when the sheet is dismissed).
 
+### `D2CAiAssistantDialog` / `D2CAiAssistantService`
+- **Files**: `core/widgets/d2c_ai_assistant_dialog.dart`, `core/services/d2c_ai_assistant_service.dart`
+- **Scope**: public. The dialog is opened from a `FloatingActionButton.extended` ("PEMBANTU AI") on `SchoolLandingScreen`'s `Scaffold` — currently the only call site, but nothing prevents opening it from elsewhere via `D2CAiAssistantDialog.show(context)`.
+- **Purpose**: a chat-style dialog answering questions about the D2C program. **Despite the UI reading "GEMINI INTELLIGENCE • ONLINE", it is 100% local rule-based in production** — `D2CAiAssistantService()` is always constructed with no `apiKey`, so `askAi()` always falls through to `_generateSmartLocalResponse()`, a keyword-matching lookup over ~10 known topics (merit points, 3 Aras, Suara Murid, Parent Portal, announcements, Sudut Info, program timeline, leadership, etc.), ending in a generic overview if nothing matches. The Gemini HTTP-call code path exists and is functional in principle (`generativelanguage.googleapis.com`, `gemini-1.5-flash`) but has never been wired to a real key anywhere in this codebase or its deploy workflow. See `KNOWN_ISSUES.md` KI-016 before telling anyone this "uses AI" in the LLM sense.
+- **Inputs**: none (`D2CAiAssistantDialog.show(BuildContext)`). Internally holds its own chat history (`List<D2CAiChatMessage>`), not persisted anywhere — closing the dialog loses the conversation.
+- **If asked to give it real answers to novel questions**: the fix is providing a real `apiKey` (as a `--dart-define` secret, same pattern as `SUPABASE_ANON_KEY`) to the `D2CAiAssistantService` constructor at the dialog's one call site — not a UI change.
+
+### `RichTextToolbarWidget`
+- **File**: `core/widgets/rich_text_toolbar_widget.dart`
+- **Scope**: public. Used above the content `TextField` in both the Sudut Info "Tambah Info Baharu" composer and its "Edit Sudut Info" dialog (`discipline_counseling_screen.dart`).
+- **Purpose**: a `Wrap` of `IconButton`s (Bold/Italic/Underline/Highlight/Bullet/Numbered/Header) that wrap the current text selection (or insert at the cursor) with literal HTML tags (`<b>`, `<i>`, `<u>`, `<mark>`) or a line prefix (`• `, `1. `, `📢 `) directly into a plain `TextEditingController`. **This is not a rich-text editor** — there's no WYSIWYG rendering while typing; the HTML tags are visible as raw text in the input box, and only render as formatting wherever the resulting `sudut_info_posts.content` is displayed (e.g. the Landing Page's Sudut Info card). Content is not sanitized before storage or display — if this field is ever exposed to less-trusted authors than "any signed-in staff," that becomes an XSS-relevant surface.
+- **Inputs**: `controller` (`TextEditingController`, the field it edits — a plain reference, no coupling beyond that).
+
 ### `AppTheme` static members
 - **File**: `core/theme/app_theme.dart`
 - **Scope**: public, imported wherever theme-aware colors/icons are needed.
