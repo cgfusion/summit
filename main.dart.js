@@ -62658,7 +62658,7 @@ p=$.Bv().$1(new A.jt(null,null))
 if(o.e==null)A.U(A.a4(u.w))
 o.gcw().cJ(p)}return A.u(null,r)}})
 return A.v($async$oy,r)},
-B(a2){var s,r,q,p,o,n,m,l,k,j,i,h,g=this,f=null,e=g.gcj().af($.In().$1(new A.jt(f,f)),t.q8),d=A.dz("d MMM yyyy, h:mm a",f),c=A.bk(16),b=t.p,a=A.at(A.b([A.bL(B.Wy,B.eu,f,24),B.aA,B.amp],b),B.i,B.f,B.h,0,f),a0=A.p("Pengumuman Sudut Info akan dipaparkan pada Halaman Utama (Landing Page) & Portal Murid mengikut tempoh masa yang ditetapkan.",f,f,f,f,A.n(a2).ok.Q,f,f,f),a1=t.N
+B(a2){var s,r,q,p,o,n,m,l,k,j,i,h,g=this,f=null,e=g.gcj().af($.In().$1(new A.jt(f,f)),t.q8),d=A.dz("d MMM yyyy, h:mm a",f),c=A.bk(16),b=t.p,a=A.at(A.b([A.bL(B.Wy,B.eu,f,24),B.aA,B.amp],b),B.i,B.f,B.h,0,f),a0=A.p('Pengumuman Sudut Info akan dipaparkan di Portal Murid dan/atau Portal Ibu Bapa mengikut sasaran "Untuk Siapa" dan tempoh masa yang ditetapkan di bawah.',f,f,f,f,A.n(a2).ok.Q,f,f,f),a1=t.N
 a1=A.at(A.b([A.aK(A.j2(B.ZI,g.Q,B.a1t,new A.bev(g),a1),1),B.aO,A.aK(A.j2(B.xD,g.as,B.a3y,new A.bew(g),a1),1)],b),B.i,B.f,B.h,0,f)
 s=A.dm(f,B.ac,!1,f,!0,B.p,f,A.dx(),g.z,f,f,f,f,f,2,B.ZQ,B.z,!0,f,!0,f,!1,f,B.ad,f,f,f,f,f,f,f,f,f,1,f,f,!1,"\u2022",f,f,f,f,f,!1,f,f,!1,f,!0,f,B.ab,f,f,f,f,f,f,f,f,f,f,f,f,!0,B.J,f,B.am,f,f,f,f)
 r=A.dm(f,B.ac,!1,f,!0,B.p,f,A.dx(),g.w,f,f,f,f,f,2,B.ZK,B.z,!0,f,!0,f,!1,f,B.ad,f,f,f,f,f,f,f,f,f,1,f,f,!1,"\u2022",f,f,f,f,f,!1,f,f,!1,f,!0,f,B.ab,f,f,f,f,f,f,f,f,f,f,f,f,!0,B.J,f,B.am,f,f,f,f)
