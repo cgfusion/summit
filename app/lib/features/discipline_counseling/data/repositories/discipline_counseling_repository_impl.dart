@@ -263,12 +263,14 @@ class DisciplineCounselingRepositoryImpl implements DisciplineCounselingReposito
   @override
   Future<List<SudutInfoPost>> getSudutInfoPosts({
     String? category,
+    String? audience,
     bool onlyActive = false,
   }) async {
     var query = _client.from('sudut_info_posts').select('''
           id,
           author_id,
           category,
+          audience,
           title,
           content,
           image_url,
@@ -294,6 +296,12 @@ class DisciplineCounselingRepositoryImpl implements DisciplineCounselingReposito
       query = query.eq('category', category);
     }
 
+    if (audience != null && audience.isNotEmpty) {
+      // A post targeted at "kedua_dua" (both) should show up for either
+      // audience-specific query, in addition to an exact audience match.
+      query = query.or('audience.eq.$audience,audience.eq.kedua_dua');
+    }
+
     final rows = await query.order('created_at', ascending: false);
     return (rows as List).map((r) => SudutInfoPost.fromMap(r as Map<String, dynamic>)).toList();
   }
@@ -301,6 +309,7 @@ class DisciplineCounselingRepositoryImpl implements DisciplineCounselingReposito
   @override
   Future<void> createSudutInfoPost({
     required String category,
+    required String audience,
     required String title,
     required String content,
     String? imageUrl,
@@ -311,6 +320,7 @@ class DisciplineCounselingRepositoryImpl implements DisciplineCounselingReposito
   }) async {
     await _client.from('sudut_info_posts').insert({
       'category': category,
+      'audience': audience,
       'title': title,
       'content': content,
       'image_url': imageUrl,
@@ -326,6 +336,7 @@ class DisciplineCounselingRepositoryImpl implements DisciplineCounselingReposito
   Future<void> updateSudutInfoPost({
     required String id,
     required String category,
+    required String audience,
     required String title,
     required String content,
     String? imageUrl,
@@ -336,6 +347,7 @@ class DisciplineCounselingRepositoryImpl implements DisciplineCounselingReposito
   }) async {
     final updateData = <String, dynamic>{
       'category': category,
+      'audience': audience,
       'title': title,
       'content': content,
       'image_url': imageUrl,

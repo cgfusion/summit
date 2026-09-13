@@ -6,6 +6,7 @@ class SudutInfoPost {
     this.authorId,
     this.authorName,
     required this.category,
+    this.audience = 'kedua_dua',
     required this.title,
     required this.content,
     this.imageUrl,
@@ -20,6 +21,7 @@ class SudutInfoPost {
   final String? authorId;
   final String? authorName;
   final String category; // 'disiplin', 'kaunseling', 'sahsiah', 'sekolah', 'umum'
+  final String audience; // 'murid', 'ibu_bapa', or 'kedua_dua' (both)
   final String title;
   final String content;
   final String? imageUrl;
@@ -45,6 +47,17 @@ class SudutInfoPost {
   bool get isExpired {
     final now = DateTime.now();
     return isPublished && validUntil != null && validUntil!.isBefore(now);
+  }
+
+  String get audienceLabel {
+    switch (audience) {
+      case 'murid':
+        return 'Murid';
+      case 'ibu_bapa':
+        return 'Ibu Bapa';
+      default:
+        return 'Murid & Ibu Bapa';
+    }
   }
 
   String get statusLabel {
@@ -77,6 +90,7 @@ class SudutInfoPost {
       authorId: map['author_id'] as String?,
       authorName: author,
       category: map['category'] as String? ?? 'umum',
+      audience: map['audience'] as String? ?? 'kedua_dua',
       title: map['title'] as String? ?? '',
       content: map['content'] as String? ?? '',
       imageUrl: map['image_url'] as String?,

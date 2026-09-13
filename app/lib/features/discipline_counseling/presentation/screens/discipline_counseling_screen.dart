@@ -1802,6 +1802,7 @@ class _SudutInfoTabState extends ConsumerState<_SudutInfoTab> {
   final _imageUrlController = TextEditingController();
   final _managedByController = TextEditingController(text: 'Unit Disiplin & Kaunseling');
   String _selectedCategory = 'disiplin';
+  String _selectedAudience = 'kedua_dua';
   DateTime _validFrom = DateTime.now();
   DateTime? _validUntil;
   bool _submitting = false;
@@ -1907,6 +1908,7 @@ class _SudutInfoTabState extends ConsumerState<_SudutInfoTab> {
     try {
       await ref.read(disciplineCounselingRepositoryProvider).createSudutInfoPost(
             category: _selectedCategory,
+            audience: _selectedAudience,
             title: title,
             content: content,
             imageUrl: _imageUrlController.text.trim().isEmpty ? null : _imageUrlController.text.trim(),
@@ -1924,8 +1926,8 @@ class _SudutInfoTabState extends ConsumerState<_SudutInfoTab> {
           _validFrom = DateTime.now();
           _validUntil = null;
         });
-        ref.invalidate(allSudutInfoPostsProvider(null));
-        ref.invalidate(activeSudutInfoPostsProvider(null));
+        ref.invalidate(allSudutInfoPostsProvider((category: null, audience: null)));
+        ref.invalidate(activeSudutInfoPostsProvider((category: null, audience: null)));
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('Sudut Info (beserta Grafik Poster) berjaya diterbitkan!'),
@@ -1951,8 +1953,8 @@ class _SudutInfoTabState extends ConsumerState<_SudutInfoTab> {
             id: post.id,
             isPublished: newStatus,
           );
-      ref.invalidate(allSudutInfoPostsProvider(null));
-      ref.invalidate(activeSudutInfoPostsProvider(null));
+      ref.invalidate(allSudutInfoPostsProvider((category: null, audience: null)));
+      ref.invalidate(activeSudutInfoPostsProvider((category: null, audience: null)));
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -2008,8 +2010,8 @@ class _SudutInfoTabState extends ConsumerState<_SudutInfoTab> {
       try {
         await ref.read(disciplineCounselingRepositoryProvider).deleteSudutInfoPost(post.id);
         await _deleteStorageImage(post.imageUrl);
-        ref.invalidate(allSudutInfoPostsProvider(null));
-        ref.invalidate(activeSudutInfoPostsProvider(null));
+        ref.invalidate(allSudutInfoPostsProvider((category: null, audience: null)));
+        ref.invalidate(activeSudutInfoPostsProvider((category: null, audience: null)));
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Sudut Info berjaya dipadam.')),
@@ -2031,14 +2033,14 @@ class _SudutInfoTabState extends ConsumerState<_SudutInfoTab> {
       builder: (ctx) => _EditSudutInfoDialog(post: post),
     );
     if (result == true) {
-      ref.invalidate(allSudutInfoPostsProvider(null));
-      ref.invalidate(activeSudutInfoPostsProvider(null));
+      ref.invalidate(allSudutInfoPostsProvider((category: null, audience: null)));
+      ref.invalidate(activeSudutInfoPostsProvider((category: null, audience: null)));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final allPostsAsync = ref.watch(allSudutInfoPostsProvider(null));
+    final allPostsAsync = ref.watch(allSudutInfoPostsProvider((category: null, audience: null)));
     final dateFormat = DateFormat('d MMM yyyy, h:mm a');
 
     return SingleChildScrollView(
@@ -2098,16 +2100,33 @@ class _SudutInfoTabState extends ConsumerState<_SudutInfoTab> {
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: TextField(
-                          controller: _managedByController,
+                        child: DropdownButtonFormField<String>(
+                          initialValue: _selectedAudience,
                           decoration: const InputDecoration(
-                            labelText: 'Unit / Agensi Pengendali',
+                            labelText: 'Untuk Siapa',
                             border: OutlineInputBorder(),
                             isDense: true,
                           ),
+                          items: const [
+                            DropdownMenuItem(value: 'murid', child: Text('🎓 Murid Sahaja (Portal Murid)')),
+                            DropdownMenuItem(value: 'ibu_bapa', child: Text('👨‍👩‍👧 Ibu Bapa Sahaja (Portal Ibu Bapa)')),
+                            DropdownMenuItem(value: 'kedua_dua', child: Text('👥 Murid & Ibu Bapa')),
+                          ],
+                          onChanged: (val) {
+                            if (val != null) setState(() => _selectedAudience = val);
+                          },
                         ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _managedByController,
+                    decoration: const InputDecoration(
+                      labelText: 'Unit / Agensi Pengendali',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   TextField(
@@ -2334,8 +2353,8 @@ class _SudutInfoTabState extends ConsumerState<_SudutInfoTab> {
                 icon: const Icon(Icons.refresh, size: 20),
                 tooltip: 'Muat Semula',
                 onPressed: () {
-                  ref.invalidate(allSudutInfoPostsProvider(null));
-                  ref.invalidate(activeSudutInfoPostsProvider(null));
+                  ref.invalidate(allSudutInfoPostsProvider((category: null, audience: null)));
+                  ref.invalidate(activeSudutInfoPostsProvider((category: null, audience: null)));
                 },
               ),
             ],
@@ -2402,6 +2421,19 @@ class _SudutInfoTabState extends ConsumerState<_SudutInfoTab> {
                                 child: Text(
                                   post.category.toUpperCase(),
                                   style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black87),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.shade50,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.blue.shade200),
+                                ),
+                                child: Text(
+                                  post.audienceLabel,
+                                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.blue.shade900),
                                 ),
                               ),
                               const Spacer(),
@@ -2524,6 +2556,7 @@ class _EditSudutInfoDialogState extends ConsumerState<_EditSudutInfoDialog> {
   late final TextEditingController _imageUrlController;
   late final TextEditingController _managedByController;
   late String _category;
+  late String _audience;
   late bool _isPublished;
   late DateTime _validFrom;
   DateTime? _validUntil;
@@ -2537,6 +2570,7 @@ class _EditSudutInfoDialogState extends ConsumerState<_EditSudutInfoDialog> {
     _imageUrlController = TextEditingController(text: widget.post.imageUrl ?? '');
     _managedByController = TextEditingController(text: widget.post.managedBy);
     _category = widget.post.category;
+    _audience = widget.post.audience;
     _isPublished = widget.post.isPublished;
     _validFrom = widget.post.validFrom;
     _validUntil = widget.post.validUntil;
@@ -2644,6 +2678,7 @@ class _EditSudutInfoDialogState extends ConsumerState<_EditSudutInfoDialog> {
       await ref.read(disciplineCounselingRepositoryProvider).updateSudutInfoPost(
             id: widget.post.id,
             category: _category,
+            audience: _audience,
             title: title,
             content: content,
             imageUrl: _imageUrlController.text.trim().isEmpty ? null : _imageUrlController.text.trim(),
@@ -2722,12 +2757,25 @@ class _EditSudutInfoDialogState extends ConsumerState<_EditSudutInfoDialog> {
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: TextField(
-                    controller: _managedByController,
-                    decoration: const InputDecoration(labelText: 'Pengendali', border: OutlineInputBorder(), isDense: true),
+                  child: DropdownButtonFormField<String>(
+                    initialValue: _audience,
+                    decoration: const InputDecoration(labelText: 'Untuk Siapa', border: OutlineInputBorder(), isDense: true),
+                    items: const [
+                      DropdownMenuItem(value: 'murid', child: Text('Murid Sahaja')),
+                      DropdownMenuItem(value: 'ibu_bapa', child: Text('Ibu Bapa Sahaja')),
+                      DropdownMenuItem(value: 'kedua_dua', child: Text('Murid & Ibu Bapa')),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) setState(() => _audience = val);
+                    },
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _managedByController,
+              decoration: const InputDecoration(labelText: 'Pengendali', border: OutlineInputBorder(), isDense: true),
             ),
             const SizedBox(height: 12),
             TextField(

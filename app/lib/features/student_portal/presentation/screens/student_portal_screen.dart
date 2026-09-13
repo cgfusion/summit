@@ -7,6 +7,8 @@ import '../providers/student_portal_providers.dart';
 import '../../domain/entities/student_portal_data.dart';
 import '../../domain/entities/student_voice_submission.dart';
 import 'package:app/features/discipline_counseling/domain/entities/school_announcement.dart';
+import 'package:app/features/discipline_counseling/domain/entities/sudut_info_post.dart';
+import 'package:app/features/discipline_counseling/presentation/providers/discipline_counseling_providers.dart';
 
 class StudentPortalScreen extends ConsumerStatefulWidget {
   const StudentPortalScreen({super.key, this.initialToken});
@@ -666,11 +668,13 @@ class _SubmitVoiceDialogState extends ConsumerState<_SubmitVoiceDialog> {
   }
 }
 
-class _InspirationTab extends StatelessWidget {
+class _InspirationTab extends ConsumerWidget {
   const _InspirationTab();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final postsAsync = ref.watch(activeSudutInfoPostsProvider((category: null, audience: 'murid')));
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -693,7 +697,84 @@ class _InspirationTab extends StatelessWidget {
             ),
           ),
         ),
+        const SizedBox(height: 16),
+        postsAsync.when(
+          data: (posts) {
+            if (posts.isEmpty) return const SizedBox.shrink();
+            return Column(
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.info_outline, size: 18, color: Colors.blue.shade800),
+                    const SizedBox(width: 6),
+                    Text('Sudut Info', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                for (final post in posts) _SudutInfoCard(post: post),
+              ],
+            );
+          },
+          loading: () => const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (_, _) => const SizedBox.shrink(),
+        ),
       ],
+    );
+  }
+}
+
+class _SudutInfoCard extends StatelessWidget {
+  const _SudutInfoCard({required this.post});
+
+  final SudutInfoPost post;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(8)),
+              child: Text(
+                post.category.toUpperCase(),
+                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(height: 8),
+            if (post.imageUrl != null && post.imageUrl!.isNotEmpty) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: post.imageUrl!.startsWith('assets/')
+                    ? Image.asset(post.imageUrl!, height: 120, width: double.infinity, fit: BoxFit.cover)
+                    : Image.network(
+                        post.imageUrl!,
+                        height: 120,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                      ),
+              ),
+              const SizedBox(height: 8),
+            ],
+            Text(post.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+            const SizedBox(height: 4),
+            Text(post.content, style: Theme.of(context).textTheme.bodySmall),
+            const SizedBox(height: 4),
+            Text(
+              'Pengendali: ${post.managedBy}',
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -71,11 +71,13 @@ abstract interface class DisciplineCounselingRepository {
   // Sudut Info Management
   Future<List<SudutInfoPost>> getSudutInfoPosts({
     String? category,
+    String? audience, // 'murid', 'ibu_bapa', or null for no filter (staff management view)
     bool onlyActive = false,
   });
 
   Future<void> createSudutInfoPost({
     required String category,
+    required String audience, // 'murid', 'ibu_bapa', or 'kedua_dua'
     required String title,
     required String content,
     String? imageUrl,
@@ -88,6 +90,7 @@ abstract interface class DisciplineCounselingRepository {
   Future<void> updateSudutInfoPost({
     required String id,
     required String category,
+    required String audience,
     required String title,
     required String content,
     String? imageUrl,

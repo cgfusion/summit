@@ -7,6 +7,8 @@ import '../../../student/domain/entities/enrollment_status.dart';
 import '../../../student/presentation/screens/student_detail_sheet.dart' show colorForEnrollmentStatus;
 import '../../domain/entities/parent_portal_data.dart';
 import '../providers/parent_portal_providers.dart';
+import 'package:app/features/discipline_counseling/domain/entities/sudut_info_post.dart';
+import 'package:app/features/discipline_counseling/presentation/providers/discipline_counseling_providers.dart';
 
 Color _colorForAttendanceStatus(AttendanceStatus status) {
   switch (status) {
@@ -194,7 +196,87 @@ class ParentPortalBody extends StatelessWidget {
               ],
             ),
           ),
+        const SizedBox(height: 20),
+        Consumer(
+          builder: (context, ref, _) {
+            final postsAsync = ref.watch(activeSudutInfoPostsProvider((category: null, audience: 'ibu_bapa')));
+            return postsAsync.when(
+              data: (posts) {
+                if (posts.isEmpty) return const SizedBox.shrink();
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.info_outline, size: 18, color: Colors.blue.shade800),
+                        const SizedBox(width: 6),
+                        Text('Sudut Info', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    for (final post in posts) _ParentSudutInfoCard(post: post),
+                  ],
+                );
+              },
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (_, _) => const SizedBox.shrink(),
+            );
+          },
+        ),
       ],
+    );
+  }
+}
+
+class _ParentSudutInfoCard extends StatelessWidget {
+  const _ParentSudutInfoCard({required this.post});
+
+  final SudutInfoPost post;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(8)),
+              child: Text(post.category.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+            ),
+            const SizedBox(height: 8),
+            if (post.imageUrl != null && post.imageUrl!.isNotEmpty) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: post.imageUrl!.startsWith('assets/')
+                    ? Image.asset(post.imageUrl!, height: 120, width: double.infinity, fit: BoxFit.cover)
+                    : Image.network(
+                        post.imageUrl!,
+                        height: 120,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                      ),
+              ),
+              const SizedBox(height: 8),
+            ],
+            Text(post.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+            const SizedBox(height: 4),
+            Text(post.content, style: Theme.of(context).textTheme.bodySmall),
+            const SizedBox(height: 4),
+            Text(
+              'Pengendali: ${post.managedBy}',
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

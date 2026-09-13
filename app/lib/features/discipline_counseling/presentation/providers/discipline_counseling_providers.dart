@@ -55,18 +55,22 @@ final allSchoolAnnouncementsProvider = FutureProvider.autoDispose
       );
 });
 
+typedef SudutInfoQuery = ({String? category, String? audience});
+
 final allSudutInfoPostsProvider = FutureProvider.autoDispose
-    .family<List<SudutInfoPost>, String?>((ref, category) {
+    .family<List<SudutInfoPost>, SudutInfoQuery>((ref, query) {
   return ref.watch(disciplineCounselingRepositoryProvider).getSudutInfoPosts(
-        category: category,
+        category: query.category,
+        audience: query.audience,
         onlyActive: false,
       );
 });
 
 final activeSudutInfoPostsProvider = FutureProvider.autoDispose
-    .family<List<SudutInfoPost>, String?>((ref, category) {
+    .family<List<SudutInfoPost>, SudutInfoQuery>((ref, query) {
   return ref.watch(disciplineCounselingRepositoryProvider).getSudutInfoPosts(
-        category: category,
+        category: query.category,
+        audience: query.audience,
         onlyActive: true,
       );
 });

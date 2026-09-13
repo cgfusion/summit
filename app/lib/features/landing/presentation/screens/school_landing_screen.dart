@@ -1,9 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/widgets/d2c_ai_assistant_dialog.dart';
-import 'package:app/features/discipline_counseling/presentation/providers/discipline_counseling_providers.dart';
 
 class SchoolLandingScreen extends StatefulWidget {
   const SchoolLandingScreen({super.key});
@@ -21,7 +19,6 @@ class _SchoolLandingScreenState extends State<SchoolLandingScreen> {
   final _meritKey = GlobalKey();
   final _committeeKey = GlobalKey();
   final _portalsKey = GlobalKey();
-  final _sudutInfoKey = GlobalKey();
 
   void _scrollToSection(GlobalKey key) {
     final context = key.currentContext;
@@ -56,12 +53,10 @@ class _SchoolLandingScreenState extends State<SchoolLandingScreen> {
               children: [
                 const SizedBox(height: 72), // Top padding for floating navbar
 
-                // 1. HERO SPOTLIGHT WITH SCHOOL BACKGROUND & SUDUT INFO CARD
+                // 1. HERO SPOTLIGHT WITH SCHOOL BACKGROUND
                 _CyberHeroSpotlight(
-                  sudutInfoKey: _sudutInfoKey,
                   onExplore: () => _scrollToSection(_aboutKey),
                   onOpenPortals: () => _scrollToSection(_portalsKey),
-                  onViewSudutInfo: () => _scrollToSection(_portalsKey),
                 ),
 
                 // 2. SECTION: TIMELINE PROGRAM (JADUAL PELAKSANAAN D2C 2026)
@@ -293,31 +288,17 @@ class _NavTextButton extends StatelessWidget {
 // ---------------------------------------------------------------------------
 // 1. CYBER HERO SPOTLIGHT & SUDUT INFO CARD (100% MATCH DESIGN)
 // ---------------------------------------------------------------------------
-class _CyberHeroSpotlight extends ConsumerStatefulWidget {
+class _CyberHeroSpotlight extends StatelessWidget {
   const _CyberHeroSpotlight({
-    required this.sudutInfoKey,
     required this.onExplore,
     required this.onOpenPortals,
-    required this.onViewSudutInfo,
   });
 
-  final GlobalKey sudutInfoKey;
   final VoidCallback onExplore;
   final VoidCallback onOpenPortals;
-  final VoidCallback onViewSudutInfo;
-
-  @override
-  ConsumerState<_CyberHeroSpotlight> createState() => _CyberHeroSpotlightState();
-}
-
-class _CyberHeroSpotlightState extends ConsumerState<_CyberHeroSpotlight> {
-  int _activeInfoIndex = 0;
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isDesktop = screenWidth > 980;
-
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(
@@ -363,20 +344,7 @@ class _CyberHeroSpotlightState extends ConsumerState<_CyberHeroSpotlight> {
               ),
               const SizedBox(height: 36),
 
-              if (isDesktop)
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(flex: 7, child: _buildHeroLeftText(context)),
-                    const SizedBox(width: 40),
-                    Expanded(flex: 5, child: _buildSudutInfoCard(context)),
-                  ],
-                )
-              else ...[
-                _buildHeroLeftText(context),
-                const SizedBox(height: 48),
-                _buildSudutInfoCard(context),
-              ],
+              _buildHeroLeftText(context),
             ],
           ),
         ),
@@ -464,7 +432,7 @@ class _CyberHeroSpotlightState extends ConsumerState<_CyberHeroSpotlight> {
           alignment: WrapAlignment.center,
           children: [
             ElevatedButton(
-              onPressed: widget.onExplore,
+              onPressed: onExplore,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF0284C7),
                 foregroundColor: Colors.white,
@@ -483,7 +451,7 @@ class _CyberHeroSpotlightState extends ConsumerState<_CyberHeroSpotlight> {
               ),
             ),
             OutlinedButton(
-              onPressed: widget.onOpenPortals,
+              onPressed: onOpenPortals,
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.white,
                 side: const BorderSide(color: Color(0xFF38BDF8), width: 1.5),
@@ -519,184 +487,6 @@ class _CyberHeroSpotlightState extends ConsumerState<_CyberHeroSpotlight> {
     );
   }
 
-  Widget _buildSudutInfoCard(BuildContext context) {
-    final activePostsAsync = ref.watch(activeSudutInfoPostsProvider(null));
-
-    return Container(
-      key: widget.sudutInfoKey,
-      padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        color: const Color(0xFF091225).withValues(alpha: 0.9),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFF0284C7), width: 1.8),
-        boxShadow: [
-          BoxShadow(color: const Color(0xFF0284C7).withValues(alpha: 0.25), blurRadius: 20),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              Icon(Icons.info_outline, color: Color(0xFF38BDF8), size: 18),
-              SizedBox(width: 8),
-              Text(
-                'SUDUT INFO',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 1.5),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFF0284C7).withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFF38BDF8).withValues(alpha: 0.5)),
-            ),
-            child: const Icon(Icons.campaign, size: 38, color: Color(0xFF38BDF8)),
-          ),
-          const SizedBox(height: 16),
-          activePostsAsync.when(
-            data: (posts) {
-              if (posts.isEmpty) {
-                return Column(
-                  children: const [
-                    Text(
-                      'Makluman & Info Terkini',
-                      style: TextStyle(color: Color(0xFFFDE047), fontWeight: FontWeight.bold, fontSize: 17),
-                    ),
-                    SizedBox(height: 6),
-                    Text(
-                      'Dikendalikan oleh\nUnit Disiplin & Kaunseling',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.w600, fontSize: 13),
-                    ),
-                    SizedBox(height: 14),
-                    Text(
-                      'Dapatkan makluman, hebahan penting, tips sahsiah dan kaunseling terus di sini.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.5),
-                    ),
-                  ],
-                );
-              }
-
-              final safeIndex = _activeInfoIndex % posts.length;
-              final currentPost = posts[safeIndex];
-
-              return Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0284C7).withValues(alpha: 0.25),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      currentPost.category.toUpperCase(),
-                      style: const TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.bold, fontSize: 11),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    currentPost.title,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Color(0xFFFDE047), fontWeight: FontWeight.bold, fontSize: 17),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Pengendali: ${currentPost.managedBy}',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.w600, fontSize: 12),
-                  ),
-                  if (currentPost.imageUrl != null && currentPost.imageUrl!.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(color: const Color(0xFF38BDF8).withValues(alpha: 0.4), width: 1.5),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: currentPost.imageUrl!.startsWith('assets/')
-                            ? Image.asset(currentPost.imageUrl!, height: 160, width: double.infinity, fit: BoxFit.cover)
-                            : Image.network(
-                                currentPost.imageUrl!,
-                                height: 160,
-                                width: double.infinity,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
-                              ),
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 12),
-                  Text(
-                    currentPost.content,
-                    textAlign: TextAlign.center,
-                    maxLines: 4,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.5),
-                  ),
-                  if (posts.length > 1) ...[
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.arrow_back_ios, size: 14, color: Color(0xFF38BDF8)),
-                          onPressed: () {
-                            setState(() {
-                              _activeInfoIndex = ((_activeInfoIndex - 1 + posts.length) % posts.length).toInt();
-                            });
-                          },
-                        ),
-                        Text(
-                          '${safeIndex + 1} / ${posts.length}',
-                          style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.arrow_forward_ios, size: 14, color: Color(0xFF38BDF8)),
-                          onPressed: () {
-                            setState(() {
-                              _activeInfoIndex = ((_activeInfoIndex + 1) % posts.length).toInt();
-                            });
-                          },
-                        ),
-                      ],
-                    ),
-                  ],
-                ],
-              );
-            },
-            loading: () => const CircularProgressIndicator(),
-            error: (err, st) => const Text('Makluman Sudut Info', style: TextStyle(color: Colors.white70)),
-          ),
-          const SizedBox(height: 20),
-          OutlinedButton(
-            onPressed: widget.onViewSudutInfo,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.white,
-              side: const BorderSide(color: Color(0xFF38BDF8), width: 1.2),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              backgroundColor: const Color(0xFF0B172E),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('Lihat Semua Makluman', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                SizedBox(width: 8),
-                Icon(Icons.arrow_forward, size: 14, color: Color(0xFF38BDF8)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 // ---------------------------------------------------------------------------
