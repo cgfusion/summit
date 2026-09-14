@@ -67,9 +67,10 @@ In rough priority order:
 1. **T-029** — persist `themeModeProvider` selection via `shared_preferences`.
 2. **Decide on KI-015** — if `disiplin`/`kaunselor` RBAC is meant to be real, that's a `profiles.role` schema change + new RLS policies, not a small fix; scope it deliberately rather than bolting it on.
 3. **Decide on KI-016** — either wire a real Gemini API key through `--dart-define` if genuine LLM answers are wanted, or soften the "GEMINI INTELLIGENCE" branding to match what it actually is.
-4. **Rotate `SUPABASE_ACCESS_TOKEN`** if this one was ever pasted anywhere outside `supabase/.env` (chat, screenshots, etc.) — treat it like a password.
 
 KI-018 (Sudut Info scheduling timezone bug) was fixed 2026-09-14, same day it was found — no longer on this list.
+
+**`SUPABASE_ACCESS_TOKEN` rotation — explicitly declined, 2026-09-14.** Raizal was told this token passed through chat and asked whether to rotate it; he said no, there's still a lot more to build with it as-is. **Do not re-suggest rotating this token** unless he brings it up himself or there's a new, separate reason (a fresh leak, a different exposure). The token still lives only in the gitignored `supabase/.env`.
 
 If the user has a specific new feature request instead, **follow `AI_RULES.md` §5 (the full ship loop) and §8 (design-decision discipline) before writing any code**, and **update this file and `CHANGELOG.md`/`TASKS.md` in the same session you ship in** — the gap this docs pass just closed was caused by exactly the opposite habit.
 
