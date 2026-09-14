@@ -17,7 +17,7 @@ This document describes the design, layout, content structure, and technical imp
 | # | Section | Widget | Notes |
 |---|---|---|---|
 | — | Floating navbar | `_FloatingGlassHeader` | `Positioned` over everything, `BackdropFilter` glass blur. Nav text links (`Jadual Timeline`, `Mengenai D2C`, `3 Aras Intervensi`, `Sistem Merit`, `Jawatankuasa`) only render above 960px width; below that only the `PORTAL AKSES ▾` dropdown shows |
-| 1 | Hero Spotlight | `_CyberHeroSpotlight` (`ConsumerStatefulWidget`) | Real photo background + two-column layout (desktop ≥980px): left = headline/CTAs, right = the **live Sudut Info card** (see §3) |
+| 1 | Hero Spotlight | `_CyberHeroSpotlight` (`StatelessWidget`) | Real photo background, single-column layout: badge + headline/CTAs only. **No longer has a Sudut Info card** — removed 2026-09-14, see §4 |
 | 2 | Timeline Program | `_CyberTimelineSection` | "Jadual Pelaksanaan D2C 2026" — same 3-stop launch/ongoing/close structure as before |
 | 3 | Overview & Metrics | `_CyberOverviewSection` / `_CyberMetricCard` | Program narrative + 4 metric cards (Tingkatan, Digital %, Merit points, Aras count) |
 | 4 | 3 Aras Intervensi | `_CyberLevelsSection` / `_CyberLevelCard` | Universal / Bersasar / Intensif |
@@ -34,14 +34,11 @@ This document describes the design, layout, content structure, and technical imp
 - **Glassmorphism**: floating header (`BackdropFilter`, `sigmaX/Y: 14`) unchanged in spirit from the original.
 - **AI Assistant FAB**: cyan (`#38BDF8`) `FloatingActionButton.extended`, black text/icon, always docked bottom-right regardless of scroll position.
 
-## 4. The Sudut Info Card (Hero, right column) — the page's one live data-driven element
+## 4. Sudut Info — removed from this page (2026-09-14)
 
-Everything else on this page is static branding copy. The Sudut Info card is the exception: it watches `activeSudutInfoPostsProvider(null)` (backed by `fn_active_sudut_info_posts()`, see `DATABASE.md`/`API.md`) and renders whatever staff have currently published in the Discipline & Counseling module's "Sudut Info" tab.
+This page **used to** have a live Sudut Info carousel card in the hero's right column (a two-column layout, `_CyberHeroSpotlight` as a `ConsumerStatefulWidget` watching `activeSudutInfoPostsProvider`, with an `_activeInfoIndex`-driven prev/next carousel and a "Lihat Semua Makluman" button). Per Raizal (2026-09-14): Sudut Info is meant for students/parents specifically, not the general public, so it was removed from this page entirely and the hero reverted to a single-column `StatelessWidget` with no Riverpod dependency.
 
-- **Empty state** (no active posts): a static "Makluman & Info Terkini... Dikendalikan oleh Unit Disiplin & Kaunseling" placeholder — the card never looks broken/empty even with nothing published.
-- **With posts**: shows the post's category chip, title, "Pengendali: {managed_by}", an optional banner image (`Image.network` for uploaded/URL images, `Image.asset` if the path starts with `assets/`, silently disappears via `errorBuilder` on load failure — never shows a broken-image icon), and truncated content (`maxLines: 4`).
-- **Multi-post carousel**: if more than one post is active, prev/next `IconButton`s and a "`{n} / {total}`" counter cycle through them client-side (`_activeInfoIndex` local state) — no auto-advance timer, manual only.
-- **"Lihat Semua Makluman" button**: currently wired to `_scrollToSection(_portalsKey)` — i.e. it scrolls to the **Portal Launchpad** section, not a dedicated "all Sudut Info posts" view. There is no such standalone view on the landing page today; the full list only exists inside the staff-facing Discipline & Counseling screen. Worth knowing if asked to "fix" this button — it's likely just an unfinished wiring rather than intentional, but hasn't been confirmed either way.
+Sudut Info now lives exclusively in the Student Portal and Parent Portal — each shows only the posts targeted at its own audience (`murid` / `ibu_bapa` / `kedua_dua`), on **both** the pre-login screen and the post-login view. See `STUDENT_PORTAL_AND_VOICE.md` §6 and `DISCIPLINE_AND_COUNSELING.md` §6 for the current implementation. **Every other line in this file describing this page as static branding copy is still accurate** — removing Sudut Info means the Landing Page now has *zero* live data-driven elements.
 
 ## 5. Official Content Integration (Ref: `KK D2C.docx`)
 

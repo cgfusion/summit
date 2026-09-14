@@ -11,7 +11,7 @@ The **Student Portal** is a student-facing interface accessible at route **`/#/s
 1. **Pengumuman** — Read Live Announcements (added `20260817000001`): staff-published `school_announcements`, either broadcast to the whole school or targeted at that one student — see §5 below.
 2. **Kemajuan Saya** — View Personal Progress: attendance rate %, recorded days present/absent, total merit points earned, and unlocked badges.
 3. **Suara Murid** — Submit Student Voice: suggestions for school improvement, learning feedback, anti-bullying & safety reports (with optional anonymity), or request private UBK counseling sessions. Also where a student tracks past submission status and reads official responses from **Guru Kaunselor** and **Guru Disiplin**.
-4. **Inspirasi** — a static motivational quote card, plus (added 2026-09-14) a live feed of Sudut Info posts targeted at `audience = murid` — see §6 below.
+4. **Inspirasi** — a static motivational quote card, plus (added 2026-09-14) a live feed of Sudut Info posts targeted at `audience = murid` — see §6 below. The same feed is **also** shown on the pre-login QR/token entry screen (added 2026-09-14, later same day) so visitors who never log in still see it.
 5. **SAFE** — the SAFE anti-bullying questionnaire, added `20260915000001` — see §7 below.
 
 ---
@@ -74,7 +74,9 @@ This is distinct from **Sudut Info** (`sudut_info_posts`, see §6 below) — a s
 
 The "Inspirasi" tab shows a static motivational quote card, followed (if any exist) by a live list of currently-active `sudut_info_posts` where `audience` is `murid` or `kedua_dua` (added 2026-09-14 — see `DISCIPLINE_AND_COUNSELING.md` §6, `DATABASE.md`'s `sudut_info_posts` entry). If there are no active posts targeted at students, only the static quote shows — the tab never looks empty/broken. Each post card shows its category chip, optional image, title, content, and `managed_by` attribution.
 
-**Sudut Info used to be shown on the public Landing Page** (no login required, same content for everyone). It was moved here and to the Parent Portal specifically, and split by audience, on 2026-09-14 per Raizal — the public Landing Page no longer references Sudut Info at all.
+**The same audience=`murid` feed is also rendered on `_StudentAuthView`** — the pre-login screen shown before a QR/token is submitted (added 2026-09-14, `_StudentLoginSudutInfoSection` in `student_portal_screen.dart`). Raizal clarified the same day that the QR codes printed on posters point straight at this login screen, so anyone who scans one but never logs in was missing Sudut Info entirely under the Inspirasi-tab-only placement. Both placements coexist — the login screen for walk-up visitors, the tab for logged-in students revisiting it.
+
+**Sudut Info used to be shown on the public Landing Page** (no login required, same content for everyone). It was moved to the Student/Parent Portals specifically, and split by audience, on 2026-09-14 per Raizal — the public Landing Page no longer references Sudut Info at all.
 
 ## 7. SAFE Questionnaire (Tab "SAFE")
 

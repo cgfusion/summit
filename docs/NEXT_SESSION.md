@@ -6,7 +6,7 @@
 
 ## Current Milestone
 
-**Every planned feature has shipped and is live at `https://d2csummit.online/`**, including the SAFE anti-bullying questionnaire (T-050, 2026-09-15) — the newest addition.
+**Every planned feature has shipped and is live at `https://d2csummit.online/`**, including the SAFE anti-bullying questionnaire (T-050, 2026-09-15) and Sudut Info now also showing on both portals' pre-login screens (2026-09-14, same day as the audience re-scoping) — the newest additions.
 
 1. **Attendance Pipeline & Daily Status Derivation**: QR scan intake, manual entry/backfill, session-aware cutoffs (`pagi`/`petang`).
 2. **Merit Module**: 4-point daily merit scoring, class leaderboards, recognition awards.
@@ -23,6 +23,8 @@
 
 **None in flight.** Session as of 2026-09-15 picked up mid-feature (SAFE questionnaire) after a usage-limit interruption — the code, migration, and one unit test file were already written; this session verified (`flutter analyze`/`flutter test` clean, 5/5 new tests pass), finished the docs pass that had only just started (`DATABASE.md`'s header/TOC were updated but no table/function entries existed yet), then committed/pushed/applied the migration and live-verified.
 
+Immediately after that, Raizal clarified that the Sudut Info feed (added to `ParentPortalBody`/the Student Portal's "Inspirasi" tab on 2026-09-14) also needed to show on **both portals' pre-login screens** — the posters' QR codes point straight at the login screens, not the authenticated view. Added `_ParentLoginSudutInfoSection` (`parent_ic_lookup_screen.dart`) and `_StudentLoginSudutInfoSection` (`student_portal_screen.dart`), reusing the existing `activeSudutInfoPostsProvider`; committed as `8d23927`, deployed, live-verified on both `/#/parent` and `/#/student`. While verifying, found (documented, not fixed) `KNOWN_ISSUES.md` KI-018 — a suspected timezone mismatch that leaves both currently-published Sudut Info posts scheduled a few hours in the future.
+
 ## Resolved 2026-09-14 (previously the top priority in this file)
 
 - **KI-014** (`student_voice_submissions` anon-read exposure) — migration `20260914000001` applied and verified: `set local role anon; select count(*) from student_voice_submissions;` now returns `0` regardless of actual row count. Confidential Suara Murid submissions are no longer publicly readable.
@@ -30,15 +32,20 @@
 - **KI-013** (Supabase Auth `site_url`/`uri_allow_list` stuck on the dead `github.io` domain) — fixed via a direct Management API `PATCH`, verified via a follow-up `GET`. Invite-staff and password-reset email links now point at `https://d2csummit.online`.
 - Sudut Info image display (cropping, contrast on the Inspirasi quote card) fixed same week — see `CHANGELOG.md` 2026-09-14 entries.
 
-## Files Recently Modified (as of 2026-09-15)
+## Files Recently Modified (as of 2026-09-14, later same day as the SAFE questionnaire ship)
 
-- `supabase/migrations/20260915000001_safe_questionnaire.sql` — `safe_questionnaire_responses`, `fn_submit_safe_questionnaire`, `fn_get_my_safe_questionnaire`, `fn_safe_questionnaire_summary`. **Applied to production and verified this session.**
+- `lib/features/parent_portal/presentation/screens/parent_ic_lookup_screen.dart` — new `_ParentLoginSudutInfoSection`, rendered below the IC-lookup login card
+- `lib/features/parent_portal/presentation/screens/parent_portal_screen.dart` — `_ParentSudutInfoCard` made public (`ParentSudutInfoCard`) so the login-screen file can reuse it
+- `lib/features/student_portal/presentation/screens/student_portal_screen.dart` — `_StudentAuthView` converted to `ConsumerWidget`, new `_StudentLoginSudutInfoSection` rendered below the QR/token login card
+- `docs/` — `STUDENT_PORTAL_AND_VOICE.md`, `DISCIPLINE_AND_COUNSELING.md`, `LANDING_PAGE.md` (corrected a stale hero-carousel description predating this session), `PROJECT.md`, `CHANGELOG.md`, `KNOWN_ISSUES.md` (new KI-018), this file
+
+Previous entry (2026-09-15, SAFE Questionnaire T-050), still true:
+- `supabase/migrations/20260915000001_safe_questionnaire.sql` — `safe_questionnaire_responses`, `fn_submit_safe_questionnaire`, `fn_get_my_safe_questionnaire`, `fn_safe_questionnaire_summary`. **Applied to production and verified.**
 - `lib/features/discipline_counseling/domain/entities/safe_questionnaire.dart` — new entities (`SafeQuestionnaireItem`, `Result`, `Summary`, `ResponseRow`, `Level` enum)
 - `lib/features/discipline_counseling/` (repository interface/impl, providers, screen) — SAFE Questionnaire CRUD + the new "Soal Selidik SAFE" staff tab (6th)
 - `lib/features/student_portal/presentation/screens/student_portal_screen.dart` — new "SAFE" tab (5th): Likert-scale form + scored result view
 - `test/unit/safe_questionnaire_test.dart` — 5 tests, all passing
 - `docs/SOAL_SELIDIK_PENILAIAN_PROGRAM_SCHOOL_ANTIBULLIYING_FRAMEWORK.docx`, `docs/pelancaranProgramSafe.jpg`, `docs/pelancarand2c.jpg` — source instrument + reference photos
-- `docs/` — `DATABASE.md`, `API.md`, `DISCIPLINE_AND_COUNSELING.md`, `STUDENT_PORTAL_AND_VOICE.md`, `PROJECT.md`, `TASKS.md` (T-050), `CHANGELOG.md`, this file
 
 ## Expected Outcome
 
@@ -57,10 +64,11 @@ Two **deliberately blocked** future items (see `TASKS.md` §Blocked):
 
 In rough priority order:
 
-1. **T-029** — persist `themeModeProvider` selection via `shared_preferences`.
-2. **Decide on KI-015** — if `disiplin`/`kaunselor` RBAC is meant to be real, that's a `profiles.role` schema change + new RLS policies, not a small fix; scope it deliberately rather than bolting it on.
-3. **Decide on KI-016** — either wire a real Gemini API key through `--dart-define` if genuine LLM answers are wanted, or soften the "GEMINI INTELLIGENCE" branding to match what it actually is.
-4. **Rotate `SUPABASE_ACCESS_TOKEN`** if this one was ever pasted anywhere outside `supabase/.env` (chat, screenshots, etc.) — treat it like a password.
+1. **Investigate KI-018** — confirm (or rule out) the suspected Sudut Info `valid_from`/`valid_until` timezone bug before the two currently-scheduled posts (or any new one) silently fail to appear on schedule again.
+2. **T-029** — persist `themeModeProvider` selection via `shared_preferences`.
+3. **Decide on KI-015** — if `disiplin`/`kaunselor` RBAC is meant to be real, that's a `profiles.role` schema change + new RLS policies, not a small fix; scope it deliberately rather than bolting it on.
+4. **Decide on KI-016** — either wire a real Gemini API key through `--dart-define` if genuine LLM answers are wanted, or soften the "GEMINI INTELLIGENCE" branding to match what it actually is.
+5. **Rotate `SUPABASE_ACCESS_TOKEN`** if this one was ever pasted anywhere outside `supabase/.env` (chat, screenshots, etc.) — treat it like a password.
 
 If the user has a specific new feature request instead, **follow `AI_RULES.md` §5 (the full ship loop) and §8 (design-decision discipline) before writing any code**, and **update this file and `CHANGELOG.md`/`TASKS.md` in the same session you ship in** — the gap this docs pass just closed was caused by exactly the opposite habit.
 
