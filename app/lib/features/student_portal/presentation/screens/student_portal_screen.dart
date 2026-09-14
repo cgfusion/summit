@@ -100,7 +100,7 @@ class _StudentPortalScreenState extends ConsumerState<StudentPortalScreen> {
   }
 }
 
-class _StudentAuthView extends StatelessWidget {
+class _StudentAuthView extends ConsumerWidget {
   const _StudentAuthView({
     required this.tokenController,
     required this.onSubmit,
@@ -112,13 +112,15 @@ class _StudentAuthView extends StatelessWidget {
   final VoidCallback onOpenScanner;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 440),
-          child: Card(
+          child: Column(
+            children: [
+              Card(
             elevation: 8,
             child: Padding(
               padding: const EdgeInsets.all(32),
@@ -190,9 +192,47 @@ class _StudentAuthView extends StatelessWidget {
                 ],
               ),
             ),
+              ),
+              const SizedBox(height: 20),
+              const _StudentLoginSudutInfoSection(),
+            ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class _StudentLoginSudutInfoSection extends ConsumerWidget {
+  const _StudentLoginSudutInfoSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final postsAsync = ref.watch(activeSudutInfoPostsProvider((category: null, audience: 'murid')));
+
+    return postsAsync.when(
+      data: (posts) {
+        if (posts.isEmpty) return const SizedBox.shrink();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.info_outline, size: 18, color: Colors.blue.shade800),
+                const SizedBox(width: 6),
+                Text('Sudut Info', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            for (final post in posts) _SudutInfoCard(post: post),
+          ],
+        );
+      },
+      loading: () => const Padding(
+        padding: EdgeInsets.symmetric(vertical: 16),
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (_, _) => const SizedBox.shrink(),
     );
   }
 }

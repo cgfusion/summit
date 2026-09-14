@@ -215,7 +215,7 @@ class ParentPortalBody extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    for (final post in posts) _ParentSudutInfoCard(post: post),
+                    for (final post in posts) ParentSudutInfoCard(post: post),
                   ],
                 );
               },
@@ -232,8 +232,8 @@ class ParentPortalBody extends StatelessWidget {
   }
 }
 
-class _ParentSudutInfoCard extends StatelessWidget {
-  const _ParentSudutInfoCard({required this.post});
+class ParentSudutInfoCard extends StatelessWidget {
+  const ParentSudutInfoCard({super.key, required this.post});
 
   final SudutInfoPost post;
 

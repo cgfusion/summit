@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/parent_portal_providers.dart';
 import 'parent_portal_screen.dart';
+import 'package:app/features/discipline_counseling/presentation/providers/discipline_counseling_providers.dart';
 
 class ParentIcLookupScreen extends ConsumerStatefulWidget {
   const ParentIcLookupScreen({super.key});
@@ -121,9 +122,45 @@ class _ParentIcLookupScreenState extends ConsumerState<ParentIcLookupScreen> {
               selectedIndex: _selectedStudentIndex,
               onSelectStudent: (index) => setState(() => _selectedStudentIndex = index),
             ),
+            const SizedBox(height: 20),
           ],
+          const _ParentLoginSudutInfoSection(),
         ],
       ),
+    );
+  }
+}
+
+class _ParentLoginSudutInfoSection extends ConsumerWidget {
+  const _ParentLoginSudutInfoSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final postsAsync = ref.watch(activeSudutInfoPostsProvider((category: null, audience: 'ibu_bapa')));
+
+    return postsAsync.when(
+      data: (posts) {
+        if (posts.isEmpty) return const SizedBox.shrink();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.info_outline, size: 18, color: Colors.blue.shade800),
+                const SizedBox(width: 6),
+                Text('Sudut Info', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            for (final post in posts) ParentSudutInfoCard(post: post),
+          ],
+        );
+      },
+      loading: () => const Padding(
+        padding: EdgeInsets.symmetric(vertical: 16),
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (_, _) => const SizedBox.shrink(),
     );
   }
 }
