@@ -13,6 +13,26 @@ import 'package:app/features/discipline_counseling/domain/entities/school_announ
 import 'package:app/features/discipline_counseling/domain/entities/sudut_info_post.dart';
 import 'package:app/features/discipline_counseling/presentation/providers/discipline_counseling_providers.dart';
 
+Tab _wrappingTab({required IconData icon, required String label}) {
+  return Tab(
+    height: 56,
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(icon, size: 18),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 10, height: 1.1),
+        ),
+      ],
+    ),
+  );
+}
+
 class StudentPortalScreen extends ConsumerStatefulWidget {
   const StudentPortalScreen({super.key, this.initialToken});
 
@@ -361,16 +381,16 @@ class _StudentDashboardView extends ConsumerWidget {
                   ],
                 ),
               ),
-              const TabBar(
-                isScrollable: true,
-                tabAlignment: TabAlignment.start,
+              TabBar(
+                isScrollable: false,
+                labelPadding: const EdgeInsets.symmetric(horizontal: 2),
                 tabs: [
-                  Tab(icon: Icon(Icons.campaign), text: 'Pengumuman'),
-                  Tab(icon: Icon(Icons.trending_up), text: 'Kemajuan Saya'),
-                  Tab(icon: Icon(Icons.record_voice_over), text: 'Suara Murid'),
-                  Tab(icon: Icon(Icons.auto_awesome), text: 'Inspirasi'),
-                  Tab(icon: Icon(Icons.shield_outlined), text: 'SAFE'),
-                  Tab(icon: Icon(Icons.psychology_outlined), text: 'Saringan Minda Sihat'),
+                  _wrappingTab(icon: Icons.campaign, label: 'Pengumuman'),
+                  _wrappingTab(icon: Icons.trending_up, label: 'Kemajuan Saya'),
+                  _wrappingTab(icon: Icons.record_voice_over, label: 'Suara Murid'),
+                  _wrappingTab(icon: Icons.auto_awesome, label: 'Inspirasi'),
+                  _wrappingTab(icon: Icons.shield_outlined, label: 'SAFE'),
+                  _wrappingTab(icon: Icons.psychology_outlined, label: 'Saringan Minda Sihat'),
                 ],
               ),
               Expanded(
