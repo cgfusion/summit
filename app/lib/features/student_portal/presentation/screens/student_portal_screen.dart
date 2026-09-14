@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../providers/student_portal_providers.dart';
 import '../../domain/entities/student_portal_data.dart';
@@ -324,7 +325,7 @@ class _StudentDashboardView extends ConsumerWidget {
         }
 
         return DefaultTabController(
-          length: 5,
+          length: 6,
           child: Column(
             children: [
               Container(
@@ -369,6 +370,7 @@ class _StudentDashboardView extends ConsumerWidget {
                   Tab(icon: Icon(Icons.record_voice_over), text: 'Suara Murid'),
                   Tab(icon: Icon(Icons.auto_awesome), text: 'Inspirasi'),
                   Tab(icon: Icon(Icons.shield_outlined), text: 'SAFE'),
+                  Tab(icon: Icon(Icons.psychology_outlined), text: 'Saringan Minda Sihat'),
                 ],
               ),
               Expanded(
@@ -379,6 +381,7 @@ class _StudentDashboardView extends ConsumerWidget {
                     _StudentVoiceTab(data: data, qrToken: qrToken),
                     const _InspirationTab(),
                     _SafeQuestionnaireTab(qrToken: qrToken),
+                    const _MindaSihatTab(),
                   ],
                 ),
               ),
@@ -1280,6 +1283,157 @@ class _SectionScoreBar extends StatelessWidget {
           borderRadius: BorderRadius.circular(4),
           child: LinearProgressIndicator(value: fraction, minHeight: 8, backgroundColor: Colors.grey.shade300),
         ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// SARINGAN MINDA SIHAT TAB
+// ---------------------------------------------------------------------------
+class _MindaSihatTab extends StatefulWidget {
+  const _MindaSihatTab();
+
+  @override
+  State<_MindaSihatTab> createState() => _MindaSihatTabState();
+}
+
+class _MindaSihatTabState extends State<_MindaSihatTab> {
+  static const _screeningUrl = 'https://sepkm.com/msihatmenengah';
+
+  bool _understood = false;
+
+  Future<void> _openScreening() async {
+    final uri = Uri.parse(_screeningUrl);
+    final launched = await launchUrl(uri, webOnlyWindowName: '_blank');
+    if (!launched && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gagal membuka pautan Saringan Minda Sihat.')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Card(
+          color: Theme.of(context).colorScheme.primaryContainer,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.psychology_outlined, color: Theme.of(context).colorScheme.onPrimaryContainer),
+                    const SizedBox(width: 8),
+                    Text(
+                      'SARINGAN MINDA SIHAT',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Saringan rasmi Kementerian Pendidikan Malaysia (KPM) untuk menilai kesihatan minda murid.',
+                  style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onPrimaryContainer),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Arahan', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                const _InstructionItem(
+                  number: 1,
+                  text:
+                      'Pastikan anda berada dalam keadaan tenang dan selesa serta memberikan kerjasama sepenuhnya sepanjang saringan dijalankan.',
+                ),
+                const SizedBox(height: 10),
+                const _InstructionItem(
+                  number: 2,
+                  text: 'Baca setiap pernyataan atau soalan dengan teliti.',
+                ),
+                const SizedBox(height: 10),
+                const _InstructionItem(
+                  number: 3,
+                  text:
+                      'Jawab setiap soalan dengan hati terbuka, jujur dan berdasarkan situasi sebenar yang dihadapi atau yang menggambarkan diri anda dalam tempoh 2 minggu.',
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Card(
+          child: CheckboxListTile(
+            value: _understood,
+            onChanged: (value) => setState(() => _understood = value ?? false),
+            controlAffinity: ListTileControlAffinity.leading,
+            title: const Text('SAYA FAHAM', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: _understood ? _openScreening : null,
+            icon: const Icon(Icons.open_in_new),
+            label: const Text('SARINGAN MINDA SIHAT'),
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size.fromHeight(48),
+              backgroundColor: Colors.teal.shade700,
+              foregroundColor: Colors.white,
+              disabledBackgroundColor: Colors.grey.shade300,
+              disabledForegroundColor: Colors.grey.shade600,
+            ),
+          ),
+        ),
+        if (!_understood) ...[
+          const SizedBox(height: 8),
+          Text(
+            'Sila tandakan FAHAM di atas untuk membuka pautan saringan.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _InstructionItem extends StatelessWidget {
+  const _InstructionItem({required this.number, required this.text});
+
+  final int number;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 22,
+          height: 22,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(color: Colors.teal.shade700, shape: BoxShape.circle),
+          child: Text('$number', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+        ),
+        const SizedBox(width: 10),
+        Expanded(child: Text(text, style: const TextStyle(fontSize: 13, height: 1.4))),
       ],
     );
   }
