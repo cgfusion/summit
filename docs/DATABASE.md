@@ -1,12 +1,12 @@
 # DATABASE.md — Dare to Change (D2C)
 
-> Full schema reference. Source of truth is `supabase/migrations/*.sql`, applied chronologically — this document is a synthesized snapshot of the schema **after all migrations** (`20260728000001` through `20260818000002`). If you add a migration, update this file in the same commit.
+> Full schema reference. Source of truth is `supabase/migrations/*.sql`, applied chronologically — this document is a synthesized snapshot of the schema **after all migrations** (`20260728000001` through `20260915000001`). If you add a migration, update this file in the same commit.
 
 No local Postgres/Docker is used in this project. Every migration is applied with `supabase db push` (targets the linked production project directly) and verified with `supabase db query --linked "<sql>"`. There is no staging database.
 
 ## Table of Contents
 - [Entity-Relationship Overview](#entity-relationship-overview)
-- Tables: [profiles](#profiles) · [classes](#classes) · [students](#students) · [qr_tokens](#qr_tokens) · [attendance_settings](#attendance_settings) · [attendance_logs](#attendance_logs) · [attendance_days](#attendance_days) · [audit_log](#audit_log) · [attendance_day_exceptions](#attendance_day_exceptions) · [merit_bonus_points](#merit_bonus_points) · [merit_awards](#merit_awards) · [session_cutoff_times](#session_cutoff_times) · [student_guardians](#student_guardians) · [discipline_records](#discipline_records) · [counseling_records](#counseling_records) · [student_voice_submissions](#student_voice_submissions) · [school_announcements](#school_announcements) · [sudut_info_posts](#sudut_info_posts)
+- Tables: [profiles](#profiles) · [classes](#classes) · [students](#students) · [qr_tokens](#qr_tokens) · [attendance_settings](#attendance_settings) · [attendance_logs](#attendance_logs) · [attendance_days](#attendance_days) · [audit_log](#audit_log) · [attendance_day_exceptions](#attendance_day_exceptions) · [merit_bonus_points](#merit_bonus_points) · [merit_awards](#merit_awards) · [session_cutoff_times](#session_cutoff_times) · [student_guardians](#student_guardians) · [discipline_records](#discipline_records) · [counseling_records](#counseling_records) · [student_voice_submissions](#student_voice_submissions) · [school_announcements](#school_announcements) · [sudut_info_posts](#sudut_info_posts) · [safe_questionnaire_responses](#safe_questionnaire_responses)
 - [Views](#views)
 - [Functions](#functions-fn_-and-helpers)
 - [Triggers](#triggers)
@@ -416,6 +416,25 @@ Seeded values: `petang` Mon-Thu `12:05:00`, Fri `13:30:00`; `pagi` Mon-Fri `07:0
 
 ---
 
+### `safe_questionnaire_responses`
+**Purpose**: One row per student's answers to the **SAFE (School Anti-Bullying Framework for Empowerment)** questionnaire — 12 Likert-scale items (1-5) across 3 fixed sections (Pengetahuan & Kesedaran / Amalan Sekolah Penyayang / Peranan PRS), submitted once and editable thereafter (`on conflict (student_id) do update`, never a new row per re-submission). Added `20260915000001`. See `app/lib/features/discipline_counseling/domain/entities/safe_questionnaire.dart` for the fixed question text/ordering and `docs/SOAL_SELIDIK_PENILAIAN_PROGRAM_SCHOOL_ANTIBULLIYING_FRAMEWORK.docx` for the source instrument.
+
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `id` | uuid | PK | |
+| `student_id` | uuid | not null, **unique**, `references students(id) on delete cascade` | Unique, not just indexed — enforces "one response per student," which is what makes the RPC's `on conflict (student_id) do update` an update-in-place rather than a new submission |
+| `item_01`..`item_04` | smallint | not null, `check (between 1 and 5)` | Bahagian A: Pengetahuan & Kesedaran Antibuli |
+| `item_05`..`item_08` | smallint | not null, `check (between 1 and 5)` | Bahagian B: Amalan Sekolah Penyayang (6S) |
+| `item_09`..`item_12` | smallint | not null, `check (between 1 and 5)` | Bahagian C: Peranan Pembimbing Rakan Sebaya (PRS) |
+| `submitted_at`, `updated_at` | timestamptz | not null, default `now()` | `submitted_at` is set once at insert and never changed by the upsert; `updated_at` moves on every re-submission (set explicitly inside `fn_submit_safe_questionnaire`, not by a trigger) |
+
+**Scoring convention — read before touching any of this**: the source document's own formula ("Peratus Skor Individu = (Jumlah Skor / 40) x 100") is a documentation error confirmed with Raizal — 12 items × 5 points max is a **60**-point scale, not 40. The source's level table (bands out of 40) also doesn't tile onto any subset of the 12 items. Every function below computes level/`memahami` from the **percentage** instead (the one number the source is internally consistent about: `>= 75% = Memahami`): `< 50% → rendah`, `50–74% → sederhana`, `>= 75% → tinggi`. **Do not "fix" this to divide by 40** — that would be reintroducing the source document's own error, not correcting a bug.
+
+**Index**: none beyond the implicit unique index on `student_id` (`idx_safe_questionnaire_student` is also created, redundant with the unique constraint but harmless).
+**RLS**: enabled. `staff_read_safe_questionnaire` (`select`, `to authenticated using (true)`) — staff-wide, same pattern as `discipline_records`/`counseling_records`/`school_announcements`/`sudut_info_posts` (see `KNOWN_ISSUES.md` KI-015). **Deliberately no insert/update/delete policy for any role** — every write goes through `fn_submit_safe_questionnaire`, a `security definer` function that resolves and validates the calling student via QR token *inside the function* before writing, rather than trying to express "an unauthenticated caller who can prove they're this one student" as an RLS policy. This is the pattern KI-014 (`student_voice_submissions`) should have used from the start — contrast the two: `student_voice_submissions` tried to grant `anon` a broad table-level policy and only recently got it locked down to `authenticated`-only reads; this table never grants `anon` *any* direct table access at all, read or write — the only door in is a function that proves identity itself.
+
+---
+
 ## Views
 
 ### `merit_student_daily`
@@ -475,8 +494,11 @@ All functions are `language sql stable` (pure reads) unless noted `plpgsql`/`sec
 | `fn_parent_portal_data(token)` | jsonb | definer, plpgsql | **anon, authenticated** | the only *token-scoped* function reachable without a session; returns null for an invalid token, otherwise one student's scoped status |
 | `fn_parent_portal_data_by_ic(parent_ic, child_ic?)` | jsonb (array) | definer, plpgsql | **anon, authenticated** | IC-based multi-sibling lookup, rate-limited (15 lookups / 5 min, global) — see `PARENT_PORTAL.md` if present, or `API.md` §Parent Portal |
 | `fn_student_discipline_summary(student_id)` | jsonb | definer, plpgsql | authenticated, **anon** | discipline/counseling case counts + latest action + active warning for one student, backing the Student Detail sheet's discipline summary card |
-| `fn_active_sudut_info_posts()` | jsonb (array) | definer, plpgsql | authenticated, **anon** | currently-active (published + within schedule window) Sudut Info posts, powering both the Landing Page hero carousel and Student Portal — the RLS on `sudut_info_posts` would already scope this correctly even via a direct table read; this RPC exists for convenience/single-round-trip, not as an additional security boundary |
+| `fn_active_sudut_info_posts()` | jsonb (array) | definer, plpgsql | authenticated, **anon** | currently-active (published + within schedule window) Sudut Info posts. **Not actually called by the Flutter app** — `getSudutInfoPosts` reads the table directly instead, and does the audience filtering (`audience` column, added `20260914000002`) client-side-constructed via `.or(...)`, which this RPC does not do. Kept in sync (it now returns `audience` too) for any future/external caller, but do not assume it reflects current audience-scoping behavior without checking |
 | `fn_student_portal_data_by_qr(qr_token)` | jsonb | definer, plpgsql | **anon, authenticated** | resolves a student by QR token/token id/id/IC digits, returns attendance/merit summary + that student's `student_voice_submissions` history + currently-published `school_announcements` scoped to them or broadcast-all. **Anon-reachable and unauthenticated by design** (matches the QR-tag login model), but note it embeds the caller's *own* voice-submission history in the response — separate from the KI-014 issue of the underlying table itself being directly `anon`-readable |
+| `fn_submit_safe_questionnaire(qr_token, item_01..item_12)` | jsonb | definer, plpgsql | **anon, authenticated** | resolves the student from `qr_token` (same lookup as `fn_student_portal_data_by_qr`), validates all 12 items are 1-5 (raises `'Setiap jawapan mestilah antara 1 hingga 5'` otherwise), then `insert ... on conflict (student_id) do update` — a student can resubmit and it overwrites in place, it does not accumulate history |
+| `fn_get_my_safe_questionnaire(qr_token)` | jsonb | definer, plpgsql | **anon, authenticated** | the calling student's own scored result (or `null` if they haven't submitted), computed from `safe_questionnaire_responses` — section scores, total, percent, level, `memahami`. All scoring math lives here and is duplicated in `fn_safe_questionnaire_summary` below and in the Dart `SafeQuestionnaireResponseRow.fromMap` (staff drill-down) — **if the `/60` denominator or the 50%/75% thresholds ever change, all three places need updating together**, there is no single source of truth for this formula |
+| `fn_safe_questionnaire_summary()` | jsonb | invoker, sql, stable | authenticated | staff-facing aggregate: total responses, average percent, memahami/belum-memahami counts, level distribution, per-section averages. Reads `safe_questionnaire_responses` directly under RLS (not `security definer` — doesn't need to be, no anon path) |
 
 **Note on `security invoker` (the SQL-language function default) vs `security definer`**: every read-only `fn_*` above is a plain `language sql` function, which is `security invoker` by default in Postgres — it runs under the *calling* user's RLS, meaning these functions do **not** bypass RLS; they simply package a query. Only the `plpgsql` functions explicitly marked `security definer` (`is_admin`, `is_staff`, the two trigger functions, `fn_upsert_staff_by_email`, `fn_manual_attendance_set`, `fn_update_dashboard_layout`, `fn_update_student_status`, `fn_regenerate_guardian_token`, `fn_parent_portal_data`) run with elevated privilege and therefore **must** contain their own internal authorization check (`if not is_admin()/is_staff() then raise exception`) — this is the actual security boundary for those functions, not RLS.
 
@@ -530,12 +552,13 @@ Image upload/delete is called **directly from `discipline_counseling_screen.dart
 | `student_guardians` | staff | staff | staff | staff |
 | `discipline_records` | staff (any) | staff (any) | staff (any) | staff (any) |
 | `counseling_records` | staff (any) | staff (any) | staff (any) | staff (any) |
-| `student_voice_submissions` | **staff or anon** | **staff or anon** | staff (any) | *(denied)* |
+| `student_voice_submissions` | staff (any) *(fixed 2026-09-14, was staff-or-anon — see KI-014)* | staff or anon | staff (any) | *(denied)* |
 | `school_announcements` | staff or anon (published only) | staff (any) | staff (any) | staff (any) |
 | `sudut_info_posts` | staff or anon (published + in-window only) | staff (any) | staff (any) | staff (any) |
+| `safe_questionnaire_responses` | staff (any) | *(denied — see below)* | *(denied)* | *(denied)* |
 | `merit_student_daily` (view) | staff (via `grant select ... to authenticated` + `security_invoker`) | n/a | n/a | n/a |
 
-Rows marked "staff (any)" are `to authenticated using (true)` — enabled but **not role-gated**; every signed-in staff account has the same access regardless of `profiles.role`. **`student_voice_submissions`'s "staff or anon" select is the one to worry about** — see KI-014, this is public unauthenticated read of potentially-confidential content, not a considered design choice like the Parent Portal's token model.
+Rows marked "staff (any)" are `to authenticated using (true)` — enabled but **not role-gated**; every signed-in staff account has the same access regardless of `profiles.role`. `safe_questionnaire_responses` has **no insert/update/delete RLS policy for any role at all** — every write goes through the `security definer` `fn_submit_safe_questionnaire`, which validates the caller's QR token itself rather than trying to express that as a policy. This is the pattern KI-014 should have used from the start; `student_voice_submissions`'s select policy has since been locked down to `authenticated`-only (fixed 2026-09-14), but its `insert` is still deliberately `staff or anon` — students submit unauthenticated via QR-tag login, no session ever exists to gate on.
 
 "Denied" cells have no policy at all for that action — Postgres RLS default-denies any operation without an explicit permissive policy, even for a table with RLS merely *enabled*.
 
@@ -572,6 +595,9 @@ Rows marked "staff (any)" are `to authenticated using (true)` — enabled but **
 | `20260817000002_sudut_info_posts.sql` | `sudut_info_posts` table, `fn_active_sudut_info_posts` |
 | `20260818000001_add_image_url_to_sudut_info.sql` | `sudut_info_posts.image_url`, `sudut-info-banners` public storage bucket + select/insert policies, redefines `fn_active_sudut_info_posts` to include `image_url` |
 | `20260818000002_add_storage_delete_policy.sql` | Adds the missing `delete` policy on `sudut-info-banners` (uploads were previously undeletable) |
+| `20260914000001_restrict_student_voice_read.sql` | Fixes KI-014 — drops `student_voice_submissions`'s `anon`-readable `select` policy, replaces with `authenticated`-only |
+| `20260914000002_sudut_info_audience.sql` | `sudut_info_posts.audience` (`murid`/`ibu_bapa`/`kedua_dua`) + check constraint, for the Sudut Info → Student/Parent Portal re-scoping |
+| `20260915000001_safe_questionnaire.sql` | `safe_questionnaire_responses` table, `fn_submit_safe_questionnaire`, `fn_get_my_safe_questionnaire`, `fn_safe_questionnaire_summary` |
 
 ## Future Migration Notes
 
@@ -582,4 +608,4 @@ Read `PROJECT.md` §11 (Future Roadmap) and `KNOWN_ISSUES.md` before touching th
 3. **`student_guardians` has no per-student "primary guardian" enforcement** — `is_primary` is a plain boolean per row with no unique-partial-index guaranteeing only one primary per student (unlike `qr_tokens`' `status='active'` pattern). Multiple "primary" guardians per student is currently possible; not validated anywhere.
 4. **The Parent Portal's `access_token` has no expiry, no rate limit, and no per-access audit log.** If you're asked to harden this, the schema change needed is likely a `parent_portal_access_log` table (token, accessed_at, ip — Supabase Edge Functions would be needed to capture IP, since a raw RPC call doesn't see the caller's network address) and/or an `expires_at` column on `student_guardians` or a separate `parent_portal_links` table (cleaner — would decouple "how many links can exist" from "how many guardians exist", enabling multiple/rotating links per guardian).
 5. **`isar` (installed, unused) implies an offline-cache plan that was never designed at the schema level.** If ever revived, it would live entirely client-side — no Supabase schema changes implied by itself.
-6. **`student_voice_submissions` needs a follow-up migration restricting `select`/`update` to `authenticated` only** (drop `anon` from `public_read_voice`, keep `anon` on `public_insert_voice` since students submit without a session). See `KNOWN_ISSUES.md` KI-014 — this is the highest-priority item in this file, not a "future nice-to-have."
+6. ~~`student_voice_submissions` needs a follow-up migration restricting `select`...`~~ **Done** — `20260914000001_restrict_student_voice_read.sql` fixed this, see `KNOWN_ISSUES.md`'s (now-closed) KI-014.

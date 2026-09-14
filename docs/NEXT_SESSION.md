@@ -6,37 +6,39 @@
 
 ## Current Milestone
 
-**Every planned feature has shipped and is live at `https://d2csummit.online/`**, including three modules built *after* the last full docs pass: Special Announcements, the Landing Page "Cyber" redesign, the D2C AI Assistant, and Sudut Info.
+**Every planned feature has shipped and is live at `https://d2csummit.online/`**, including the SAFE anti-bullying questionnaire (T-050, 2026-09-15) — the newest addition.
 
 1. **Attendance Pipeline & Daily Status Derivation**: QR scan intake, manual entry/backfill, session-aware cutoffs (`pagi`/`petang`).
 2. **Merit Module**: 4-point daily merit scoring, class leaderboards, recognition awards.
 3. **Dashboard & Analytics**: stat cards, attendance trend, heatmap, KPI overview, drill-downs.
-4. **Discipline & Counseling**: SSDOP case tracking, UBK counseling sessions, Peti Suara Murid inbox, Special Announcements, Sudut Info — 5 tabs at `/discipline-counseling`. **The `disiplin`/`kaunselor` RBAC this module's own docs describe is a UI convention only, not enforced in Postgres** — see `KNOWN_ISSUES.md` KI-015.
-5. **Parent Portal**: token-link (`/parent/:token`) and MyKad/IC lookup (`/parent`) for guardians.
-6. **Student Portal & Student Voice**: QR Name Tag login (`/student`), personal progress, live staff announcements (Tab 1), and Suara Murid feedback/bullying reports (with an *intended* anonymity option — see the blocker below, it isn't actually private).
-7. **Public Landing Page**: "Cyber" redesign with a real photo hero, a live Sudut Info carousel, and an AI Assistant FAB — see `LANDING_PAGE.md`.
+4. **Discipline & Counseling**: SSDOP case tracking, UBK counseling sessions, Peti Suara Murid inbox, Special Announcements, Sudut Info, and staff-facing SAFE questionnaire results — **6 tabs** at `/discipline-counseling`. **The `disiplin`/`kaunselor` RBAC this module's own docs describe is a UI convention only, not enforced in Postgres** — see `KNOWN_ISSUES.md` KI-015.
+5. **Parent Portal**: token-link (`/parent/:token`) and MyKad/IC lookup (`/parent`) for guardians, plus an `audience=ibu_bapa` Sudut Info section.
+6. **Student Portal & Student Voice**: QR Name Tag login (`/student`), **5 tabs** — Pengumuman (live staff announcements), Kemajuan Saya (progress), Suara Murid (feedback/bullying reports — anonymity is now genuinely enforced, see KI-014 below), Inspirasi (audience=murid Sudut Info feed), and SAFE (the anti-bullying questionnaire, submit-once-editable).
+7. **Public Landing Page**: "Cyber" redesign with a real photo hero and an AI Assistant FAB. **No longer shows Sudut Info** — moved to Student/Parent Portals 2026-09-14, see `LANDING_PAGE.md`.
 8. **D2C AI Assistant**: chat dialog on the Landing Page. **Branded "GEMINI INTELLIGENCE" but is 100% local rule-based in production** — no API key has ever been wired to it. See `KNOWN_ISSUES.md` KI-016.
 9. **D2C User Manual**: `docs/MANUAL_PENGGUNA_D2C.md`/`.docx` — end-user documentation, a different audience from this `docs/` kit.
+10. **SAFE Questionnaire** (T-050): 12-item Likert survey, 3 sections, scored out of 60 (the source `.docx` says /40 — a confirmed documentation error, do not "fix" the code to match it). Student-facing form/results in the Portal's SAFE tab; staff-facing aggregate + drill-down in Discipline & Counseling's "Soal Selidik SAFE" tab.
 
 ## Current Task
 
-**None in flight.** As of 2026-09-14, all three items previously flagged as urgent in this file are fixed and verified live in production — see below. `supabase/.env` (gitignored, `.env.example` alongside it) now holds a **working** `SUPABASE_ACCESS_TOKEN` — the CLI/Management-API access blocker that stalled verification for a month is gone. `source supabase/.env` before any `supabase db push --linked` / `supabase db query --linked` / Management API call.
+**None in flight.** Session as of 2026-09-15 picked up mid-feature (SAFE questionnaire) after a usage-limit interruption — the code, migration, and one unit test file were already written; this session verified (`flutter analyze`/`flutter test` clean, 5/5 new tests pass), finished the docs pass that had only just started (`DATABASE.md`'s header/TOC were updated but no table/function entries existed yet), then committed/pushed/applied the migration and live-verified.
 
 ## Resolved 2026-09-14 (previously the top priority in this file)
 
 - **KI-014** (`student_voice_submissions` anon-read exposure) — migration `20260914000001` applied and verified: `set local role anon; select count(*) from student_voice_submissions;` now returns `0` regardless of actual row count. Confidential Suara Murid submissions are no longer publicly readable.
 - **Sudut Info `audience` column** (migration `20260914000002`) — applied and verified (`audience` column + check constraint exist; the one pre-existing row correctly defaulted to `kedua_dua`). Sudut Info now targets Murid / Ibu Bapa / both, and was moved off the public Landing Page into the Student Portal and Parent Portal specifically (Raizal's request, 2026-09-14) — see `LANDING_PAGE.md` §4, `DISCIPLINE_AND_COUNSELING.md` §6.
 - **KI-013** (Supabase Auth `site_url`/`uri_allow_list` stuck on the dead `github.io` domain) — fixed via a direct Management API `PATCH`, verified via a follow-up `GET`. Invite-staff and password-reset email links now point at `https://d2csummit.online`.
+- Sudut Info image display (cropping, contrast on the Inspirasi quote card) fixed same week — see `CHANGELOG.md` 2026-09-14 entries.
 
-## Files Recently Modified (as of 2026-09-14)
+## Files Recently Modified (as of 2026-09-15)
 
-- `lib/features/landing/presentation/screens/school_landing_screen.dart` — Sudut Info card/carousel removed entirely, hero back to a single-column `StatelessWidget`
-- `lib/features/discipline_counseling/` — Sudut Info composer/edit dialog gained an audience picker ("Untuk Siapa"); `getSudutInfoPosts`/`create`/`update` all take an `audience` param now
-- `lib/features/student_portal/presentation/screens/student_portal_screen.dart` — "Inspirasi" tab now shows live `audience=murid` Sudut Info posts (falls back to the old static quote when empty)
-- `lib/features/parent_portal/presentation/screens/parent_portal_screen.dart` — `ParentPortalBody` gained an `audience=ibu_bapa` Sudut Info section
-- `supabase/migrations/20260914000001_restrict_student_voice_read.sql`, `20260914000002_sudut_info_audience.sql` — both applied to production
-- `supabase/.env` (gitignored) — now holds a working `SUPABASE_ACCESS_TOKEN`; `.env.example` alongside it documents usage
-- `docs/` — the 2026-09-13 catch-up pass (`DATABASE.md`, `API.md`, `COMPONENTS.md`, `PROJECT.md`, `TASKS.md`, `CHANGELOG.md`, `KNOWN_ISSUES.md`, `DISCIPLINE_AND_COUNSELING.md` rewritten, `LANDING_PAGE.md` rewritten, `STUDENT_PORTAL_AND_VOICE.md`), plus this 2026-09-14 update
+- `supabase/migrations/20260915000001_safe_questionnaire.sql` — `safe_questionnaire_responses`, `fn_submit_safe_questionnaire`, `fn_get_my_safe_questionnaire`, `fn_safe_questionnaire_summary`. **Applied to production and verified this session.**
+- `lib/features/discipline_counseling/domain/entities/safe_questionnaire.dart` — new entities (`SafeQuestionnaireItem`, `Result`, `Summary`, `ResponseRow`, `Level` enum)
+- `lib/features/discipline_counseling/` (repository interface/impl, providers, screen) — SAFE Questionnaire CRUD + the new "Soal Selidik SAFE" staff tab (6th)
+- `lib/features/student_portal/presentation/screens/student_portal_screen.dart` — new "SAFE" tab (5th): Likert-scale form + scored result view
+- `test/unit/safe_questionnaire_test.dart` — 5 tests, all passing
+- `docs/SOAL_SELIDIK_PENILAIAN_PROGRAM_SCHOOL_ANTIBULLIYING_FRAMEWORK.docx`, `docs/pelancaranProgramSafe.jpg`, `docs/pelancarand2c.jpg` — source instrument + reference photos
+- `docs/` — `DATABASE.md`, `API.md`, `DISCIPLINE_AND_COUNSELING.md`, `STUDENT_PORTAL_AND_VOICE.md`, `PROJECT.md`, `TASKS.md` (T-050), `CHANGELOG.md`, this file
 
 ## Expected Outcome
 

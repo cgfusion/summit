@@ -48,6 +48,7 @@
 | T-047 | Sudut Info — scheduled posts (`sudut_info_posts`), rich HTML formatting toolbar (`RichTextToolbarWidget`), poster/banner image upload to Supabase Storage (`sudut-info-banners` bucket), Landing Page + Student Portal display | P1 | T-039, T-040, T-045 | L |
 | T-048 | Sudut Info storage hardening — direct image upload/delete from the screen (bypassing the repository layer, see `KNOWN_ISSUES.md` KI-017), storage delete RLS policy | P2 | T-047 | S |
 | T-049 | Sudut Info re-scoped to Student/Parent Portals — `audience` column (`murid`/`ibu_bapa`/`kedua_dua`), composer/edit "Untuk Siapa" picker, removed from the public Landing Page entirely, added to Student Portal's "Inspirasi" tab and `ParentPortalBody` | P1 | T-047 | M |
+| T-050 | SAFE (School Anti-Bullying Framework for Empowerment) questionnaire — 12-item Likert survey for students (Student Portal "SAFE" tab), `safe_questionnaire_responses` table with identity-proving-function write pattern (no anon table policy at all, unlike KI-014's original mistake), staff results tab in Discipline & Counseling ("Soal Selidik SAFE") | P1 | T-001 | L |
 
 ## In Progress
 

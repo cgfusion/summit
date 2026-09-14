@@ -1,5 +1,6 @@
 import '../entities/counseling_record.dart';
 import '../entities/discipline_record.dart';
+import '../entities/safe_questionnaire.dart';
 import '../entities/school_announcement.dart';
 import '../entities/sudut_info_post.dart';
 
@@ -106,4 +107,13 @@ abstract interface class DisciplineCounselingRepository {
   });
 
   Future<void> deleteSudutInfoPost(String id);
+
+  // SAFE Questionnaire
+  Future<void> submitSafeQuestionnaire({required String qrToken, required List<int> items});
+
+  Future<SafeQuestionnaireResult?> getMySafeQuestionnaire(String qrToken);
+
+  Future<SafeQuestionnaireSummary> getSafeQuestionnaireSummary();
+
+  Future<List<SafeQuestionnaireResponseRow>> getAllSafeQuestionnaireResponses();
 }

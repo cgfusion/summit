@@ -17,6 +17,7 @@ import '../../../student/presentation/providers/student_providers.dart';
 import '../../../student/presentation/screens/student_detail_sheet.dart';
 import '../../../student_portal/domain/entities/student_voice_submission.dart';
 import '../../../student_portal/presentation/providers/student_portal_providers.dart';
+import 'package:app/features/discipline_counseling/domain/entities/safe_questionnaire.dart';
 import 'package:app/features/discipline_counseling/domain/entities/school_announcement.dart';
 import 'package:app/features/discipline_counseling/domain/entities/sudut_info_post.dart';
 import 'package:app/features/discipline_counseling/presentation/providers/discipline_counseling_providers.dart';
@@ -38,7 +39,7 @@ class _DisciplineCounselingScreenState extends ConsumerState<DisciplineCounselin
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
   }
 
   @override
@@ -63,11 +64,14 @@ class _DisciplineCounselingScreenState extends ConsumerState<DisciplineCounselin
         title: const Text('Disiplin & Kaunseling (SSDOP/UBK)'),
         bottom: TabBar(
           controller: _tabController,
+          isScrollable: true,
+          tabAlignment: TabAlignment.start,
           tabs: const [
             Tab(icon: Icon(Icons.gavel), text: 'Kes Disiplin (SSDOP)'),
             Tab(icon: Icon(Icons.psychology), text: 'Sesi Kaunseling (UBK)'),
             Tab(icon: Icon(Icons.record_voice_over), text: 'Peti Suara Murid'),
             Tab(icon: Icon(Icons.info_outline), text: 'Sudut Info'),
+            Tab(icon: Icon(Icons.shield_outlined), text: 'Soal Selidik SAFE'),
             Tab(icon: Icon(Icons.analytics), text: 'Ringkasan & Analisis'),
           ],
         ),
@@ -125,6 +129,7 @@ class _DisciplineCounselingScreenState extends ConsumerState<DisciplineCounselin
                     _SudutInfoTab(
                       profile: profile,
                     ),
+                    const _SafeQuestionnaireResultsTab(),
                     _AnalyticsTab(
                       searchQuery: _searchQuery,
                     ),
@@ -2859,6 +2864,297 @@ class _EditSudutInfoDialogState extends ConsumerState<_EditSudutInfoDialog> {
               : const Icon(Icons.save, size: 16),
           label: const Text('SIMPAN'),
           onPressed: _saving ? null : _save,
+        ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// SAFE QUESTIONNAIRE RESULTS TAB (staff-facing)
+// ---------------------------------------------------------------------------
+class _SafeQuestionnaireResultsTab extends ConsumerWidget {
+  const _SafeQuestionnaireResultsTab();
+
+  Color _levelColor(SafeQuestionnaireLevel level) {
+    switch (level) {
+      case SafeQuestionnaireLevel.rendah:
+        return Colors.red.shade700;
+      case SafeQuestionnaireLevel.sederhana:
+        return Colors.orange.shade700;
+      case SafeQuestionnaireLevel.tinggi:
+        return Colors.green.shade700;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final summaryAsync = ref.watch(safeQuestionnaireSummaryProvider);
+    final responsesAsync = ref.watch(allSafeQuestionnaireResponsesProvider);
+    final dateFormat = DateFormat('d MMM yyyy, h:mm a');
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.shield_outlined, color: Colors.blue.shade900, size: 22),
+              const SizedBox(width: 8),
+              Text(
+                'Soal Selidik Penilaian Program SAFE',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.blue.shade900),
+              ),
+              const Spacer(),
+              IconButton(
+                icon: const Icon(Icons.refresh, size: 20),
+                tooltip: 'Muat Semula',
+                onPressed: () {
+                  ref.invalidate(safeQuestionnaireSummaryProvider);
+                  ref.invalidate(allSafeQuestionnaireResponsesProvider);
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Peratus Skor Individu = (Jumlah Skor Diperoleh / 60) x 100. Murid dianggap "Memahami" jika skor >= 75%.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 16),
+          summaryAsync.when(
+            data: (summary) {
+              if (summary.totalResponses == 0) {
+                return Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(12)),
+                  child: const Center(child: Text('Tiada murid telah menjawab soal selidik ini lagi.', style: TextStyle(color: Colors.grey))),
+                );
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: [
+                      _SafeStatCard(label: 'Jumlah Responden', value: '${summary.totalResponses}', icon: Icons.groups, color: Colors.blue),
+                      _SafeStatCard(label: 'Purata Skor', value: '${summary.avgPercent}%', icon: Icons.percent, color: Colors.indigo),
+                      _SafeStatCard(
+                        label: 'Memahami (>=75%)',
+                        value: '${summary.memahamiCount}',
+                        icon: Icons.check_circle_outline,
+                        color: Colors.green,
+                      ),
+                      _SafeStatCard(
+                        label: 'Belum Memahami',
+                        value: '${summary.belumMemahamiCount}',
+                        icon: Icons.error_outline,
+                        color: Colors.red,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Taburan Tahap', style: TextStyle(fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 12),
+                          _LevelDistributionBar(
+                            rendah: summary.levelRendah,
+                            sederhana: summary.levelSederhana,
+                            tinggi: summary.levelTinggi,
+                          ),
+                          const SizedBox(height: 16),
+                          const Text('Purata Skor Setiap Bahagian (daripada 20)', style: TextStyle(fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 12),
+                          _SectionScoreBar(label: 'A: Pengetahuan & Kesedaran', score: summary.avgSectionA.round(), max: 20),
+                          const SizedBox(height: 10),
+                          _SectionScoreBar(label: 'B: Amalan Sekolah Penyayang', score: summary.avgSectionB.round(), max: 20),
+                          const SizedBox(height: 10),
+                          _SectionScoreBar(label: 'C: Peranan PRS', score: summary.avgSectionC.round(), max: 20),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+            loading: () => const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator())),
+            error: (err, _) => Text('Gagal memuatkan ringkasan: $err', style: const TextStyle(color: Colors.red)),
+          ),
+          const SizedBox(height: 24),
+          const Text('Senarai Jawapan Individu', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+          const SizedBox(height: 8),
+          responsesAsync.when(
+            data: (rows) {
+              if (rows.isEmpty) return const SizedBox.shrink();
+              return ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: rows.length,
+                itemBuilder: (context, index) {
+                  final row = rows[index];
+                  final color = _levelColor(row.level);
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: color.withValues(alpha: 0.15),
+                        child: Text('${row.percent.round()}%', style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 11)),
+                      ),
+                      title: Text(row.studentName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle: Text('${row.className ?? "Tiada Kelas"} • ${dateFormat.format(row.submittedAt)}'),
+                      trailing: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(8)),
+                        child: Text(row.level.label, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 11)),
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+            loading: () => const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator())),
+            error: (err, _) => Text('Gagal memuatkan senarai: $err', style: const TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SafeStatCard extends StatelessWidget {
+  const _SafeStatCard({required this.label, required this.value, required this.icon, required this.color});
+
+  final String label;
+  final String value;
+  final IconData icon;
+  final MaterialColor color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 160,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: color.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color.shade700, size: 20),
+          const SizedBox(height: 8),
+          Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: color.shade900)),
+          Text(label, style: TextStyle(fontSize: 11, color: color.shade800)),
+        ],
+      ),
+    );
+  }
+}
+
+class _LevelDistributionBar extends StatelessWidget {
+  const _LevelDistributionBar({required this.rendah, required this.sederhana, required this.tinggi});
+
+  final int rendah;
+  final int sederhana;
+  final int tinggi;
+
+  @override
+  Widget build(BuildContext context) {
+    final total = rendah + sederhana + tinggi;
+    if (total == 0) return const SizedBox.shrink();
+
+    Widget segment(int count, Color color, String label) {
+      if (count == 0) return const SizedBox.shrink();
+      return Expanded(
+        flex: count,
+        child: Container(
+          height: 28,
+          color: color,
+          alignment: Alignment.center,
+          child: Text('$count', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: Row(
+            children: [
+              segment(rendah, Colors.red.shade700, 'Rendah'),
+              segment(sederhana, Colors.orange.shade700, 'Sederhana'),
+              segment(tinggi, Colors.green.shade700, 'Tinggi'),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 16,
+          children: [
+            _LegendDot(color: Colors.red.shade700, label: 'Rendah ($rendah)'),
+            _LegendDot(color: Colors.orange.shade700, label: 'Sederhana ($sederhana)'),
+            _LegendDot(color: Colors.green.shade700, label: 'Tinggi ($tinggi)'),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _LegendDot extends StatelessWidget {
+  const _LegendDot({required this.color, required this.label});
+
+  final Color color;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        const SizedBox(width: 6),
+        Text(label, style: const TextStyle(fontSize: 11)),
+      ],
+    );
+  }
+}
+
+class _SectionScoreBar extends StatelessWidget {
+  const _SectionScoreBar({required this.label, required this.score, required this.max});
+
+  final String label;
+  final int score;
+  final int max;
+
+  @override
+  Widget build(BuildContext context) {
+    final fraction = max == 0 ? 0.0 : score / max;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(child: Text(label, style: const TextStyle(fontSize: 12))),
+            Text('$score / $max', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        const SizedBox(height: 4),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(value: fraction, minHeight: 8, backgroundColor: Colors.grey.shade300),
         ),
       ],
     );

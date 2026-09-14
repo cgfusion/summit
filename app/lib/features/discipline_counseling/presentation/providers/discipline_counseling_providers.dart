@@ -4,6 +4,7 @@ import '../../../../core/providers/supabase_provider.dart';
 import '../../data/repositories/discipline_counseling_repository_impl.dart';
 import '../../domain/entities/counseling_record.dart';
 import '../../domain/entities/discipline_record.dart';
+import '../../domain/entities/safe_questionnaire.dart';
 import '../../domain/entities/school_announcement.dart';
 import '../../domain/entities/sudut_info_post.dart';
 import '../../domain/repositories/discipline_counseling_repository.dart';
@@ -73,4 +74,17 @@ final activeSudutInfoPostsProvider = FutureProvider.autoDispose
         audience: query.audience,
         onlyActive: true,
       );
+});
+
+final mySafeQuestionnaireProvider = FutureProvider.autoDispose
+    .family<SafeQuestionnaireResult?, String>((ref, qrToken) {
+  return ref.watch(disciplineCounselingRepositoryProvider).getMySafeQuestionnaire(qrToken);
+});
+
+final safeQuestionnaireSummaryProvider = FutureProvider.autoDispose<SafeQuestionnaireSummary>((ref) {
+  return ref.watch(disciplineCounselingRepositoryProvider).getSafeQuestionnaireSummary();
+});
+
+final allSafeQuestionnaireResponsesProvider = FutureProvider.autoDispose<List<SafeQuestionnaireResponseRow>>((ref) {
+  return ref.watch(disciplineCounselingRepositoryProvider).getAllSafeQuestionnaireResponses();
 });

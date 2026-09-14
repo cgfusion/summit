@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/utils/date_utils.dart';
 import '../../domain/entities/counseling_record.dart';
 import '../../domain/entities/discipline_record.dart';
+import '../../domain/entities/safe_questionnaire.dart';
 import '../../domain/entities/school_announcement.dart';
 import '../../domain/entities/sudut_info_post.dart';
 import '../../domain/repositories/discipline_counseling_repository.dart';
@@ -376,5 +377,51 @@ class DisciplineCounselingRepositoryImpl implements DisciplineCounselingReposito
   @override
   Future<void> deleteSudutInfoPost(String id) async {
     await _client.from('sudut_info_posts').delete().eq('id', id);
+  }
+
+  @override
+  Future<void> submitSafeQuestionnaire({required String qrToken, required List<int> items}) async {
+    assert(items.length == 12, 'SAFE questionnaire expects exactly 12 item scores');
+    await _client.rpc('fn_submit_safe_questionnaire', params: {
+      'p_qr_token': qrToken,
+      'p_item_01': items[0],
+      'p_item_02': items[1],
+      'p_item_03': items[2],
+      'p_item_04': items[3],
+      'p_item_05': items[4],
+      'p_item_06': items[5],
+      'p_item_07': items[6],
+      'p_item_08': items[7],
+      'p_item_09': items[8],
+      'p_item_10': items[9],
+      'p_item_11': items[10],
+      'p_item_12': items[11],
+    });
+  }
+
+  @override
+  Future<SafeQuestionnaireResult?> getMySafeQuestionnaire(String qrToken) async {
+    final result = await _client.rpc('fn_get_my_safe_questionnaire', params: {'p_qr_token': qrToken});
+    if (result == null) return null;
+    return SafeQuestionnaireResult.fromMap(result as Map<String, dynamic>);
+  }
+
+  @override
+  Future<SafeQuestionnaireSummary> getSafeQuestionnaireSummary() async {
+    final result = await _client.rpc('fn_safe_questionnaire_summary');
+    return SafeQuestionnaireSummary.fromMap(result as Map<String, dynamic>);
+  }
+
+  @override
+  Future<List<SafeQuestionnaireResponseRow>> getAllSafeQuestionnaireResponses() async {
+    final rows = await _client
+        .from('safe_questionnaire_responses')
+        .select('''
+          student_id, item_01, item_02, item_03, item_04, item_05, item_06,
+          item_07, item_08, item_09, item_10, item_11, item_12, submitted_at,
+          students ( full_name, classes ( name ) )
+        ''')
+        .order('submitted_at', ascending: false);
+    return (rows as List).map((r) => SafeQuestionnaireResponseRow.fromMap(r as Map<String, dynamic>)).toList();
   }
 }

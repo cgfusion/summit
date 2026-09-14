@@ -339,6 +339,27 @@ See `DISCIPLINE_AND_COUNSELING.md` for the module overview and the RBAC-vs-enfor
 - **Table op**: `INSERT` into `student_voice_submissions`, `student_id: null` if `isAnonymous`.
 - **Auth required**: none — `public_insert_voice` grants `insert` to `authenticated, anon`.
 
+### SAFE Questionnaire — `submitSafeQuestionnaire({qrToken, items})` / `getMySafeQuestionnaire(qrToken)`
+- **RPCs**: `fn_submit_safe_questionnaire(p_qr_token, p_item_01..p_item_12)` (write) / `fn_get_my_safe_questionnaire(p_qr_token)` (read).
+- **Auth required**: none — both granted to `anon` and `authenticated`, same QR-token identity model as `fn_student_portal_data_by_qr`.
+- **`items`**: exactly 12 ints, 1-5 each, in the fixed order defined by `safeQuestionnaireItems` (`domain/entities/safe_questionnaire.dart`) — index 0 is item_01, etc. The Dart method asserts `items.length == 12` before calling; the RPC itself raises `'Setiap jawapan mestilah antara 1 hingga 5'` if any value is out of range.
+- **Resubmission**: `fn_submit_safe_questionnaire` upserts (`on conflict (student_id) do update`) — calling it again for the same student **overwrites** their answers in place, it does not create a new response or preserve history. This is intentional (see `_SafeQuestionnaireForm`'s "KEMASKINI JAWAPAN" edit flow), but means there is no way to see what a student answered before their most recent update.
+- **`getMySafeQuestionnaire` response** (`jsonb`, `null` if the student hasn't submitted):
+  ```json
+  {
+    "total_score": 50, "max_score": 60, "percent": 83.3,
+    "level": "tinggi", "memahami": true,
+    "section_a_score": 18, "section_b_score": 13, "section_c_score": 19,
+    "items": [5,4,5,4,3,3,4,3,5,5,4,5],
+    "submitted_at": "...", "updated_at": "..."
+  }
+  ```
+- **Scoring**: percent is always `total / 60 * 100`, **not** the source document's `/40` formula — see `DATABASE.md`'s `safe_questionnaire_responses` entry for why. `level`/`memahami` are derived from `percent` (`< 50 → rendah`, `50-74 → sederhana`, `>= 75 → tinggi`/`memahami`), not from raw score bands.
+
+### `getSafeQuestionnaireSummary()` / `getAllSafeQuestionnaireResponses()` (staff-facing, Discipline & Counseling's "Soal Selidik SAFE" tab)
+- **`getSafeQuestionnaireSummary`** — **RPC** `fn_safe_questionnaire_summary()`, no params, staff-only (`authenticated`). Returns the aggregate object backing the tab's stat cards, level-distribution bar, and per-section averages.
+- **`getAllSafeQuestionnaireResponses`** — **table op**, `SELECT` on `safe_questionnaire_responses` joined to `students(full_name, classes(name))`, staff-only. Unlike the summary RPC, **scoring is computed client-side** in `SafeQuestionnaireResponseRow.fromMap` (same `/60`, same thresholds) rather than server-side — if the formula ever changes, this call site needs updating too, it won't inherit a fix made only in the SQL functions.
+
 ---
 
 ## Future / informational — Attendance Export API (not implemented)

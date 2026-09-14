@@ -7,6 +7,7 @@ import '../providers/student_portal_providers.dart';
 import '../../domain/entities/student_portal_data.dart';
 import '../../domain/entities/student_voice_submission.dart';
 import 'package:app/core/widgets/full_screen_image_viewer.dart';
+import 'package:app/features/discipline_counseling/domain/entities/safe_questionnaire.dart';
 import 'package:app/features/discipline_counseling/domain/entities/school_announcement.dart';
 import 'package:app/features/discipline_counseling/domain/entities/sudut_info_post.dart';
 import 'package:app/features/discipline_counseling/presentation/providers/discipline_counseling_providers.dart';
@@ -283,7 +284,7 @@ class _StudentDashboardView extends ConsumerWidget {
         }
 
         return DefaultTabController(
-          length: 4,
+          length: 5,
           child: Column(
             children: [
               Container(
@@ -320,11 +321,14 @@ class _StudentDashboardView extends ConsumerWidget {
                 ),
               ),
               const TabBar(
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
                 tabs: [
                   Tab(icon: Icon(Icons.campaign), text: 'Pengumuman'),
                   Tab(icon: Icon(Icons.trending_up), text: 'Kemajuan Saya'),
                   Tab(icon: Icon(Icons.record_voice_over), text: 'Suara Murid'),
                   Tab(icon: Icon(Icons.auto_awesome), text: 'Inspirasi'),
+                  Tab(icon: Icon(Icons.shield_outlined), text: 'SAFE'),
                 ],
               ),
               Expanded(
@@ -334,6 +338,7 @@ class _StudentDashboardView extends ConsumerWidget {
                     _MyProgressTab(data: data),
                     _StudentVoiceTab(data: data, qrToken: qrToken),
                     const _InspirationTab(),
+                    _SafeQuestionnaireTab(qrToken: qrToken),
                   ],
                 ),
               ),
@@ -900,6 +905,342 @@ class _AnnouncementsTab extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// SAFE QUESTIONNAIRE TAB
+// ---------------------------------------------------------------------------
+class _SafeQuestionnaireTab extends ConsumerStatefulWidget {
+  const _SafeQuestionnaireTab({required this.qrToken});
+
+  final String qrToken;
+
+  @override
+  ConsumerState<_SafeQuestionnaireTab> createState() => _SafeQuestionnaireTabState();
+}
+
+class _SafeQuestionnaireTabState extends ConsumerState<_SafeQuestionnaireTab> {
+  List<int?> _answers = List<int?>.filled(safeQuestionnaireItems.length, null);
+  bool _editing = false;
+  bool _submitting = false;
+
+  void _startEditing({List<int>? prefill}) {
+    setState(() {
+      _answers = prefill != null ? List<int?>.from(prefill) : List<int?>.filled(safeQuestionnaireItems.length, null);
+      _editing = true;
+    });
+  }
+
+  Future<void> _submit() async {
+    if (_answers.contains(null)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sila jawab semua 12 soalan sebelum menghantar.')),
+      );
+      return;
+    }
+    setState(() => _submitting = true);
+    try {
+      await ref.read(disciplineCounselingRepositoryProvider).submitSafeQuestionnaire(
+            qrToken: widget.qrToken,
+            items: _answers.cast<int>(),
+          );
+      ref.invalidate(mySafeQuestionnaireProvider(widget.qrToken));
+      if (mounted) {
+        setState(() => _editing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Terima kasih! Jawapan anda telah dihantar.'), backgroundColor: Colors.green),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal menghantar: $e'), backgroundColor: Colors.red.shade800),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final resultAsync = ref.watch(mySafeQuestionnaireProvider(widget.qrToken));
+
+    return resultAsync.when(
+      data: (result) {
+        if (_editing || result == null) {
+          return _SafeQuestionnaireForm(
+            answers: _answers,
+            submitting: _submitting,
+            isUpdate: result != null,
+            onAnswer: (index, score) => setState(() => _answers[index] = score),
+            onSubmit: _submit,
+            onCancel: result != null ? () => setState(() => _editing = false) : null,
+          );
+        }
+        return _SafeQuestionnaireResultView(
+          result: result,
+          onEdit: () => _startEditing(prefill: result.items),
+        );
+      },
+      loading: () => const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator())),
+      error: (err, _) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text('Ralat memuatkan Soal Selidik SAFE: $err', textAlign: TextAlign.center),
+        ),
+      ),
+    );
+  }
+}
+
+class _SafeQuestionnaireForm extends StatelessWidget {
+  const _SafeQuestionnaireForm({
+    required this.answers,
+    required this.submitting,
+    required this.isUpdate,
+    required this.onAnswer,
+    required this.onSubmit,
+    this.onCancel,
+  });
+
+  final List<int?> answers;
+  final bool submitting;
+  final bool isUpdate;
+  final void Function(int index, int score) onAnswer;
+  final VoidCallback onSubmit;
+  final VoidCallback? onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final sections = SafeQuestionnaireSection.values;
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Card(
+          color: Theme.of(context).colorScheme.primaryContainer,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'SOAL SELIDIK PENILAIAN PROGRAM SAFE',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Sila tandakan skala yang paling tepat menggambarkan pandangan anda: '
+                  '1 = Sangat Tidak Setuju, 2 = Tidak Setuju, 3 = Kurang Setuju, 4 = Setuju, 5 = Sangat Setuju.',
+                  style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onPrimaryContainer),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        for (final section in sections) ...[
+          Text(section.label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+          const SizedBox(height: 8),
+          for (int i = 0; i < safeQuestionnaireItems.length; i++)
+            if (safeQuestionnaireItems[i].section == section)
+              _LikertQuestion(
+                number: i + 1,
+                text: safeQuestionnaireItems[i].text,
+                value: answers[i],
+                onChanged: (score) => onAnswer(i, score),
+              ),
+          const SizedBox(height: 8),
+        ],
+        Row(
+          children: [
+            if (onCancel != null) ...[
+              Expanded(
+                child: OutlinedButton(onPressed: submitting ? null : onCancel, child: const Text('BATAL')),
+              ),
+              const SizedBox(width: 12),
+            ],
+            Expanded(
+              flex: 2,
+              child: ElevatedButton.icon(
+                icon: submitting
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.send),
+                label: Text(isUpdate ? 'KEMASKINI JAWAPAN' : 'HANTAR JAWAPAN'),
+                onPressed: submitting ? null : onSubmit,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+}
+
+class _LikertQuestion extends StatelessWidget {
+  const _LikertQuestion({required this.number, required this.text, required this.value, required this.onChanged});
+
+  final int number;
+  final String text;
+  final int? value;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('$number. $text', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+          const SizedBox(height: 8),
+          Row(
+            children: List.generate(5, (i) {
+              final score = i + 1;
+              final selected = value == score;
+              return Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: selected ? Theme.of(context).colorScheme.primary : null,
+                      foregroundColor: selected ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.onSurface,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                    onPressed: () => onChanged(score),
+                    child: Text('$score'),
+                  ),
+                ),
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SafeQuestionnaireResultView extends StatelessWidget {
+  const _SafeQuestionnaireResultView({required this.result, required this.onEdit});
+
+  final SafeQuestionnaireResult result;
+  final VoidCallback onEdit;
+
+  Color _levelColor() {
+    switch (result.level) {
+      case SafeQuestionnaireLevel.rendah:
+        return Colors.red.shade700;
+      case SafeQuestionnaireLevel.sederhana:
+        return Colors.orange.shade700;
+      case SafeQuestionnaireLevel.tinggi:
+        return Colors.green.shade700;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dateFormat = DateFormat('d MMM yyyy, h:mm a');
+    final levelColor = _levelColor();
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                Text('Keputusan Soal Selidik SAFE', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 16),
+                Text('${result.percent.toStringAsFixed(1)}%', style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: levelColor)),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  decoration: BoxDecoration(color: levelColor.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(20)),
+                  child: Text('Tahap: ${result.level.label}', style: TextStyle(color: levelColor, fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  result.memahami
+                      ? 'Anda dianggap MEMAHAMI konsep antibuli (skor >= 75%).'
+                      : 'Anda BELUM MEMAHAMI sepenuhnya konsep antibuli (skor < 75%).',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Skor: ${result.totalScore} / ${result.maxScore}',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Pecahan Bahagian', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                _SectionScoreBar(label: 'A: Pengetahuan & Kesedaran', score: result.sectionAScore, max: 20),
+                const SizedBox(height: 10),
+                _SectionScoreBar(label: 'B: Amalan Sekolah Penyayang', score: result.sectionBScore, max: 20),
+                const SizedBox(height: 10),
+                _SectionScoreBar(label: 'C: Peranan PRS', score: result.sectionCScore, max: 20),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'Dihantar: ${dateFormat.format(result.submittedAt)}'
+          '${result.updatedAt.isAfter(result.submittedAt) ? '\nDikemaskini: ${dateFormat.format(result.updatedAt)}' : ''}',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+        ),
+        const SizedBox(height: 16),
+        OutlinedButton.icon(icon: const Icon(Icons.edit_outlined), label: const Text('Kemaskini Jawapan'), onPressed: onEdit),
+      ],
+    );
+  }
+}
+
+class _SectionScoreBar extends StatelessWidget {
+  const _SectionScoreBar({required this.label, required this.score, required this.max});
+
+  final String label;
+  final int score;
+  final int max;
+
+  @override
+  Widget build(BuildContext context) {
+    final fraction = max == 0 ? 0.0 : score / max;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(child: Text(label, style: const TextStyle(fontSize: 12))),
+            Text('$score / $max', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        const SizedBox(height: 4),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(value: fraction, minHeight: 8, backgroundColor: Colors.grey.shade300),
+        ),
+      ],
     );
   }
 }
