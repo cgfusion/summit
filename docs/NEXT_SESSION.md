@@ -23,7 +23,7 @@
 
 **None in flight.** Session as of 2026-09-15 picked up mid-feature (SAFE questionnaire) after a usage-limit interruption — the code, migration, and one unit test file were already written; this session verified (`flutter analyze`/`flutter test` clean, 5/5 new tests pass), finished the docs pass that had only just started (`DATABASE.md`'s header/TOC were updated but no table/function entries existed yet), then committed/pushed/applied the migration and live-verified.
 
-Immediately after that, Raizal clarified that the Sudut Info feed (added to `ParentPortalBody`/the Student Portal's "Inspirasi" tab on 2026-09-14) also needed to show on **both portals' pre-login screens** — the posters' QR codes point straight at the login screens, not the authenticated view. Added `_ParentLoginSudutInfoSection` (`parent_ic_lookup_screen.dart`) and `_StudentLoginSudutInfoSection` (`student_portal_screen.dart`), reusing the existing `activeSudutInfoPostsProvider`; committed as `8d23927`, deployed, live-verified on both `/#/parent` and `/#/student`. While verifying, found (documented, not fixed) `KNOWN_ISSUES.md` KI-018 — a suspected timezone mismatch that leaves both currently-published Sudut Info posts scheduled a few hours in the future.
+Immediately after that, Raizal clarified that the Sudut Info feed (added to `ParentPortalBody`/the Student Portal's "Inspirasi" tab on 2026-09-14) also needed to show on **both portals' pre-login screens** — the posters' QR codes (four total: main Landing Page, Teacher Login, Parent/Guardian Login, Student Login) point straight at the login screens, not the authenticated view. Added `_ParentLoginSudutInfoSection` (`parent_ic_lookup_screen.dart`) and `_StudentLoginSudutInfoSection` (`student_portal_screen.dart`), reusing the existing `activeSudutInfoPostsProvider`; committed as `8d23927`, deployed, live-verified on both `/#/parent` and `/#/student`. While verifying, found and then **fixed the same day** `KNOWN_ISSUES.md` KI-018 — a real timezone bug (missing `.toUtc()` before serializing `valid_from`/`valid_until`/`nowStr` to Postgres) that left both currently-published Sudut Info posts scheduled ~8 hours in the future; fixed the three call sites in `discipline_counseling_repository_impl.dart`, corrected the two already-broken rows' `valid_from`, and re-verified live with no manual data patching required.
 
 ## Resolved 2026-09-14 (previously the top priority in this file)
 
@@ -64,11 +64,12 @@ Two **deliberately blocked** future items (see `TASKS.md` §Blocked):
 
 In rough priority order:
 
-1. **Investigate KI-018** — confirm (or rule out) the suspected Sudut Info `valid_from`/`valid_until` timezone bug before the two currently-scheduled posts (or any new one) silently fail to appear on schedule again.
-2. **T-029** — persist `themeModeProvider` selection via `shared_preferences`.
-3. **Decide on KI-015** — if `disiplin`/`kaunselor` RBAC is meant to be real, that's a `profiles.role` schema change + new RLS policies, not a small fix; scope it deliberately rather than bolting it on.
-4. **Decide on KI-016** — either wire a real Gemini API key through `--dart-define` if genuine LLM answers are wanted, or soften the "GEMINI INTELLIGENCE" branding to match what it actually is.
-5. **Rotate `SUPABASE_ACCESS_TOKEN`** if this one was ever pasted anywhere outside `supabase/.env` (chat, screenshots, etc.) — treat it like a password.
+1. **T-029** — persist `themeModeProvider` selection via `shared_preferences`.
+2. **Decide on KI-015** — if `disiplin`/`kaunselor` RBAC is meant to be real, that's a `profiles.role` schema change + new RLS policies, not a small fix; scope it deliberately rather than bolting it on.
+3. **Decide on KI-016** — either wire a real Gemini API key through `--dart-define` if genuine LLM answers are wanted, or soften the "GEMINI INTELLIGENCE" branding to match what it actually is.
+4. **Rotate `SUPABASE_ACCESS_TOKEN`** if this one was ever pasted anywhere outside `supabase/.env` (chat, screenshots, etc.) — treat it like a password.
+
+KI-018 (Sudut Info scheduling timezone bug) was fixed 2026-09-14, same day it was found — no longer on this list.
 
 If the user has a specific new feature request instead, **follow `AI_RULES.md` §5 (the full ship loop) and §8 (design-decision discipline) before writing any code**, and **update this file and `CHANGELOG.md`/`TASKS.md` in the same session you ship in** — the gap this docs pass just closed was caused by exactly the opposite habit.
 

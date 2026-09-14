@@ -286,7 +286,7 @@ class DisciplineCounselingRepositoryImpl implements DisciplineCounselingReposito
         ''');
 
     if (onlyActive) {
-      final nowStr = DateTime.now().toIso8601String();
+      final nowStr = DateTime.now().toUtc().toIso8601String();
       query = query
           .eq('is_published', true)
           .lte('valid_from', nowStr)
@@ -328,8 +328,8 @@ class DisciplineCounselingRepositoryImpl implements DisciplineCounselingReposito
       'managed_by': managedBy ?? 'Unit Disiplin & Kaunseling',
       'author_id': authorId,
       'is_published': true,
-      'valid_from': validFrom.toIso8601String(),
-      'valid_until': validUntil?.toIso8601String(),
+      'valid_from': validFrom.toUtc().toIso8601String(),
+      'valid_until': validUntil?.toUtc().toIso8601String(),
     });
   }
 
@@ -353,8 +353,8 @@ class DisciplineCounselingRepositoryImpl implements DisciplineCounselingReposito
       'content': content,
       'image_url': imageUrl,
       'managed_by': managedBy ?? 'Unit Disiplin & Kaunseling',
-      'valid_from': validFrom.toIso8601String(),
-      'valid_until': validUntil?.toIso8601String(),
+      'valid_from': validFrom.toUtc().toIso8601String(),
+      'valid_until': validUntil?.toUtc().toIso8601String(),
       'updated_at': DateTime.now().toIso8601String(),
     };
     if (isPublished != null) {
