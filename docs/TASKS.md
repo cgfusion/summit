@@ -49,6 +49,7 @@
 | T-048 | Sudut Info storage hardening — direct image upload/delete from the screen (bypassing the repository layer, see `KNOWN_ISSUES.md` KI-017), storage delete RLS policy | P2 | T-047 | S |
 | T-049 | Sudut Info re-scoped to Student/Parent Portals — `audience` column (`murid`/`ibu_bapa`/`kedua_dua`), composer/edit "Untuk Siapa" picker, removed from the public Landing Page entirely, added to Student Portal's "Inspirasi" tab and `ParentPortalBody`, **and (same day, follow-up) also added to both portals' pre-login screens** since the posters' QR codes point straight there | P1 | T-047 | M |
 | T-050 | SAFE (School Anti-Bullying Framework for Empowerment) questionnaire — 12-item Likert survey for students (Student Portal "SAFE" tab), `safe_questionnaire_responses` table with identity-proving-function write pattern (no anon table policy at all, unlike KI-014's original mistake), staff results tab in Discipline & Counseling ("Soal Selidik SAFE") | P1 | T-001 | L |
+| T-051 | Saringan Minda Sihat tab (Student Portal, 6th) — consent gate (instructions + "SAYA FAHAM" checkbox) in front of the external KPM screening link (`sepkm.com/msihatmenengah`), opened via `url_launcher`; no server-side data model, purely a client-side UI gate. Also switched the Student Portal's `TabBar` from scrollable to fixed with 2-line-wrapping labels so all 6 tabs fit without scrolling. | P1 | none | S |
 
 ## In Progress
 

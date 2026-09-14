@@ -6,13 +6,16 @@ This document describes the design, architecture, security model, and implementa
 
 ## 1. Overview
 
-The **Student Portal** is a student-facing interface accessible at route **`/#/student`** (and `/#/student/:token`). Five tabs, in order:
+The **Student Portal** is a student-facing interface accessible at route **`/#/student`** (and `/#/student/:token`). Six tabs, in order:
 
 1. **Pengumuman** — Read Live Announcements (added `20260817000001`): staff-published `school_announcements`, either broadcast to the whole school or targeted at that one student — see §5 below.
 2. **Kemajuan Saya** — View Personal Progress: attendance rate %, recorded days present/absent, total merit points earned, and unlocked badges.
 3. **Suara Murid** — Submit Student Voice: suggestions for school improvement, learning feedback, anti-bullying & safety reports (with optional anonymity), or request private UBK counseling sessions. Also where a student tracks past submission status and reads official responses from **Guru Kaunselor** and **Guru Disiplin**.
 4. **Inspirasi** — a static motivational quote card, plus (added 2026-09-14) a live feed of Sudut Info posts targeted at `audience = murid` — see §6 below. The same feed is **also** shown on the pre-login QR/token entry screen (added 2026-09-14, later same day) so visitors who never log in still see it.
 5. **SAFE** — the SAFE anti-bullying questionnaire, added `20260915000001` — see §7 below.
+6. **Saringan Minda Sihat** — a gate in front of the Ministry of Education's (KPM) official external mental-health screening, added 2026-09-14 — see §8 below.
+
+The `TabBar` is **not scrollable** (changed 2026-09-14, same day this 6th tab was added): each label wraps onto up to 2 lines via a custom `_wrappingTab()` helper (icon + small `Text` with `maxLines: 2`), so all 6 tabs stay visible on one row at any screen width instead of requiring a horizontal scroll to reach the later ones.
 
 ---
 
@@ -87,3 +90,12 @@ The **SAFE (School Anti-Bullying Framework for Empowerment)** questionnaire — 
 - **Resubmission overwrites, it doesn't append**: `safe_questionnaire_responses.student_id` is unique, and the submit RPC does `on conflict (student_id) do update`. There is no history of a student's earlier answers once they update — only the latest submission is ever stored.
 - **Scoring**: `percent = total_score / 60 * 100` — **not** `/40`, despite that being the formula written in the source `.docx`. This was confirmed with Raizal as a documentation error in the source material (12 items × 5 points max = 60, not 40); see `DATABASE.md` for the full explanation. Levels come from the percentage (`<50% rendah`, `50-74% sederhana`, `>=75% tinggi`/`memahami`), not from the source's raw-score bands (which don't tile cleanly onto 12 items anyway).
 - **Staff view**: aggregated results and an individual-response drill-down live in the Discipline & Counseling module's "Soal Selidik SAFE" tab, not here — see `DISCIPLINE_AND_COUNSELING.md` §8.
+
+## 8. Saringan Minda Sihat (Tab "Saringan Minda Sihat")
+
+A consent gate in front of an **external, third-party** screening — the Ministry of Education's (KPM) official mental-health screening at `https://sepkm.com/msihatmenengah`. Added 2026-09-14, per Raizal's exact spec. This is **not** a D2C feature with its own data model — there is no table, no RPC, and nothing is recorded server-side about whether a student completed it or even opened the link.
+
+- **`_MindaSihatTab`** (`student_portal_screen.dart`, `StatefulWidget`): shows the 3 required instructions (Arahan) verbatim, a "SAYA FAHAM" `CheckboxListTile`, and a "SARINGAN MINDA SIHAT" button.
+- **The button is disabled** (`onPressed: null`) until the checkbox is ticked — purely client-side `_understood` bool state, not persisted anywhere. Unchecking it (or leaving and re-entering the tab) resets the gate; there is no "already acknowledged" memory.
+- **On press (once enabled)**: opens the external URL via `url_launcher`'s `launchUrl(uri, webOnlyWindowName: '_blank')`, which on Flutter Web calls `window.open(url, '_blank', 'noopener,noreferrer')` — a new tab, not a navigation away from the portal. `url_launcher` was added as a new direct dependency (`pubspec.yaml`) for this; it existed only transitively before.
+- **If asked to add tracking/reporting** (e.g. "which students have done the screening"): that is new scope, not implied by the current feature — there is deliberately no student-side record of completion, since KPM's own site presumably tracks that on its end.

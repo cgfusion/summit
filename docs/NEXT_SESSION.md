@@ -6,14 +6,14 @@
 
 ## Current Milestone
 
-**Every planned feature has shipped and is live at `https://d2csummit.online/`**, including the SAFE anti-bullying questionnaire (T-050, 2026-09-15) and Sudut Info now also showing on both portals' pre-login screens (2026-09-14, same day as the audience re-scoping) — the newest additions.
+**Every planned feature has shipped and is live at `https://d2csummit.online/`**, including the SAFE anti-bullying questionnaire (T-050, 2026-09-15) and the Saringan Minda Sihat tab (T-051, 2026-09-14) — the newest addition. **This project is in active, ongoing feature expansion, not maintenance mode** — Raizal has said directly there is more to add; treat "everything shipped" as a snapshot, not a finish line.
 
 1. **Attendance Pipeline & Daily Status Derivation**: QR scan intake, manual entry/backfill, session-aware cutoffs (`pagi`/`petang`).
 2. **Merit Module**: 4-point daily merit scoring, class leaderboards, recognition awards.
 3. **Dashboard & Analytics**: stat cards, attendance trend, heatmap, KPI overview, drill-downs.
 4. **Discipline & Counseling**: SSDOP case tracking, UBK counseling sessions, Peti Suara Murid inbox, Special Announcements, Sudut Info, and staff-facing SAFE questionnaire results — **6 tabs** at `/discipline-counseling`. **The `disiplin`/`kaunselor` RBAC this module's own docs describe is a UI convention only, not enforced in Postgres** — see `KNOWN_ISSUES.md` KI-015.
 5. **Parent Portal**: token-link (`/parent/:token`) and MyKad/IC lookup (`/parent`) for guardians, plus an `audience=ibu_bapa` Sudut Info section.
-6. **Student Portal & Student Voice**: QR Name Tag login (`/student`), **5 tabs** — Pengumuman (live staff announcements), Kemajuan Saya (progress), Suara Murid (feedback/bullying reports — anonymity is now genuinely enforced, see KI-014 below), Inspirasi (audience=murid Sudut Info feed), and SAFE (the anti-bullying questionnaire, submit-once-editable).
+6. **Student Portal & Student Voice**: QR Name Tag login (`/student`), **6 tabs, non-scrollable with 2-line-wrapping labels** — Pengumuman (live staff announcements), Kemajuan Saya (progress), Suara Murid (feedback/bullying reports — anonymity is now genuinely enforced, see KI-014 below), Inspirasi (audience=murid Sudut Info feed), SAFE (the anti-bullying questionnaire, submit-once-editable), and Saringan Minda Sihat (a consent-gate tab linking out to the KPM's official external mental-health screening, no server-side data model — T-051, 2026-09-14).
 7. **Public Landing Page**: "Cyber" redesign with a real photo hero and an AI Assistant FAB. **No longer shows Sudut Info** — moved to Student/Parent Portals 2026-09-14, see `LANDING_PAGE.md`.
 8. **D2C AI Assistant**: chat dialog on the Landing Page. **Branded "GEMINI INTELLIGENCE" but is 100% local rule-based in production** — no API key has ever been wired to it. See `KNOWN_ISSUES.md` KI-016.
 9. **D2C User Manual**: `docs/MANUAL_PENGGUNA_D2C.md`/`.docx` — end-user documentation, a different audience from this `docs/` kit.
@@ -25,6 +25,10 @@
 
 Immediately after that, Raizal clarified that the Sudut Info feed (added to `ParentPortalBody`/the Student Portal's "Inspirasi" tab on 2026-09-14) also needed to show on **both portals' pre-login screens** — the posters' QR codes (four total: main Landing Page, Teacher Login, Parent/Guardian Login, Student Login) point straight at the login screens, not the authenticated view. Added `_ParentLoginSudutInfoSection` (`parent_ic_lookup_screen.dart`) and `_StudentLoginSudutInfoSection` (`student_portal_screen.dart`), reusing the existing `activeSudutInfoPostsProvider`; committed as `8d23927`, deployed, live-verified on both `/#/parent` and `/#/student`. While verifying, found and then **fixed the same day** `KNOWN_ISSUES.md` KI-018 — a real timezone bug (missing `.toUtc()` before serializing `valid_from`/`valid_until`/`nowStr` to Postgres) that left both currently-published Sudut Info posts scheduled ~8 hours in the future; fixed the three call sites in `discipline_counseling_repository_impl.dart`, corrected the two already-broken rows' `valid_from`, and re-verified live with no manual data patching required.
 
+Same day, still later: Raizal asked to decline rotating `SUPABASE_ACCESS_TOKEN` (see the note near the bottom of this file — **do not re-raise this**), then requested a new feature: **T-051, "Saringan Minda Sihat"** — a 6th Student Portal tab gating the external KPM mental-health screening link. Built exactly to his spec (3 numbered instructions, then — after he corrected the initial button-based design mid-build — a "SAYA FAHAM" checkbox that enables a "SARINGAN MINDA SIHAT" button opening `https://sepkm.com/msihatmenengah` in a new tab via `url_launcher`, added as a new direct dependency). Committed `d5cacb3`, deployed, verified locally pre-push (checkbox toggling, and confirmed via a `window.open` shim that the correct URL/target is dispatched — this session's own sandboxed test browser blocks all popups regardless of trigger, so the *tab actually opening* could not be visually confirmed in-session; the dispatch call itself was proven correct).
+
+Immediately after, Raizal flagged (with an annotated screenshot) that 6 tabs no longer fit the scrollable `TabBar` — "Saringan Minda Sihat" was cut off, requiring a horizontal scroll. Fixed same session: switched to a non-scrollable `TabBar` with a custom `_wrappingTab()` helper wrapping each label onto up to 2 lines at a smaller font size, so all 6 tabs fit on one row at any width. Committed `dc9d040`, deployed, confirmed live via a direct cache-busting fetch of `main.dart.js` (this project's GitHub Pages CDN caches aggressively — see Warnings below — so a normal browser load can lag a fresh deploy by several minutes; always verify via `curl`/`fetch` with a cache-busting query first per `AI_RULES.md` §6, not by trusting what a possibly-cached browser tab shows).
+
 ## Resolved 2026-09-14 (previously the top priority in this file)
 
 - **KI-014** (`student_voice_submissions` anon-read exposure) — migration `20260914000001` applied and verified: `set local role anon; select count(*) from student_voice_submissions;` now returns `0` regardless of actual row count. Confidential Suara Murid submissions are no longer publicly readable.
@@ -32,12 +36,14 @@ Immediately after that, Raizal clarified that the Sudut Info feed (added to `Par
 - **KI-013** (Supabase Auth `site_url`/`uri_allow_list` stuck on the dead `github.io` domain) — fixed via a direct Management API `PATCH`, verified via a follow-up `GET`. Invite-staff and password-reset email links now point at `https://d2csummit.online`.
 - Sudut Info image display (cropping, contrast on the Inspirasi quote card) fixed same week — see `CHANGELOG.md` 2026-09-14 entries.
 
-## Files Recently Modified (as of 2026-09-14, later same day as the SAFE questionnaire ship)
+## Files Recently Modified (as of 2026-09-14, latest — Saringan Minda Sihat + tab bar layout)
 
+- `lib/features/student_portal/presentation/screens/student_portal_screen.dart` — new `_MindaSihatTab` (6th tab, T-051), new top-level `_wrappingTab()` helper, `TabBar` switched from `isScrollable: true` to a fixed, evenly-distributed layout with 2-line labels
+- `pubspec.yaml` — `url_launcher` promoted from transitive to direct dependency
+- `app/lib/features/discipline_counseling/data/repositories/discipline_counseling_repository_impl.dart` — KI-018 fix (`.toUtc()` before serializing `valid_from`/`valid_until`/`nowStr`)
 - `lib/features/parent_portal/presentation/screens/parent_ic_lookup_screen.dart` — new `_ParentLoginSudutInfoSection`, rendered below the IC-lookup login card
 - `lib/features/parent_portal/presentation/screens/parent_portal_screen.dart` — `_ParentSudutInfoCard` made public (`ParentSudutInfoCard`) so the login-screen file can reuse it
-- `lib/features/student_portal/presentation/screens/student_portal_screen.dart` — `_StudentAuthView` converted to `ConsumerWidget`, new `_StudentLoginSudutInfoSection` rendered below the QR/token login card
-- `docs/` — `STUDENT_PORTAL_AND_VOICE.md`, `DISCIPLINE_AND_COUNSELING.md`, `LANDING_PAGE.md` (corrected a stale hero-carousel description predating this session), `PROJECT.md`, `CHANGELOG.md`, `KNOWN_ISSUES.md` (new KI-018), this file
+- `docs/` — `STUDENT_PORTAL_AND_VOICE.md` (new §8), `TASKS.md` (T-051), `CHANGELOG.md`, `PROJECT.md`, `DISCIPLINE_AND_COUNSELING.md`, `LANDING_PAGE.md` (corrected a stale hero-carousel description predating this session), `KNOWN_ISSUES.md` (KI-018, now fixed), this file
 
 Previous entry (2026-09-15, SAFE Questionnaire T-050), still true:
 - `supabase/migrations/20260915000001_safe_questionnaire.sql` — `safe_questionnaire_responses`, `fn_submit_safe_questionnaire`, `fn_get_my_safe_questionnaire`, `fn_safe_questionnaire_summary`. **Applied to production and verified.**
