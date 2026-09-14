@@ -7,6 +7,7 @@ import '../../../student/domain/entities/enrollment_status.dart';
 import '../../../student/presentation/screens/student_detail_sheet.dart' show colorForEnrollmentStatus;
 import '../../domain/entities/parent_portal_data.dart';
 import '../providers/parent_portal_providers.dart';
+import 'package:app/core/widgets/full_screen_image_viewer.dart';
 import 'package:app/features/discipline_counseling/domain/entities/sudut_info_post.dart';
 import 'package:app/features/discipline_counseling/presentation/providers/discipline_counseling_providers.dart';
 
@@ -248,22 +249,11 @@ class _ParentSudutInfoCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(8)),
-              child: Text(post.category.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+              child: Text(post.category.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black87)),
             ),
             const SizedBox(height: 8),
             if (post.imageUrl != null && post.imageUrl!.isNotEmpty) ...[
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: post.imageUrl!.startsWith('assets/')
-                    ? Image.asset(post.imageUrl!, height: 120, width: double.infinity, fit: BoxFit.cover)
-                    : Image.network(
-                        post.imageUrl!,
-                        height: 120,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
-                      ),
-              ),
+              SudutInfoImage(imageUrl: post.imageUrl!),
               const SizedBox(height: 8),
             ],
             Text(post.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),

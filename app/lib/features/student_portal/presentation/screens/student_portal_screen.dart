@@ -6,6 +6,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import '../providers/student_portal_providers.dart';
 import '../../domain/entities/student_portal_data.dart';
 import '../../domain/entities/student_voice_submission.dart';
+import 'package:app/core/widgets/full_screen_image_viewer.dart';
 import 'package:app/features/discipline_counseling/domain/entities/school_announcement.dart';
 import 'package:app/features/discipline_counseling/domain/entities/sudut_info_post.dart';
 import 'package:app/features/discipline_counseling/presentation/providers/discipline_counseling_providers.dart';
@@ -679,20 +680,27 @@ class _InspirationTab extends ConsumerWidget {
       padding: const EdgeInsets.all(16),
       children: [
         Card(
-          color: Colors.blue.shade50,
+          color: Theme.of(context).colorScheme.primaryContainer,
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
               children: [
-                const Icon(Icons.format_quote, size: 40, color: Colors.blue),
+                Icon(Icons.format_quote, size: 40, color: Theme.of(context).colorScheme.onPrimaryContainer),
                 const SizedBox(height: 8),
                 Text(
                   '"Kejayaan Bermula Dengan Kehadiran & Sahsiah Teruji."',
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, fontStyle: FontStyle.italic),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontStyle: FontStyle.italic,
+                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                  ),
                 ),
                 const SizedBox(height: 4),
-                const Text('SMK Sungai Damit — Dare to Change (D2C)'),
+                Text(
+                  'SMK Sungai Damit — Dare to Change (D2C)',
+                  style: TextStyle(color: Theme.of(context).colorScheme.onPrimaryContainer),
+                ),
               ],
             ),
           ),
@@ -745,23 +753,12 @@ class _SudutInfoCard extends StatelessWidget {
               decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(8)),
               child: Text(
                 post.category.toUpperCase(),
-                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black87),
               ),
             ),
             const SizedBox(height: 8),
             if (post.imageUrl != null && post.imageUrl!.isNotEmpty) ...[
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: post.imageUrl!.startsWith('assets/')
-                    ? Image.asset(post.imageUrl!, height: 120, width: double.infinity, fit: BoxFit.cover)
-                    : Image.network(
-                        post.imageUrl!,
-                        height: 120,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
-                      ),
-              ),
+              SudutInfoImage(imageUrl: post.imageUrl!),
               const SizedBox(height: 8),
             ],
             Text(post.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),

@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:flutter/services.dart';
 import '../../../../core/layout/app_shell.dart';
+import '../../../../core/widgets/full_screen_image_viewer.dart';
 import '../../../../core/widgets/rich_text_toolbar_widget.dart';
 import '../../../reports/presentation/screens/whatsapp_report_section.dart' show AttachStudentDialog;
 import '../../../settings/domain/entities/staff_profile.dart';
@@ -2229,22 +2230,9 @@ class _SudutInfoTabState extends ConsumerState<_SudutInfoTab> {
                         ),
                         if (_imageUrlController.text.trim().isNotEmpty) ...[
                           const SizedBox(height: 10),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: _imageUrlController.text.startsWith('assets/')
-                                ? Image.asset(_imageUrlController.text, height: 120, width: double.infinity, fit: BoxFit.cover)
-                                : Image.network(
-                                    _imageUrlController.text.trim(),
-                                    height: 120,
-                                    width: double.infinity,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) => Container(
-                                      height: 60,
-                                      color: Colors.grey.shade200,
-                                      alignment: Alignment.center,
-                                      child: const Text('Pratonton Gambar Tidak Tersedia', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                                    ),
-                                  ),
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxHeight: 240),
+                            child: SudutInfoImage(imageUrl: _imageUrlController.text.trim(), zoomable: false),
                           ),
                         ],
                       ],
@@ -2445,18 +2433,7 @@ class _SudutInfoTabState extends ConsumerState<_SudutInfoTab> {
                           ),
                           const SizedBox(height: 10),
                           if (post.imageUrl != null && post.imageUrl!.isNotEmpty) ...[
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: post.imageUrl!.startsWith('assets/')
-                                  ? Image.asset(post.imageUrl!, height: 120, width: double.infinity, fit: BoxFit.cover)
-                                  : Image.network(
-                                      post.imageUrl!,
-                                      height: 120,
-                                      width: double.infinity,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
-                                    ),
-                            ),
+                            SudutInfoImage(imageUrl: post.imageUrl!),
                             const SizedBox(height: 10),
                           ],
                           Text(
@@ -2825,17 +2802,9 @@ class _EditSudutInfoDialogState extends ConsumerState<_EditSudutInfoDialog> {
             ),
             if (_imageUrlController.text.trim().isNotEmpty) ...[
               const SizedBox(height: 8),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: _imageUrlController.text.startsWith('assets/')
-                    ? Image.asset(_imageUrlController.text, height: 100, width: double.infinity, fit: BoxFit.cover)
-                    : Image.network(
-                        _imageUrlController.text.trim(),
-                        height: 100,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
-                      ),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 200),
+                child: SudutInfoImage(imageUrl: _imageUrlController.text.trim(), zoomable: false),
               ),
             ],
             const SizedBox(height: 12),
