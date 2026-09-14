@@ -20,21 +20,23 @@
 
 ## Current Task
 
-**None in flight for features.** The open item is the security fix flagged below — surface it to Raizal before starting unrelated work, don't silently fix it mid-way through something else.
+**None in flight.** As of 2026-09-14, all three items previously flagged as urgent in this file are fixed and verified live in production — see below. `supabase/.env` (gitignored, `.env.example` alongside it) now holds a **working** `SUPABASE_ACCESS_TOKEN` — the CLI/Management-API access blocker that stalled verification for a month is gone. `source supabase/.env` before any `supabase db push --linked` / `supabase db query --linked` / Management API call.
 
-## Top Priority — Not a Docs Task, a Real Bug
+## Resolved 2026-09-14 (previously the top priority in this file)
 
-**`student_voice_submissions` grants the public `anon` role unrestricted `select`** (`using (true)`, no filter). Anyone holding the project's public anon key — trivially extractable from the deployed client — can read every student voice submission, including the `message`/`subject` text of reports marked `is_anonymous = true` (anti-bullying/safety reports). The Student Portal UI promises these are "Sulit / Rahsia," which is currently false. See `KNOWN_ISSUES.md` KI-014 for the fix (drop `anon` from the `select` policy, keep it on `insert`). **Flag this to Raizal before doing anything else in this codebase if you're reading this fresh** — it's more urgent than any feature request.
+- **KI-014** (`student_voice_submissions` anon-read exposure) — migration `20260914000001` applied and verified: `set local role anon; select count(*) from student_voice_submissions;` now returns `0` regardless of actual row count. Confidential Suara Murid submissions are no longer publicly readable.
+- **Sudut Info `audience` column** (migration `20260914000002`) — applied and verified (`audience` column + check constraint exist; the one pre-existing row correctly defaulted to `kedua_dua`). Sudut Info now targets Murid / Ibu Bapa / both, and was moved off the public Landing Page into the Student Portal and Parent Portal specifically (Raizal's request, 2026-09-14) — see `LANDING_PAGE.md` §4, `DISCIPLINE_AND_COUNSELING.md` §6.
+- **KI-013** (Supabase Auth `site_url`/`uri_allow_list` stuck on the dead `github.io` domain) — fixed via a direct Management API `PATCH`, verified via a follow-up `GET`. Invite-staff and password-reset email links now point at `https://d2csummit.online`.
 
-## Files Recently Modified (as of 2026-08-18, last code commit before this docs pass)
+## Files Recently Modified (as of 2026-09-14)
 
-- `lib/features/landing/presentation/screens/school_landing_screen.dart` — full Cyber redesign
-- `lib/core/widgets/d2c_ai_assistant_dialog.dart`, `lib/core/services/d2c_ai_assistant_service.dart` — new
-- `lib/core/widgets/rich_text_toolbar_widget.dart` — new
-- `lib/features/discipline_counseling/` — Sudut Info tab, Special Announcement composer + management list, image upload (screen-level, not repository)
-- `lib/features/student_portal/` — Tab 1 "Pengumuman"
-- `supabase/migrations/20260817000001` through `20260818000002`
-- `docs/` — this docs-catch-up pass (2026-09-13): `DATABASE.md`, `API.md`, `COMPONENTS.md`, `PROJECT.md`, `TASKS.md`, `CHANGELOG.md`, `KNOWN_ISSUES.md`, `DISCIPLINE_AND_COUNSELING.md` (rewritten), `LANDING_PAGE.md` (rewritten), `STUDENT_PORTAL_AND_VOICE.md`, `NEXT_SESSION.md` (this file)
+- `lib/features/landing/presentation/screens/school_landing_screen.dart` — Sudut Info card/carousel removed entirely, hero back to a single-column `StatelessWidget`
+- `lib/features/discipline_counseling/` — Sudut Info composer/edit dialog gained an audience picker ("Untuk Siapa"); `getSudutInfoPosts`/`create`/`update` all take an `audience` param now
+- `lib/features/student_portal/presentation/screens/student_portal_screen.dart` — "Inspirasi" tab now shows live `audience=murid` Sudut Info posts (falls back to the old static quote when empty)
+- `lib/features/parent_portal/presentation/screens/parent_portal_screen.dart` — `ParentPortalBody` gained an `audience=ibu_bapa` Sudut Info section
+- `supabase/migrations/20260914000001_restrict_student_voice_read.sql`, `20260914000002_sudut_info_audience.sql` — both applied to production
+- `supabase/.env` (gitignored) — now holds a working `SUPABASE_ACCESS_TOKEN`; `.env.example` alongside it documents usage
+- `docs/` — the 2026-09-13 catch-up pass (`DATABASE.md`, `API.md`, `COMPONENTS.md`, `PROJECT.md`, `TASKS.md`, `CHANGELOG.md`, `KNOWN_ISSUES.md`, `DISCIPLINE_AND_COUNSELING.md` rewritten, `LANDING_PAGE.md` rewritten, `STUDENT_PORTAL_AND_VOICE.md`), plus this 2026-09-14 update
 
 ## Expected Outcome
 
@@ -44,20 +46,19 @@ A clean `main` branch, deployed and live at `https://d2csummit.online/`, with:
 
 ## Known Blockers
 
-Three **deliberately blocked** future items (see `TASKS.md` §Blocked), plus the security item above (which is not "blocked," it just needs doing):
+Two **deliberately blocked** future items (see `TASKS.md` §Blocked):
 
 - **T-025** (real parent/student login, replacing the token/IC-lookup Parent Portal) — blocked on a product decision: SMS-provider budget for phone OTP, or a parent-email collection step (the SIS export has no email field). Still unresolved as of 2026-08-12's reconfirmation; nothing since has changed this.
 - **T-026** (mentor/PRS case-tracking module) — blocked on a scoping conversation; no existing table shape fits.
-- **KI-014** (student voice confidentiality) — not "blocked," just not yet done. See above.
 
 ## Next Recommended Tasks
 
 In rough priority order:
 
-1. **Fix KI-014** (`student_voice_submissions` anon read) — see `KNOWN_ISSUES.md` for the exact policy change needed.
-2. **T-029** — persist `themeModeProvider` selection via `shared_preferences`.
-3. **Decide on KI-015** — if `disiplin`/`kaunselor` RBAC is meant to be real, that's a `profiles.role` schema change + new RLS policies, not a small fix; scope it deliberately rather than bolting it on.
-4. **Decide on KI-016** — either wire a real Gemini API key through `--dart-define` if genuine LLM answers are wanted, or soften the "GEMINI INTELLIGENCE" branding to match what it actually is.
+1. **T-029** — persist `themeModeProvider` selection via `shared_preferences`.
+2. **Decide on KI-015** — if `disiplin`/`kaunselor` RBAC is meant to be real, that's a `profiles.role` schema change + new RLS policies, not a small fix; scope it deliberately rather than bolting it on.
+3. **Decide on KI-016** — either wire a real Gemini API key through `--dart-define` if genuine LLM answers are wanted, or soften the "GEMINI INTELLIGENCE" branding to match what it actually is.
+4. **Rotate `SUPABASE_ACCESS_TOKEN`** if this one was ever pasted anywhere outside `supabase/.env` (chat, screenshots, etc.) — treat it like a password.
 
 If the user has a specific new feature request instead, **follow `AI_RULES.md` §5 (the full ship loop) and §8 (design-decision discipline) before writing any code**, and **update this file and `CHANGELOG.md`/`TASKS.md` in the same session you ship in** — the gap this docs pass just closed was caused by exactly the opposite habit.
 
